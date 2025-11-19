@@ -17,11 +17,15 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
+    "@vueuse/core": "^14.0.0",
+    "element-plus": "^2.11.8",
     "pinia": "^3.0.4",
     "vue": "^3.5.24",
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.17",
     "@tsconfig/node22": "^22.0.5",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^24.10.1",
@@ -37,6 +41,7 @@
     "jsdom": "^27.2.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "3.6.2",
+    "tailwindcss": "^4.1.17",
     "typescript": "~5.9.3",
     "vite": "npm:rolldown-vite@latest",
     "vite-plugin-vue-devtools": "^8.0.5",
