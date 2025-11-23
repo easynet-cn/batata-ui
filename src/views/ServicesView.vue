@@ -47,12 +47,7 @@
 
     <!-- 服务列表 -->
     <el-card class="table-card">
-      <el-table
-        v-loading="nacosStore.loading"
-        :data="services"
-        stripe
-        style="width: 100%"
-      >
+      <el-table v-loading="nacosStore.loading" :data="services" stripe style="width: 100%">
         <el-table-column prop="name" label="服务名称" min-width="200">
           <template #default="{ row }">
             <el-link type="primary" @click="viewServiceDetail(row)">
@@ -81,10 +76,7 @@
 
         <el-table-column label="健康实例" width="100" align="center">
           <template #default="{ row }">
-            <el-tag
-              :type="row.healthyInstanceCount > 0 ? 'success' : 'danger'"
-              size="small"
-            >
+            <el-tag :type="row.healthyInstanceCount > 0 ? 'success' : 'danger'" size="small">
               {{ row.healthyInstanceCount }}
             </el-tag>
           </template>
@@ -92,46 +84,27 @@
 
         <el-table-column label="健康状态" width="120" align="center">
           <template #default="{ row }">
-            <el-tag
-              :type="getHealthStatus(row).type"
-              :icon="getHealthStatus(row).icon"
-            >
+            <el-tag :type="getHealthStatus(row).type" :icon="getHealthStatus(row).icon">
               {{ getHealthStatus(row).text }}
             </el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column
-          prop="triggerFlag"
-          label="触发保护"
-          width="100"
-          align="center"
-        >
+        <el-table-column prop="triggerFlag" label="触发保护" width="100" align="center">
           <template #default="{ row }">
-            <el-tag
-              :type="row.triggerFlag === 'true' ? 'warning' : 'info'"
-              size="small"
-            >
-              {{ row.triggerFlag === "true" ? "是" : "否" }}
+            <el-tag :type="row.triggerFlag === 'true' ? 'warning' : 'info'" size="small">
+              {{ row.triggerFlag === 'true' ? '是' : '否' }}
             </el-tag>
           </template>
         </el-table-column>
 
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button
-              type="primary"
-              size="small"
-              @click="viewServiceDetail(row)"
-            >
+            <el-button type="primary" size="small" @click="viewServiceDetail(row)">
               详情
             </el-button>
-            <el-button type="warning" size="small" @click="editService">
-              编辑
-            </el-button>
-            <el-button type="danger" size="small" @click="deleteService(row)">
-              删除
-            </el-button>
+            <el-button type="warning" size="small" @click="editService"> 编辑 </el-button>
+            <el-button type="danger" size="small" @click="deleteService(row)"> 删除 </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -152,24 +125,12 @@
 
     <!-- 创建服务对话框 -->
     <el-dialog v-model="showCreateDialog" title="新建服务" width="500px">
-      <el-form
-        ref="createFormRef"
-        :model="createForm"
-        :rules="createRules"
-        label-width="100px"
-      >
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
         <el-form-item label="服务名称" prop="serviceName">
-          <el-input
-            v-model="createForm.serviceName"
-            placeholder="请输入服务名称"
-          />
+          <el-input v-model="createForm.serviceName" placeholder="请输入服务名称" />
         </el-form-item>
         <el-form-item label="分组" prop="groupName">
-          <el-select
-            v-model="createForm.groupName"
-            placeholder="请选择分组"
-            style="width: 100%"
-          >
+          <el-select v-model="createForm.groupName" placeholder="请选择分组" style="width: 100%">
             <el-option label="DEFAULT_GROUP" value="DEFAULT_GROUP" />
             <el-option label="PRODUCTION_GROUP" value="PRODUCTION_GROUP" />
             <el-option label="TEST_GROUP" value="TEST_GROUP" />
@@ -217,11 +178,8 @@
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="触发保护">
-            <el-tag
-              :type="currentService.triggerFlag === 'true' ? 'warning' : 'info'"
-              size="small"
-            >
-              {{ currentService.triggerFlag === "true" ? "是" : "否" }}
+            <el-tag :type="currentService.triggerFlag === 'true' ? 'warning' : 'info'" size="small">
+              {{ currentService.triggerFlag === 'true' ? '是' : '否' }}
             </el-tag>
           </el-descriptions-item>
         </el-descriptions>
@@ -237,29 +195,19 @@
           >
             <el-table-column prop="instanceId" label="实例ID" min-width="200" />
             <el-table-column prop="ip" label="IP地址" width="150" />
-            <el-table-column
-              prop="port"
-              label="端口"
-              width="100"
-              align="center"
-            />
-            <el-table-column
-              prop="weight"
-              label="权重"
-              width="100"
-              align="center"
-            />
+            <el-table-column prop="port" label="端口" width="100" align="center" />
+            <el-table-column prop="weight" label="权重" width="100" align="center" />
             <el-table-column label="健康状态" width="100" align="center">
               <template #default="{ row }">
                 <el-tag :type="row.healthy ? 'success' : 'danger'" size="small">
-                  {{ row.healthy ? "健康" : "异常" }}
+                  {{ row.healthy ? '健康' : '异常' }}
                 </el-tag>
               </template>
             </el-table-column>
             <el-table-column label="启用状态" width="100" align="center">
               <template #default="{ row }">
                 <el-tag :type="row.enabled ? 'success' : 'info'" size="small">
-                  {{ row.enabled ? "启用" : "禁用" }}
+                  {{ row.enabled ? '启用' : '禁用' }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -272,114 +220,103 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from "vue";
-import {
-  ElMessage,
-  ElMessageBox,
-  type FormInstance,
-  type FormRules,
-} from "element-plus";
-import {
-  Search,
-  Refresh,
-  Plus,
-  SuccessFilled,
-  CircleCloseFilled,
-} from "@element-plus/icons-vue";
-import { useNacosStore } from "@/stores/nacos";
-import type { ServiceInfo } from "@/api/nacos";
+import { ref, reactive, onMounted, computed } from 'vue'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { Search, Refresh, Plus, SuccessFilled, CircleCloseFilled } from '@element-plus/icons-vue'
+import { useNacosStore } from '@/stores/nacos'
+import type { ServiceInfo } from '@/api/nacos'
 
-const nacosStore = useNacosStore();
+const nacosStore = useNacosStore()
 
 // 搜索表单
 const searchForm = reactive({
-  serviceName: "",
-  groupName: "",
-});
+  serviceName: '',
+  groupName: '',
+})
 
 // 分页
 const pagination = reactive({
   pageNo: 1,
   pageSize: 20,
   total: 0,
-});
+})
 
 // 对话框状态
-const showCreateDialog = ref(false);
-const showDetailDialog = ref(false);
-const currentService = ref<ServiceInfo | null>(null);
+const showCreateDialog = ref(false)
+const showDetailDialog = ref(false)
+const currentService = ref<ServiceInfo | null>(null)
 
 // 表单引用
-const createFormRef = ref<FormInstance>();
+const createFormRef = ref<FormInstance>()
 
 // 创建表单
 const createForm = reactive({
-  serviceName: "",
-  groupName: "DEFAULT_GROUP",
-  metadata: "",
-});
+  serviceName: '',
+  groupName: 'DEFAULT_GROUP',
+  metadata: '',
+})
 
 // 表单验证规则
 const createRules: FormRules = {
   serviceName: [
-    { required: true, message: "请输入服务名称", trigger: "blur" },
+    { required: true, message: '请输入服务名称', trigger: 'blur' },
     {
       min: 2,
       max: 50,
-      message: "服务名称长度在 2 到 50 个字符",
-      trigger: "blur",
+      message: '服务名称长度在 2 到 50 个字符',
+      trigger: 'blur',
     },
   ],
-  groupName: [{ required: true, message: "请选择分组", trigger: "change" }],
-};
+  groupName: [{ required: true, message: '请选择分组', trigger: 'change' }],
+}
 
 // 计算属性
-const services = computed(() => nacosStore.services);
-const serviceInstances = computed(() => nacosStore.serviceInstances);
+const services = computed(() => nacosStore.services)
+const serviceInstances = computed(() => nacosStore.serviceInstances)
 
 // 获取健康状态
 const getHealthStatus = (service: ServiceInfo) => {
-  const healthyCount = service.healthyInstanceCount;
-  const totalCount = service.ipCount;
+  const healthyCount = service.healthyInstanceCount
+  const totalCount = service.ipCount
 
   if (totalCount === 0) {
-    return { type: "info", text: "无实例", icon: SuccessFilled };
+    return { type: 'info', text: '无实例', icon: SuccessFilled }
   }
 
-  const healthRate = healthyCount / totalCount;
+  const healthRate = healthyCount / totalCount
   if (healthRate === 1) {
-    return { type: "success", text: "健康", icon: SuccessFilled };
+    return { type: 'success', text: '健康', icon: SuccessFilled }
   } else if (healthRate > 0.5) {
-    return { type: "warning", text: "部分异常", icon: SuccessFilled };
+    return { type: 'warning', text: '部分异常', icon: SuccessFilled }
   } else {
-    return { type: "danger", text: "异常", icon: CircleCloseFilled };
+    return { type: 'danger', text: '异常', icon: CircleCloseFilled }
   }
-};
+}
 
 // 搜索
 const handleSearch = async () => {
-  pagination.pageNo = 1;
-  await fetchServices();
-};
+  pagination.pageNo = 1
+  await fetchServices()
+}
 
 // 重置
 const handleReset = () => {
-  searchForm.serviceName = "";
-  searchForm.groupName = "";
-  handleSearch();
-};
+  searchForm.serviceName = ''
+  searchForm.groupName = ''
+  handleSearch()
+}
 
 // 分页大小改变
 const handleSizeChange = async (size: number) => {
-  pagination.pageSize = size;
-  await fetchServices();
-};
+  pagination.pageSize = size
+  await fetchServices()
+}
 
 // 当前页改变
 const handleCurrentChange = async (page: number) => {
-  pagination.pageNo = page;
-  await fetchServices();
-};
+  pagination.pageNo = page
+  await fetchServices()
+}
 
 // 获取服务列表
 const fetchServices = async () => {
@@ -388,93 +325,89 @@ const fetchServices = async () => {
       pagination.pageNo,
       pagination.pageSize,
       searchForm.groupName || undefined,
-    );
-    pagination.total = result.count;
+    )
+    pagination.total = result.count
   } catch {
-    ElMessage.error("获取服务列表失败");
+    ElMessage.error('获取服务列表失败')
   }
-};
+}
 
 // 查看服务详情
 const viewServiceDetail = async (service: ServiceInfo) => {
-  currentService.value = service;
-  showDetailDialog.value = true;
+  currentService.value = service
+  showDetailDialog.value = true
 
   try {
-    await nacosStore.fetchServiceInstances(service.name, service.groupName);
+    await nacosStore.fetchServiceInstances(service.name, service.groupName)
   } catch {
-    ElMessage.error("获取服务实例失败");
+    ElMessage.error('获取服务实例失败')
   }
-};
+}
 
 // 编辑服务
 const editService = () => {
-  ElMessage.info("编辑功能开发中...");
-};
+  ElMessage.info('编辑功能开发中...')
+}
 
 // 删除服务
 const deleteService = async (service: ServiceInfo) => {
   try {
     await ElMessageBox.confirm(
       `确定要删除服务 "${service.name}" 吗？此操作不可恢复。`,
-      "确认删除",
+      '确认删除',
       {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
       },
-    );
+    )
 
-    await nacosStore.deleteService(service.name, service.groupName);
-    ElMessage.success("删除成功");
-    await fetchServices();
+    await nacosStore.deleteService(service.name, service.groupName)
+    ElMessage.success('删除成功')
+    await fetchServices()
   } catch (error) {
-    if (error !== "cancel") {
-      ElMessage.error("删除失败");
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败')
     }
   }
-};
+}
 
 // 创建服务
 const handleCreateService = async () => {
-  if (!createFormRef.value) return;
+  if (!createFormRef.value) return
 
   try {
-    await createFormRef.value.validate();
+    await createFormRef.value.validate()
 
-    let metadata = {};
+    let metadata = {}
     if (createForm.metadata.trim()) {
       try {
-        metadata = JSON.parse(createForm.metadata);
+        metadata = JSON.parse(createForm.metadata)
       } catch {
-        ElMessage.error("元数据格式错误，请输入有效的JSON格式");
-        return;
+        ElMessage.error('元数据格式错误，请输入有效的JSON格式')
+        return
       }
     }
 
-    await nacosStore.createService(
-      createForm.serviceName,
-      createForm.groupName,
-      metadata,
-    );
-    ElMessage.success("创建成功");
-    showCreateDialog.value = false;
+    await nacosStore.createService(createForm.serviceName, createForm.groupName, metadata)
+    ElMessage.success('创建成功')
+    showCreateDialog.value = false
 
     // 重置表单
-    createForm.serviceName = "";
-    createForm.groupName = "DEFAULT_GROUP";
-    createForm.metadata = "";
+    createForm.serviceName = ''
+    createForm.groupName = 'DEFAULT_GROUP'
+    createForm.metadata = ''
 
-    await fetchServices();
+    await fetchServices()
   } catch {
-    ElMessage.error("创建失败");
+    ElMessage.error('创建失败')
   }
-};
+}
 
 // 页面加载时获取数据
 onMounted(() => {
-  fetchServices();
-});
+  fetchServices()
+})
 </script>
 
 <style scoped>

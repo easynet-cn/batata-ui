@@ -57,64 +57,61 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
-import { useRouter } from "vue-router";
-import { ElMessage, type FormInstance, type FormRules } from "element-plus";
-import { User, Lock } from "@element-plus/icons-vue";
-import { useNacosStore } from "@/stores/nacos";
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { User, Lock } from '@element-plus/icons-vue'
+import { useNacosStore } from '@/stores/nacos'
 
-const router = useRouter();
-const nacosStore = useNacosStore();
+const router = useRouter()
+const nacosStore = useNacosStore()
 
-const loginFormRef = ref<FormInstance>();
+const loginFormRef = ref<FormInstance>()
 const loginForm = reactive({
-  username: "nacos",
-  password: "nacos",
-});
+  username: 'nacos',
+  password: 'nacos',
+})
 
 const loginRules: FormRules = {
   username: [
-    { required: true, message: "请输入用户名", trigger: "blur" },
+    { required: true, message: '请输入用户名', trigger: 'blur' },
     {
       min: 2,
       max: 20,
-      message: "用户名长度在 2 到 20 个字符",
-      trigger: "blur",
+      message: '用户名长度在 2 到 20 个字符',
+      trigger: 'blur',
     },
   ],
   password: [
-    { required: true, message: "请输入密码", trigger: "blur" },
-    { min: 3, max: 50, message: "密码长度在 3 到 50 个字符", trigger: "blur" },
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 3, max: 50, message: '密码长度在 3 到 50 个字符', trigger: 'blur' },
   ],
-};
+}
 
 const handleLogin = async () => {
-  if (!loginFormRef.value) return;
+  if (!loginFormRef.value) return
 
   try {
-    await loginFormRef.value.validate();
-    const success = await nacosStore.login(
-      loginForm.username,
-      loginForm.password,
-    );
+    await loginFormRef.value.validate()
+    const success = await nacosStore.login(loginForm.username, loginForm.password)
 
     if (success) {
-      ElMessage.success("登录成功");
-      router.push("/");
+      ElMessage.success('登录成功')
+      router.push('/')
     } else {
-      ElMessage.error(nacosStore.error || "登录失败");
+      ElMessage.error(nacosStore.error || '登录失败')
     }
   } catch (error) {
-    console.error("登录验证失败:", error);
+    console.error('登录验证失败:', error)
   }
-};
+}
 
 // 检查是否已登录
 onMounted(() => {
   if (nacosStore.isAuthenticated) {
-    router.push("/");
+    router.push('/')
   }
-});
+})
 </script>
 
 <style scoped>

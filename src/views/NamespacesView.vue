@@ -19,22 +19,11 @@
 
     <!-- 命名空间列表 -->
     <el-card class="table-card">
-      <el-table
-        v-loading="nacosStore.loading"
-        :data="namespaces"
-        stripe
-        style="width: 100%"
-      >
-        <el-table-column
-          prop="namespaceShowName"
-          label="命名空间名称"
-          min-width="200"
-        >
+      <el-table v-loading="nacosStore.loading" :data="namespaces" stripe style="width: 100%">
+        <el-table-column prop="namespaceShowName" label="命名空间名称" min-width="200">
           <template #default="{ row }">
             <div class="namespace-name">
-              <el-icon v-if="row.namespace === 'public'" color="#67c23a"
-                ><FolderOpened
-              /></el-icon>
+              <el-icon v-if="row.namespace === 'public'" color="#67c23a"><FolderOpened /></el-icon>
               <el-icon v-else color="#409eff"><Folder /></el-icon>
               <span>{{ row.namespaceShowName }}</span>
             </div>
@@ -43,10 +32,7 @@
 
         <el-table-column prop="namespaceId" label="命名空间ID" min-width="200">
           <template #default="{ row }">
-            <el-tag
-              size="small"
-              :type="row.namespace === 'public' ? 'success' : 'primary'"
-            >
+            <el-tag size="small" :type="row.namespace === 'public' ? 'success' : 'primary'">
               {{ row.namespaceId }}
             </el-tag>
           </template>
@@ -54,16 +40,11 @@
 
         <el-table-column prop="quota" label="配额" width="120" align="center">
           <template #default="{ row }">
-            {{ row.quota === -1 ? "无限制" : row.quota }}
+            {{ row.quota === -1 ? '无限制' : row.quota }}
           </template>
         </el-table-column>
 
-        <el-table-column
-          prop="configCount"
-          label="配置数量"
-          width="120"
-          align="center"
-        >
+        <el-table-column prop="configCount" label="配置数量" width="120" align="center">
           <template #default="{ row }">
             <el-tag type="info" size="small">{{ row.configCount }}</el-tag>
           </template>
@@ -72,16 +53,14 @@
         <el-table-column label="类型" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.type === 0 ? 'success' : 'primary'" size="small">
-              {{ row.type === 0 ? "系统" : "自定义" }}
+              {{ row.type === 0 ? '系统' : '自定义' }}
             </el-tag>
           </template>
         </el-table-column>
 
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" size="small" @click="viewConfigs(row)">
-              查看配置
-            </el-button>
+            <el-button type="primary" size="small" @click="viewConfigs(row)"> 查看配置 </el-button>
             <el-button
               v-if="row.type === 1"
               type="warning"
@@ -105,27 +84,17 @@
 
     <!-- 创建命名空间对话框 -->
     <el-dialog v-model="showCreateDialog" title="新建命名空间" width="500px">
-      <el-form
-        ref="createFormRef"
-        :model="createForm"
-        :rules="createRules"
-        label-width="120px"
-      >
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="120px">
         <el-form-item label="命名空间ID" prop="namespaceId">
           <el-input
             v-model="createForm.namespaceId"
             placeholder="请输入命名空间ID（如：dev、test、prod）"
           />
-          <div class="form-tip">
-            命名空间ID只能包含字母、数字、下划线，且不能以数字开头
-          </div>
+          <div class="form-tip">命名空间ID只能包含字母、数字、下划线，且不能以数字开头</div>
         </el-form-item>
 
         <el-form-item label="命名空间名称" prop="namespaceName">
-          <el-input
-            v-model="createForm.namespaceName"
-            placeholder="请输入命名空间显示名称"
-          />
+          <el-input v-model="createForm.namespaceName" placeholder="请输入命名空间显示名称" />
         </el-form-item>
 
         <el-form-item label="描述">
@@ -140,30 +109,20 @@
 
       <template #footer>
         <el-button @click="showCreateDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleCreateNamespace"
-          >确定</el-button
-        >
+        <el-button type="primary" @click="handleCreateNamespace">确定</el-button>
       </template>
     </el-dialog>
 
     <!-- 编辑命名空间对话框 -->
     <el-dialog v-model="showEditDialog" title="编辑命名空间" width="500px">
-      <el-form
-        ref="editFormRef"
-        :model="editForm"
-        :rules="editRules"
-        label-width="120px"
-      >
+      <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="120px">
         <el-form-item label="命名空间ID">
           <el-input v-model="editForm.namespaceId" disabled />
           <div class="form-tip">命名空间ID创建后不可修改</div>
         </el-form-item>
 
         <el-form-item label="命名空间名称" prop="namespaceName">
-          <el-input
-            v-model="editForm.namespaceName"
-            placeholder="请输入命名空间显示名称"
-          />
+          <el-input v-model="editForm.namespaceName" placeholder="请输入命名空间显示名称" />
         </el-form-item>
 
         <el-form-item label="描述">
@@ -230,201 +189,186 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
-import {
-  ElMessage,
-  ElMessageBox,
-  type FormInstance,
-  type FormRules,
-} from "element-plus";
-import {
-  Plus,
-  Refresh,
-  Folder,
-  FolderOpened,
-  Document,
-} from "@element-plus/icons-vue";
-import { useNacosStore } from "@/stores/nacos";
-import type { Namespace } from "@/api/nacos";
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { Plus, Refresh, Folder, FolderOpened, Document } from '@element-plus/icons-vue'
+import { useNacosStore } from '@/stores/nacos'
+import type { Namespace } from '@/api/nacos'
 
-const router = useRouter();
-const nacosStore = useNacosStore();
+const router = useRouter()
+const nacosStore = useNacosStore()
 
 // 对话框状态
-const showCreateDialog = ref(false);
-const showEditDialog = ref(false);
+const showCreateDialog = ref(false)
+const showEditDialog = ref(false)
 
 // 表单引用
-const createFormRef = ref<FormInstance>();
-const editFormRef = ref<FormInstance>();
+const createFormRef = ref<FormInstance>()
+const editFormRef = ref<FormInstance>()
 
 // 创建表单
 const createForm = reactive({
-  namespaceId: "",
-  namespaceName: "",
-  namespaceDesc: "",
-});
+  namespaceId: '',
+  namespaceName: '',
+  namespaceDesc: '',
+})
 
 // 编辑表单
 const editForm = reactive({
-  namespaceId: "",
-  namespaceName: "",
-  namespaceDesc: "",
-});
+  namespaceId: '',
+  namespaceName: '',
+  namespaceDesc: '',
+})
 
 // 表单验证规则
 const createRules: FormRules = {
   namespaceId: [
-    { required: true, message: "请输入命名空间ID", trigger: "blur" },
+    { required: true, message: '请输入命名空间ID', trigger: 'blur' },
     {
       pattern: /^[a-zA-Z_][a-zA-Z0-9_]*$/,
-      message: "命名空间ID只能包含字母、数字、下划线，且不能以数字开头",
-      trigger: "blur",
+      message: '命名空间ID只能包含字母、数字、下划线，且不能以数字开头',
+      trigger: 'blur',
     },
     {
       min: 2,
       max: 50,
-      message: "命名空间ID长度在 2 到 50 个字符",
-      trigger: "blur",
+      message: '命名空间ID长度在 2 到 50 个字符',
+      trigger: 'blur',
     },
   ],
   namespaceName: [
-    { required: true, message: "请输入命名空间名称", trigger: "blur" },
+    { required: true, message: '请输入命名空间名称', trigger: 'blur' },
     {
       min: 2,
       max: 100,
-      message: "命名空间名称长度在 2 到 100 个字符",
-      trigger: "blur",
+      message: '命名空间名称长度在 2 到 100 个字符',
+      trigger: 'blur',
     },
   ],
-};
+}
 
 const editRules: FormRules = {
   namespaceName: [
-    { required: true, message: "请输入命名空间名称", trigger: "blur" },
+    { required: true, message: '请输入命名空间名称', trigger: 'blur' },
     {
       min: 2,
       max: 100,
-      message: "命名空间名称长度在 2 到 100 个字符",
-      trigger: "blur",
+      message: '命名空间名称长度在 2 到 100 个字符',
+      trigger: 'blur',
     },
   ],
-};
+}
 
 // 计算属性
-const namespaces = computed(() => nacosStore.namespaces);
+const namespaces = computed(() => nacosStore.namespaces)
 
-const totalNamespaces = computed(() => namespaces.value.length);
+const totalNamespaces = computed(() => namespaces.value.length)
 
-const totalConfigs = computed(() =>
-  namespaces.value.reduce((sum, ns) => sum + ns.configCount, 0),
-);
+const totalConfigs = computed(() => namespaces.value.reduce((sum, ns) => sum + ns.configCount, 0))
 
-const customNamespaces = computed(
-  () => namespaces.value.filter((ns) => ns.type === 1).length,
-);
+const customNamespaces = computed(() => namespaces.value.filter((ns) => ns.type === 1).length)
 
 // 刷新数据
 const refreshData = async () => {
   try {
-    await nacosStore.fetchNamespaces();
-    ElMessage.success("数据刷新成功");
+    await nacosStore.fetchNamespaces()
+    ElMessage.success('数据刷新成功')
   } catch {
-    ElMessage.error("数据刷新失败");
+    ElMessage.error('数据刷新失败')
   }
-};
+}
 
 // 查看配置
 const viewConfigs = (namespace: Namespace) => {
   router.push({
-    path: "/configs",
+    path: '/configs',
     query: { tenant: namespace.namespaceId },
-  });
-};
+  })
+}
 
 // 编辑命名空间
 const editNamespace = (namespace: Namespace) => {
-  editForm.namespaceId = namespace.namespaceId;
-  editForm.namespaceName = namespace.namespaceShowName;
-  editForm.namespaceDesc = ""; // Nacos API 不返回描述信息
-  showEditDialog.value = true;
-};
+  editForm.namespaceId = namespace.namespaceId
+  editForm.namespaceName = namespace.namespaceShowName
+  editForm.namespaceDesc = '' // Nacos API 不返回描述信息
+  showEditDialog.value = true
+}
 
 // 删除命名空间
 const deleteNamespace = async (namespace: Namespace) => {
   if (namespace.configCount > 0) {
-    ElMessage.warning("该命名空间下还有配置，请先删除所有配置");
-    return;
+    ElMessage.warning('该命名空间下还有配置，请先删除所有配置')
+    return
   }
 
   try {
     await ElMessageBox.confirm(
       `确定要删除命名空间 "${namespace.namespaceShowName}" 吗？此操作不可恢复。`,
-      "确认删除",
+      '确认删除',
       {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
       },
-    );
+    )
 
-    await nacosStore.deleteNamespace(namespace.namespaceId);
-    ElMessage.success("删除成功");
-    await refreshData();
+    await nacosStore.deleteNamespace(namespace.namespaceId)
+    ElMessage.success('删除成功')
+    await refreshData()
   } catch (error) {
-    if (error !== "cancel") {
-      ElMessage.error("删除失败");
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败')
     }
   }
-};
+}
 
 // 创建命名空间
 const handleCreateNamespace = async () => {
-  if (!createFormRef.value) return;
+  if (!createFormRef.value) return
 
   try {
-    await createFormRef.value.validate();
+    await createFormRef.value.validate()
 
     await nacosStore.createNamespace(
       createForm.namespaceId,
       createForm.namespaceName,
       createForm.namespaceDesc || undefined,
-    );
+    )
 
-    ElMessage.success("创建成功");
-    showCreateDialog.value = false;
+    ElMessage.success('创建成功')
+    showCreateDialog.value = false
 
     // 重置表单
-    createForm.namespaceId = "";
-    createForm.namespaceName = "";
-    createForm.namespaceDesc = "";
+    createForm.namespaceId = ''
+    createForm.namespaceName = ''
+    createForm.namespaceDesc = ''
 
-    await refreshData();
+    await refreshData()
   } catch {
-    ElMessage.error("创建失败");
+    ElMessage.error('创建失败')
   }
-};
+}
 
 // 编辑命名空间
 const handleEditNamespace = async () => {
-  if (!editFormRef.value) return;
+  if (!editFormRef.value) return
 
   try {
-    await editFormRef.value.validate();
+    await editFormRef.value.validate()
 
     // 注意：Nacos API 可能不支持更新命名空间，这里只是示例
-    ElMessage.info("更新命名空间功能需要后端API支持");
-    showEditDialog.value = false;
+    ElMessage.info('更新命名空间功能需要后端API支持')
+    showEditDialog.value = false
   } catch {
-    ElMessage.error("更新失败");
+    ElMessage.error('更新失败')
   }
-};
+}
 
 // 页面加载时获取数据
 onMounted(() => {
-  refreshData();
-});
+  refreshData()
+})
 </script>
 
 <style scoped>

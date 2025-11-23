@@ -104,16 +104,14 @@
           <el-dropdown @command="handleCommand">
             <span class="user-info">
               <el-icon><User /></el-icon>
-              {{ nacosStore.currentUser?.username || "未登录" }}
+              {{ nacosStore.currentUser?.username || '未登录' }}
               <el-icon class="el-icon--right"><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="profile">个人信息</el-dropdown-item>
                 <el-dropdown-item command="settings">设置</el-dropdown-item>
-                <el-dropdown-item divided command="logout"
-                  >退出登录</el-dropdown-item
-                >
+                <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -140,9 +138,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { useNacosStore } from "@/stores/nacos";
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useNacosStore } from '@/stores/nacos'
 import {
   Service,
   List,
@@ -160,51 +158,51 @@ import {
   Tools,
   User,
   ArrowDown,
-} from "@element-plus/icons-vue";
+} from '@element-plus/icons-vue'
 
-const route = useRoute();
-const router = useRouter();
-const nacosStore = useNacosStore();
+const route = useRoute()
+const router = useRouter()
+const nacosStore = useNacosStore()
 
-const activeMenu = computed(() => route.path);
-const breadcrumbItems = ref<string[]>([]);
+const activeMenu = computed(() => route.path)
+const breadcrumbItems = ref<string[]>([])
 
 // 监听路由变化更新面包屑
 watch(
   () => route.path,
   (newPath) => {
     const pathMap: Record<string, string[]> = {
-      "/services": ["服务管理", "服务列表"],
-      "/service-detail": ["服务管理", "服务详情"],
-      "/configs": ["配置管理", "配置列表"],
-      "/config-editor": ["配置管理", "配置编辑"],
-      "/config-history": ["配置管理", "历史版本"],
-      "/namespaces": ["命名空间", "命名空间列表"],
-      "/cluster-nodes": ["集群管理", "节点列表"],
-      "/cluster-health": ["集群管理", "健康状态"],
-      "/permissions": ["权限管理"],
-      "/system": ["系统设置"],
-    };
+      '/services': ['服务管理', '服务列表'],
+      '/service-detail': ['服务管理', '服务详情'],
+      '/configs': ['配置管理', '配置列表'],
+      '/config-editor': ['配置管理', '配置编辑'],
+      '/config-history': ['配置管理', '历史版本'],
+      '/namespaces': ['命名空间', '命名空间列表'],
+      '/cluster-nodes': ['集群管理', '节点列表'],
+      '/cluster-health': ['集群管理', '健康状态'],
+      '/permissions': ['权限管理'],
+      '/system': ['系统设置'],
+    }
 
-    breadcrumbItems.value = pathMap[newPath] || [];
+    breadcrumbItems.value = pathMap[newPath] || []
   },
   { immediate: true },
-);
+)
 
 const handleCommand = (command: string) => {
   switch (command) {
-    case "profile":
+    case 'profile':
       // 跳转到个人信息页面
-      break;
-    case "settings":
+      break
+    case 'settings':
       // 跳转到设置页面
-      break;
-    case "logout":
-      nacosStore.logout();
-      router.push("/login");
-      break;
+      break
+    case 'logout':
+      nacosStore.logout()
+      router.push('/login')
+      break
   }
-};
+}
 </script>
 
 <style scoped>

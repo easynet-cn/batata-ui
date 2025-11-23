@@ -63,12 +63,7 @@
 
     <!-- 配置列表 -->
     <el-card class="table-card">
-      <el-table
-        v-loading="nacosStore.loading"
-        :data="configs"
-        stripe
-        style="width: 100%"
-      >
+      <el-table v-loading="nacosStore.loading" :data="configs" stripe style="width: 100%">
         <el-table-column prop="dataId" label="Data ID" min-width="200">
           <template #default="{ row }">
             <el-link type="primary" @click="viewConfigDetail(row)">
@@ -88,19 +83,14 @@
         <el-table-column prop="type" label="格式" width="100">
           <template #default="{ row }">
             <el-tag :type="getConfigTypeColor(row.type)" size="small">
-              {{ row.type || "text" }}
+              {{ row.type || 'text' }}
             </el-tag>
           </template>
         </el-table-column>
 
         <el-table-column label="环境" width="150">
           <template #default="{ row }">
-            <el-tag
-              v-for="env in row.envs"
-              :key="env"
-              size="small"
-              class="env-tag"
-            >
+            <el-tag v-for="env in row.envs" :key="env" size="small" class="env-tag">
               {{ env }}
             </el-tag>
           </template>
@@ -120,22 +110,10 @@
 
         <el-table-column label="操作" width="250" fixed="right">
           <template #default="{ row }">
-            <el-button
-              type="primary"
-              size="small"
-              @click="viewConfigDetail(row)"
-            >
-              详情
-            </el-button>
-            <el-button type="warning" size="small" @click="editConfig(row)">
-              编辑
-            </el-button>
-            <el-button type="info" size="small" @click="viewHistory">
-              历史
-            </el-button>
-            <el-button type="danger" size="small" @click="deleteConfig(row)">
-              删除
-            </el-button>
+            <el-button type="primary" size="small" @click="viewConfigDetail(row)"> 详情 </el-button>
+            <el-button type="warning" size="small" @click="editConfig(row)"> 编辑 </el-button>
+            <el-button type="info" size="small" @click="viewHistory"> 历史 </el-button>
+            <el-button type="danger" size="small" @click="deleteConfig(row)"> 删除 </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -161,12 +139,7 @@
       width="80%"
       top="5vh"
     >
-      <el-form
-        ref="configFormRef"
-        :model="configForm"
-        :rules="configRules"
-        label-width="100px"
-      >
+      <el-form ref="configFormRef" :model="configForm" :rules="configRules" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="Data ID" prop="dataId">
@@ -179,11 +152,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="分组" prop="group">
-              <el-select
-                v-model="configForm.group"
-                placeholder="请选择分组"
-                style="width: 100%"
-              >
+              <el-select v-model="configForm.group" placeholder="请选择分组" style="width: 100%">
                 <el-option label="DEFAULT_GROUP" value="DEFAULT_GROUP" />
                 <el-option label="PRODUCTION_GROUP" value="PRODUCTION_GROUP" />
                 <el-option label="TEST_GROUP" value="TEST_GROUP" />
@@ -195,19 +164,12 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="应用名">
-              <el-input
-                v-model="configForm.appName"
-                placeholder="请输入应用名"
-              />
+              <el-input v-model="configForm.appName" placeholder="请输入应用名" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="格式">
-              <el-select
-                v-model="configForm.type"
-                placeholder="请选择格式"
-                style="width: 100%"
-              >
+              <el-select v-model="configForm.type" placeholder="请选择格式" style="width: 100%">
                 <el-option label="TEXT" value="text" />
                 <el-option label="JSON" value="json" />
                 <el-option label="YAML" value="yaml" />
@@ -220,11 +182,7 @@
         </el-row>
 
         <el-form-item label="命名空间">
-          <el-select
-            v-model="configForm.tenant"
-            placeholder="请选择命名空间"
-            style="width: 100%"
-          >
+          <el-select v-model="configForm.tenant" placeholder="请选择命名空间" style="width: 100%">
             <el-option label="公共空间" value="" />
             <el-option
               v-for="ns in nacosStore.namespaces"
@@ -267,11 +225,11 @@
             <el-tag size="small">{{ currentConfig.group }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="应用名">
-            {{ currentConfig.appName || "-" }}
+            {{ currentConfig.appName || '-' }}
           </el-descriptions-item>
           <el-descriptions-item label="格式">
             <el-tag :type="getConfigTypeColor(currentConfig.type)" size="small">
-              {{ currentConfig.type || "text" }}
+              {{ currentConfig.type || 'text' }}
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="MD5">
@@ -305,122 +263,117 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from "vue";
-import {
-  ElMessage,
-  ElMessageBox,
-  type FormInstance,
-  type FormRules,
-} from "element-plus";
-import { Search, Refresh, Plus } from "@element-plus/icons-vue";
-import { useNacosStore } from "@/stores/nacos";
-import type { ConfigItem } from "@/api/nacos";
+import { ref, reactive, onMounted, computed } from 'vue'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { Search, Refresh, Plus } from '@element-plus/icons-vue'
+import { useNacosStore } from '@/stores/nacos'
+import type { ConfigItem } from '@/api/nacos'
 
-const nacosStore = useNacosStore();
+const nacosStore = useNacosStore()
 
 // 搜索表单
 const searchForm = reactive({
-  dataId: "",
-  group: "",
-  tenant: "",
-});
+  dataId: '',
+  group: '',
+  tenant: '',
+})
 
 // 分页
 const pagination = reactive({
   pageNo: 1,
   pageSize: 20,
   total: 0,
-});
+})
 
 // 对话框状态
-const showCreateDialog = ref(false);
-const showDetailDialog = ref(false);
-const currentConfig = ref<ConfigItem | null>(null);
-const isEdit = ref(false);
-const configContent = ref("");
+const showCreateDialog = ref(false)
+const showDetailDialog = ref(false)
+const currentConfig = ref<ConfigItem | null>(null)
+const isEdit = ref(false)
+const configContent = ref('')
 
 // 表单引用
-const configFormRef = ref<FormInstance>();
+const configFormRef = ref<FormInstance>()
 
 // 配置表单
 const configForm = reactive({
-  dataId: "",
-  group: "DEFAULT_GROUP",
-  appName: "",
-  type: "text",
-  tenant: "",
-  content: "",
-});
+  dataId: '',
+  group: 'DEFAULT_GROUP',
+  appName: '',
+  type: 'text',
+  tenant: '',
+  content: '',
+})
 
 // 表单验证规则
 const configRules: FormRules = {
   dataId: [
-    { required: true, message: "请输入Data ID", trigger: "blur" },
+    { required: true, message: '请输入Data ID', trigger: 'blur' },
     {
       min: 1,
       max: 255,
-      message: "Data ID长度在 1 到 255 个字符",
-      trigger: "blur",
+      message: 'Data ID长度在 1 到 255 个字符',
+      trigger: 'blur',
     },
   ],
-  group: [{ required: true, message: "请选择分组", trigger: "change" }],
-  content: [{ required: true, message: "请输入配置内容", trigger: "blur" }],
-};
+  group: [{ required: true, message: '请选择分组', trigger: 'change' }],
+  content: [{ required: true, message: '请输入配置内容', trigger: 'blur' }],
+}
 
 // 计算属性
-const configs = computed(() => nacosStore.configs);
+const configs = computed(() => nacosStore.configs)
 
 // 获取配置类型颜色
 const getConfigTypeColor = (type: string) => {
   const colorMap: Record<string, string> = {
-    json: "success",
-    yaml: "success",
-    xml: "warning",
-    html: "danger",
-    properties: "info",
-    text: "",
-  };
-  return colorMap[type] || "";
-};
+    json: 'success',
+    yaml: 'success',
+    xml: 'warning',
+    html: 'danger',
+    properties: 'info',
+    text: '',
+  }
+  return colorMap[type] || ''
+}
 
 // 获取命名空间名称
 const getNamespaceName = (tenant: string) => {
-  if (!tenant) return "公共空间";
-  const ns = nacosStore.namespaces.find((n) => n.namespaceId === tenant);
-  return ns ? ns.namespaceShowName : tenant;
-};
+  if (!tenant) return '公共空间'
+  const ns = nacosStore.namespaces.find((n) => n.namespaceId === tenant)
+  return ns ? ns.namespaceShowName : tenant
+}
 
 // 格式化时间
 const formatTime = (timestamp: number) => {
-  if (!timestamp) return "-";
-  return new Date(timestamp).toLocaleString();
-};
+  if (!timestamp) return '-'
+  return new Date(timestamp).toLocaleString()
+}
 
 // 搜索
 const handleSearch = async () => {
-  pagination.pageNo = 1;
-  await fetchConfigs();
-};
+  pagination.pageNo = 1
+  await fetchConfigs()
+}
 
 // 重置
 const handleReset = () => {
-  searchForm.dataId = "";
-  searchForm.group = "";
-  searchForm.tenant = "";
-  handleSearch();
-};
+  searchForm.dataId = ''
+  searchForm.group = ''
+  searchForm.tenant = ''
+  handleSearch()
+}
 
 // 分页大小改变
 const handleSizeChange = async (size: number) => {
-  pagination.pageSize = size;
-  await fetchConfigs();
-};
+  pagination.pageSize = size
+  await fetchConfigs()
+}
 
 // 当前页改变
 const handleCurrentChange = async (page: number) => {
-  pagination.pageNo = page;
-  await fetchConfigs();
-};
+  pagination.pageNo = page
+  await fetchConfigs()
+}
 
 // 获取配置列表
 const fetchConfigs = async () => {
@@ -431,93 +384,83 @@ const fetchConfigs = async () => {
       searchForm.dataId || undefined,
       searchForm.group || undefined,
       searchForm.tenant || undefined,
-    );
-    pagination.total = result.totalCount;
+    )
+    pagination.total = result.totalCount
   } catch {
-    ElMessage.error("获取配置列表失败");
+    ElMessage.error('获取配置列表失败')
   }
-};
+}
 
 // 查看配置详情
 const viewConfigDetail = async (config: ConfigItem) => {
-  currentConfig.value = config;
-  showDetailDialog.value = true;
+  currentConfig.value = config
+  showDetailDialog.value = true
 
   try {
-    const content = await nacosStore.fetchConfigContent(
-      config.dataId,
-      config.group,
-      config.tenant,
-    );
-    configContent.value =
-      typeof content === "string" ? content : content.data || String(content);
+    const content = await nacosStore.fetchConfigContent(config.dataId, config.group, config.tenant)
+    configContent.value = typeof content === 'string' ? content : content.data || String(content)
   } catch {
-    ElMessage.error("获取配置内容失败");
+    ElMessage.error('获取配置内容失败')
   }
-};
+}
 
 // 编辑配置
 const editConfig = async (config: ConfigItem) => {
-  isEdit.value = true;
-  currentConfig.value = config;
+  isEdit.value = true
+  currentConfig.value = config
 
   // 填充表单
-  configForm.dataId = config.dataId;
-  configForm.group = config.group;
-  configForm.appName = config.appName || "";
-  configForm.type = config.type || "text";
-  configForm.tenant = config.tenant || "";
+  configForm.dataId = config.dataId
+  configForm.group = config.group
+  configForm.appName = config.appName || ''
+  configForm.type = config.type || 'text'
+  configForm.tenant = config.tenant || ''
 
   try {
-    const content = await nacosStore.fetchConfigContent(
-      config.dataId,
-      config.group,
-      config.tenant,
-    );
-    configForm.content =
-      typeof content === "string" ? content : content.data || String(content);
+    const content = await nacosStore.fetchConfigContent(config.dataId, config.group, config.tenant)
+    configForm.content = typeof content === 'string' ? content : content.data || String(content)
   } catch {
-    ElMessage.error("获取配置内容失败");
-    return;
+    ElMessage.error('获取配置内容失败')
+    return
   }
 
-  showCreateDialog.value = true;
-};
+  showCreateDialog.value = true
+}
 
 // 查看历史
 const viewHistory = () => {
-  ElMessage.info("历史版本功能开发中...");
-};
+  ElMessage.info('历史版本功能开发中...')
+}
 
 // 删除配置
 const deleteConfig = async (config: ConfigItem) => {
   try {
     await ElMessageBox.confirm(
       `确定要删除配置 "${config.dataId}" 吗？此操作不可恢复。`,
-      "确认删除",
+      '确认删除',
       {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
       },
-    );
+    )
 
-    await nacosStore.deleteConfig(config.dataId, config.group, config.tenant);
-    ElMessage.success("删除成功");
-    await fetchConfigs();
+    await nacosStore.deleteConfig(config.dataId, config.group, config.tenant)
+    ElMessage.success('删除成功')
+    await fetchConfigs()
   } catch (error) {
-    if (error !== "cancel") {
-      ElMessage.error("删除失败");
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败')
     }
   }
-};
+}
 
 // 保存配置
 const handleSaveConfig = async () => {
-  if (!configFormRef.value) return;
+  if (!configFormRef.value) return
 
   try {
-    await configFormRef.value.validate();
+    await configFormRef.value.validate()
 
     await nacosStore.publishConfig(
       configForm.dataId,
@@ -525,32 +468,32 @@ const handleSaveConfig = async () => {
       configForm.content,
       configForm.type,
       configForm.tenant || undefined,
-    );
+    )
 
-    ElMessage.success(isEdit.value ? "更新成功" : "创建成功");
-    showCreateDialog.value = false;
-    resetConfigForm();
-    await fetchConfigs();
+    ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
+    showCreateDialog.value = false
+    resetConfigForm()
+    await fetchConfigs()
   } catch {
-    ElMessage.error(isEdit.value ? "更新失败" : "创建失败");
+    ElMessage.error(isEdit.value ? '更新失败' : '创建失败')
   }
-};
+}
 
 // 重置配置表单
 const resetConfigForm = () => {
-  configForm.dataId = "";
-  configForm.group = "DEFAULT_GROUP";
-  configForm.appName = "";
-  configForm.type = "text";
-  configForm.tenant = "";
-  configForm.content = "";
-  isEdit.value = false;
-};
+  configForm.dataId = ''
+  configForm.group = 'DEFAULT_GROUP'
+  configForm.appName = ''
+  configForm.type = 'text'
+  configForm.tenant = ''
+  configForm.content = ''
+  isEdit.value = false
+}
 
 // 页面加载时获取数据
 onMounted(async () => {
-  await Promise.all([fetchConfigs(), nacosStore.fetchNamespaces()]);
-});
+  await Promise.all([fetchConfigs(), nacosStore.fetchNamespaces()])
+})
 </script>
 
 <style scoped>
@@ -605,7 +548,7 @@ onMounted(async () => {
 }
 
 .content-textarea {
-  font-family: "Courier New", monospace;
+  font-family: 'Courier New', monospace;
 }
 
 .env-tag {
@@ -623,7 +566,7 @@ onMounted(async () => {
 }
 
 :deep(.el-textarea__inner) {
-  font-family: "Courier New", monospace;
+  font-family: 'Courier New', monospace;
   line-height: 1.5;
 }
 </style>

@@ -93,15 +93,9 @@
             </div>
           </template>
           <div class="activity-list">
-            <div
-              v-for="activity in recentActivities"
-              :key="activity.id"
-              class="activity-item"
-            >
+            <div v-for="activity in recentActivities" :key="activity.id" class="activity-item">
               <div class="activity-icon" :class="activity.type">
-                <el-icon
-                  ><component :is="getActivityIcon(activity.type)"
-                /></el-icon>
+                <el-icon><component :is="getActivityIcon(activity.type)" /></el-icon>
               </div>
               <div class="activity-content">
                 <div class="activity-title">{{ activity.title }}</div>
@@ -145,18 +139,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, type Component } from "vue";
-import { use } from "echarts/core";
-import { CanvasRenderer } from "echarts/renderers";
-import { PieChart } from "echarts/charts";
-import {
-  TitleComponent,
-  TooltipComponent,
-  LegendComponent,
-} from "echarts/components";
-import VChart from "vue-echarts";
-import { useNacosStore } from "@/stores/nacos";
-import { ElMessage } from "element-plus";
+import { ref, onMounted, computed, type Component } from 'vue'
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { PieChart } from 'echarts/charts'
+import { TitleComponent, TooltipComponent, LegendComponent } from 'echarts/components'
+import VChart from 'vue-echarts'
+import { useNacosStore } from '@/stores/nacos'
+import { ElMessage } from 'element-plus'
 import {
   Service,
   Monitor,
@@ -167,83 +157,77 @@ import {
   Edit,
   Delete,
   Setting,
-} from "@element-plus/icons-vue";
+} from '@element-plus/icons-vue'
 
 // 注册 ECharts 组件
-use([
-  CanvasRenderer,
-  PieChart,
-  TitleComponent,
-  TooltipComponent,
-  LegendComponent,
-]);
+use([CanvasRenderer, PieChart, TitleComponent, TooltipComponent, LegendComponent])
 
-const nacosStore = useNacosStore();
+const nacosStore = useNacosStore()
 
 // 最近活动数据
 const recentActivities = ref([
   {
     id: 1,
-    type: "create",
-    title: "创建新服务 user-service",
-    time: "2 分钟前",
+    type: 'create',
+    title: '创建新服务 user-service',
+    time: '2 分钟前',
   },
   {
     id: 2,
-    type: "update",
-    title: "更新配置 application.yaml",
-    time: "5 分钟前",
+    type: 'update',
+    title: '更新配置 application.yaml',
+    time: '5 分钟前',
   },
   {
     id: 3,
-    type: "delete",
-    title: "删除服务 old-service",
-    time: "10 分钟前",
+    type: 'delete',
+    title: '删除服务 old-service',
+    time: '10 分钟前',
   },
   {
     id: 4,
-    type: "create",
-    title: "创建命名空间 production",
-    time: "15 分钟前",
+    type: 'create',
+    title: '创建命名空间 production',
+    time: '15 分钟前',
   },
   {
     id: 5,
-    type: "update",
-    title: "服务实例状态变更",
-    time: "20 分钟前",
+    type: 'update',
+    title: '服务实例状态变更',
+    time: '20 分钟前',
   },
-]);
+])
 
 // 健康状态图表配置
 const healthChartOption = computed(() => ({
   tooltip: {
-    trigger: "item",
-    formatter: "{a} <br/>{b}: {c} ({d}%)",
+    trigger: 'item',
+    formatter: '{a} <br/>{b}: {c} ({d}%)',
   },
   legend: {
-    orient: "vertical",
-    left: "left",
+    orient: 'vertical',
+    left: 'left',
   },
   series: [
     {
-      name: "服务健康状态",
-      type: "pie",
-      radius: ["40%", "70%"],
+      name: '服务健康状态',
+      type: 'pie',
+      radius: ['40%', '70%'],
       avoidLabelOverlap: false,
       itemStyle: {
         borderRadius: 10,
-        borderColor: "#fff",
+        borderColor: '#fff',
         borderWidth: 2,
       },
       label: {
         show: false,
-        position: "center",
+        position: 'center',
       },
       emphasis: {
         label: {
           show: true,
           fontSize: 16,
-          fontWeight: "bold",
+          fontWeight: 'bold',
         },
       },
       labelLine: {
@@ -252,18 +236,18 @@ const healthChartOption = computed(() => ({
       data: [
         {
           value: nacosStore.healthyServicesCount,
-          name: "健康服务",
-          itemStyle: { color: "#52c41a" },
+          name: '健康服务',
+          itemStyle: { color: '#52c41a' },
         },
         {
           value: nacosStore.serviceTotal - nacosStore.healthyServicesCount,
-          name: "异常服务",
-          itemStyle: { color: "#ff4d4f" },
+          name: '异常服务',
+          itemStyle: { color: '#ff4d4f' },
         },
       ],
     },
   ],
-}));
+}))
 
 // 获取活动图标
 const getActivityIcon = (type: string) => {
@@ -272,9 +256,9 @@ const getActivityIcon = (type: string) => {
     update: Edit,
     delete: Delete,
     setting: Setting,
-  };
-  return iconMap[type] || Setting;
-};
+  }
+  return iconMap[type] || Setting
+}
 
 // 刷新数据
 const refreshData = async () => {
@@ -283,17 +267,17 @@ const refreshData = async () => {
       nacosStore.fetchServices(),
       nacosStore.fetchConfigs(),
       nacosStore.fetchNamespaces(),
-    ]);
-    ElMessage.success("数据刷新成功");
+    ])
+    ElMessage.success('数据刷新成功')
   } catch {
-    ElMessage.error("数据刷新失败");
+    ElMessage.error('数据刷新失败')
   }
-};
+}
 
 // 页面加载时获取数据
 onMounted(async () => {
-  await refreshData();
-});
+  await refreshData()
+})
 </script>
 
 <style scoped>
