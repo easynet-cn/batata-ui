@@ -1,6 +1,9 @@
 import axios from 'axios'
 import type { AxiosInstance, AxiosResponse } from 'axios'
 
+// 从环境变量获取 API 基础地址
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/nacos'
+
 // Nacos API响应接口
 export interface NacosResponse<T = unknown> {
   code: number
@@ -60,7 +63,7 @@ export interface Namespace {
 class NacosApi {
   private instance: AxiosInstance
 
-  constructor(baseURL: string = 'http://localhost:8848/nacos/v1') {
+  constructor(baseURL: string = `${API_BASE_URL}/v1`) {
     this.instance = axios.create({
       baseURL,
       timeout: 10000,

@@ -1,300 +1,323 @@
 <template>
-  <el-container class="nacos-layout">
-    <el-aside width="250px" class="sidebar">
-      <div class="logo">
-        <h2>Nacos 控制台</h2>
-        <span class="version">v3.1.0</span>
+  <div class="flex h-screen bg-slate-50 overflow-hidden">
+    <!-- Sidebar -->
+    <aside
+      :class="[
+        isSidebarOpen ? 'w-64' : 'w-20',
+        'bg-[#001529] text-slate-300 transition-all duration-300 ease-in-out flex flex-col z-20 shadow-xl',
+      ]"
+    >
+      <div class="h-16 flex items-center px-6 border-b border-slate-700/30 bg-[#002140]">
+        <div
+          class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3 shrink-0 shadow-lg shadow-blue-500/20"
+        >
+          <span class="text-white font-bold text-xl">N</span>
+        </div>
+        <span v-if="isSidebarOpen" class="font-bold text-white text-lg tracking-tight truncate"
+          >NACOS 2.0</span
+        >
       </div>
 
-      <el-menu
-        :default-active="activeMenu"
-        class="nacos-menu"
-        router
-        background-color="#001529"
-        text-color="#fff"
-        active-text-color="#1890ff"
+      <nav class="flex-1 py-4 px-3 space-y-6 overflow-y-auto">
+        <div v-for="(group, groupIdx) in navGroups" :key="groupIdx" class="space-y-1">
+          <p
+            v-if="isSidebarOpen"
+            class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2"
+          >
+            {{ group.title }}
+          </p>
+          <RouterLink
+            v-for="item in group.items"
+            :key="item.path"
+            :to="item.path"
+            :class="[
+              'flex items-center px-3 py-2.5 rounded-xl transition-all group relative',
+              route.path === item.path
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'hover:bg-slate-800/50 hover:text-white text-slate-400',
+            ]"
+          >
+            <component :is="item.icon" :size="18" class="shrink-0" />
+            <span v-if="isSidebarOpen" class="ml-3 font-medium text-sm">{{ item.label }}</span>
+            <div
+              v-if="!isSidebarOpen && route.path === item.path"
+              class="absolute left-0 w-1 h-5 bg-white rounded-r-full"
+            />
+          </RouterLink>
+        </div>
+      </nav>
+
+      <div class="p-4 border-t border-slate-700/30">
+        <button
+          @click="isSidebarOpen = !isSidebarOpen"
+          class="w-full flex items-center justify-center py-2 hover:bg-slate-800 rounded-lg transition-colors text-slate-400"
+        >
+          <X v-if="isSidebarOpen" :size="20" />
+          <Menu v-else :size="20" />
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <!-- Header -->
+      <header
+        class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-10 shadow-sm"
       >
-        <el-sub-menu index="service">
-          <template #title>
-            <el-icon><Service /></el-icon>
-            <span>服务管理</span>
-          </template>
-          <el-menu-item index="/services">
-            <el-icon><List /></el-icon>
-            <span>服务列表</span>
-          </el-menu-item>
-          <el-menu-item index="/service-detail">
-            <el-icon><View /></el-icon>
-            <span>服务详情</span>
-          </el-menu-item>
-        </el-sub-menu>
+        <div class="flex items-center space-x-6">
+          <div class="flex items-center text-slate-500 text-sm font-medium">
+            {{ t('dashboard') }} /
+            <span class="text-slate-900 ml-1">{{ currentPageLabel }}</span>
+          </div>
 
-        <el-sub-menu index="config">
-          <template #title>
-            <el-icon><Setting /></el-icon>
-            <span>配置管理</span>
-          </template>
-          <el-menu-item index="/configs">
-            <el-icon><Document /></el-icon>
-            <span>配置列表</span>
-          </el-menu-item>
-          <el-menu-item index="/config-editor">
-            <el-icon><Edit /></el-icon>
-            <span>配置编辑</span>
-          </el-menu-item>
-          <el-menu-item index="/config-history">
-            <el-icon><Clock /></el-icon>
-            <span>历史版本</span>
-          </el-menu-item>
-        </el-sub-menu>
+          <!-- Namespace Selector -->
+          <div class="relative border-l pl-6 border-slate-100 hidden sm:block">
+            <button
+              @click="showNamespaceMenu = !showNamespaceMenu"
+              class="flex items-center space-x-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors group"
+            >
+              <Globe :size="14" class="text-blue-500" />
+              <span class="text-xs font-bold text-slate-700">{{ t('namespace') }}:</span>
+              <span class="text-xs font-medium text-slate-600">{{
+                currentNamespace.namespaceShowName
+              }}</span>
+              <ChevronDown
+                :size="14"
+                :class="['text-slate-400 transition-transform', showNamespaceMenu && 'rotate-180']"
+              />
+            </button>
 
-        <el-sub-menu index="namespace">
-          <template #title>
-            <el-icon><Folder /></el-icon>
-            <span>命名空间</span>
-          </template>
-          <el-menu-item index="/namespaces">
-            <el-icon><Collection /></el-icon>
-            <span>命名空间列表</span>
-          </el-menu-item>
-        </el-sub-menu>
-
-        <el-sub-menu index="cluster">
-          <template #title>
-            <el-icon><Connection /></el-icon>
-            <span>集群管理</span>
-          </template>
-          <el-menu-item index="/cluster-nodes">
-            <el-icon><Monitor /></el-icon>
-            <span>节点列表</span>
-          </el-menu-item>
-          <el-menu-item index="/cluster-health">
-            <el-icon><TrendCharts /></el-icon>
-            <span>健康状态</span>
-          </el-menu-item>
-        </el-sub-menu>
-
-        <el-menu-item index="/permissions">
-          <el-icon><Lock /></el-icon>
-          <span>权限管理</span>
-        </el-menu-item>
-
-        <el-menu-item index="/system">
-          <el-icon><Tools /></el-icon>
-          <span>系统设置</span>
-        </el-menu-item>
-      </el-menu>
-    </el-aside>
-
-    <el-container>
-      <el-header class="header">
-        <div class="header-left">
-          <el-breadcrumb separator="/">
-            <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
-            <el-breadcrumb-item v-if="breadcrumbItems.length > 0">
-              {{ breadcrumbItems[0] }}
-            </el-breadcrumb-item>
-            <el-breadcrumb-item v-if="breadcrumbItems.length > 1">
-              {{ breadcrumbItems[1] }}
-            </el-breadcrumb-item>
-          </el-breadcrumb>
-        </div>
-
-        <div class="header-right">
-          <el-dropdown @command="handleCommand">
-            <span class="user-info">
-              <el-icon><User /></el-icon>
-              {{ nacosStore.currentUser?.username || '未登录' }}
-              <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-            </span>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="profile">个人信息</el-dropdown-item>
-                <el-dropdown-item command="settings">设置</el-dropdown-item>
-                <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
-              </el-dropdown-menu>
+            <template v-if="showNamespaceMenu">
+              <div class="fixed inset-0 z-40" @click="showNamespaceMenu = false" />
+              <div
+                class="absolute left-6 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-50"
+              >
+                <div
+                  class="px-4 py-1.5 mb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50"
+                >
+                  {{ t('selectNamespace') }}
+                </div>
+                <button
+                  v-for="ns in mockNamespaces"
+                  :key="ns.namespace"
+                  @click="switchNamespace(ns)"
+                  :class="[
+                    'w-full text-left px-4 py-2 text-sm flex items-center justify-between transition-colors',
+                    currentNamespace.namespace === ns.namespace
+                      ? 'bg-blue-50 text-blue-600 font-bold'
+                      : 'text-slate-600 hover:bg-slate-50',
+                  ]"
+                >
+                  <span>{{ ns.namespaceShowName }}</span>
+                  <div
+                    v-if="currentNamespace.namespace === ns.namespace"
+                    class="w-1.5 h-1.5 rounded-full bg-blue-600"
+                  />
+                </button>
+              </div>
             </template>
-          </el-dropdown>
-        </div>
-      </el-header>
-
-      <el-main class="main-content">
-        <div v-if="nacosStore.loading" class="loading-container">
-          <el-loading-directive />
+          </div>
         </div>
 
-        <el-alert
-          v-if="nacosStore.error"
-          :title="nacosStore.error"
-          type="error"
-          show-icon
-          @close="nacosStore.clearError"
-        />
+        <div class="flex items-center space-x-4 md:space-x-6 text-slate-600">
+          <!-- Language Selector -->
+          <div class="relative">
+            <button
+              @click="showLangMenu = !showLangMenu"
+              class="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded-xl transition-all"
+            >
+              <Languages :size="18" class="text-slate-400" />
+              <span class="text-xs font-bold uppercase">{{ language }}</span>
+            </button>
+            <template v-if="showLangMenu">
+              <div class="fixed inset-0 z-40" @click="showLangMenu = false" />
+              <div
+                class="absolute right-0 mt-2 w-32 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50"
+              >
+                <button
+                  @click="handlerChangeLanguage('en')"
+                  :class="[
+                    'w-full text-left px-4 py-2 text-sm',
+                    language === 'en'
+                      ? 'text-blue-600 font-bold bg-blue-50'
+                      : 'text-slate-600 hover:bg-slate-50',
+                  ]"
+                >
+                  English
+                </button>
+                <button
+                  @click="handlerChangeLanguage('zh')"
+                  :class="[
+                    'w-full text-left px-4 py-2 text-sm',
+                    language === 'zh'
+                      ? 'text-blue-600 font-bold bg-blue-50'
+                      : 'text-slate-600 hover:bg-slate-50',
+                  ]"
+                >
+                  中文
+                </button>
+              </div>
+            </template>
+          </div>
 
-        <router-view />
-      </el-main>
-    </el-container>
-  </el-container>
+          <!-- User Menu -->
+          <div class="relative border-l pl-4 md:pl-6 border-slate-200">
+            <button
+              @click="showUserMenu = !showUserMenu"
+              class="flex items-center space-x-2 p-1 pr-2 hover:bg-slate-50 rounded-xl transition-all"
+            >
+              <div
+                class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-600/20 uppercase"
+              >
+                {{ user?.name?.charAt(0) || 'U' }}
+              </div>
+              <div class="hidden sm:block text-left">
+                <div class="text-xs font-bold text-slate-900 leading-none">
+                  {{ user?.name || 'User' }}
+                </div>
+                <div class="text-[10px] text-slate-400 leading-none mt-1 uppercase font-semibold">
+                  {{ t('administrator') }}
+                </div>
+              </div>
+              <ChevronDown
+                :size="14"
+                :class="['text-slate-400 transition-transform', showUserMenu && 'rotate-180']"
+              />
+            </button>
+            <template v-if="showUserMenu">
+              <div class="fixed inset-0 z-40" @click="showUserMenu = false" />
+              <div
+                class="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50"
+              >
+                <button
+                  @click="handleLogout"
+                  class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+                >
+                  <LogOut :size="14" class="mr-2" />
+                  {{ t('signOut') }}
+                </button>
+              </div>
+            </template>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content Area -->
+      <main class="flex-1 overflow-y-auto p-4 md:p-6 bg-[#f8fafc]">
+        <div class="max-w-7xl mx-auto">
+          <RouterView v-slot="{ Component }">
+            <component :is="Component" :namespace="currentNamespace" @switch="switchNamespace" />
+          </RouterView>
+        </div>
+      </main>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useNacosStore } from '@/stores/nacos'
+import { ref, computed, onMounted, reactive } from 'vue'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import {
-  Service,
-  List,
-  View,
-  Setting,
-  Document,
-  Edit,
-  Clock,
-  Folder,
-  Collection,
-  Connection,
-  Monitor,
-  TrendCharts,
-  Lock,
-  Tools,
-  User,
-  ArrowDown,
-} from '@element-plus/icons-vue'
+  Settings,
+  Server,
+  Layers,
+  Menu,
+  X,
+  LogOut,
+  ChevronDown,
+  Users,
+  ShieldAlert,
+  Key,
+  Network,
+  Globe,
+  Languages,
+} from 'lucide-vue-next'
+import { useI18n, type Language } from '@/i18n'
+import { mockNamespaces } from '@/mock/data'
+import type { Namespace } from '@/types'
+import { useNacosStore } from '@/stores/nacos'
+import { reactify } from '@vueuse/core'
 
+const { t, language, setLanguage } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const nacosStore = useNacosStore()
 
-const activeMenu = computed(() => route.path)
-const breadcrumbItems = ref<string[]>([])
+const isSidebarOpen = ref(true)
+const showUserMenu = ref(false)
+const showNamespaceMenu = ref(false)
+const showLangMenu = ref(false)
 
-// 监听路由变化更新面包屑
-watch(
-  () => route.path,
-  (newPath) => {
-    const pathMap: Record<string, string[]> = {
-      '/services': ['服务管理', '服务列表'],
-      '/service-detail': ['服务管理', '服务详情'],
-      '/configs': ['配置管理', '配置列表'],
-      '/config-editor': ['配置管理', '配置编辑'],
-      '/config-history': ['配置管理', '历史版本'],
-      '/namespaces': ['命名空间', '命名空间列表'],
-      '/cluster-nodes': ['集群管理', '节点列表'],
-      '/cluster-health': ['集群管理', '健康状态'],
-      '/permissions': ['权限管理'],
-      '/system': ['系统设置'],
+const langClass = reactive([])
+
+const user = ref<{ name: string } | null>(null)
+const defaultNamespace: Namespace = {
+  namespace: '',
+  namespaceShowName: 'public',
+  type: 0,
+  quota: 200,
+  configCount: 0,
+}
+const currentNamespace = ref<Namespace>(mockNamespaces[0] || defaultNamespace)
+
+onMounted(() => {
+  const savedUser = localStorage.getItem('nacos_user')
+  const savedToken = localStorage.getItem('nacos-token')
+  if (savedUser) {
+    user.value = JSON.parse(savedUser)
+    // Also restore store state for router guard
+    if (savedToken) {
+      nacosStore.currentUser = { username: user.value!.name, token: savedToken }
     }
-
-    breadcrumbItems.value = pathMap[newPath] || []
-  },
-  { immediate: true },
-)
-
-const handleCommand = (command: string) => {
-  switch (command) {
-    case 'profile':
-      // 跳转到个人信息页面
-      break
-    case 'settings':
-      // 跳转到设置页面
-      break
-    case 'logout':
-      nacosStore.logout()
-      router.push('/login')
-      break
   }
+
+  const savedNs = localStorage.getItem('nacos_current_ns')
+  if (savedNs) {
+    currentNamespace.value = JSON.parse(savedNs)
+  }
+})
+
+const handlerChangeLanguage = (lang: Language) => {
+  setLanguage(lang)
+  showLangMenu.value = false
 }
+
+const handleLogout = () => {
+  user.value = null
+  localStorage.removeItem('nacos_user')
+  localStorage.removeItem('nacos-token')
+  nacosStore.logout()
+  router.push('/login')
+}
+
+const switchNamespace = (ns: Namespace) => {
+  currentNamespace.value = ns
+  localStorage.setItem('nacos_current_ns', JSON.stringify(ns))
+  showNamespaceMenu.value = false
+}
+
+const navGroups = computed(() => [
+  {
+    title: t('coreFeatures'),
+    items: [
+      { path: '/', label: t('configuration'), icon: Settings },
+      { path: '/services', label: t('services'), icon: Server },
+      { path: '/namespaces', label: t('namespaces'), icon: Layers },
+      { path: '/cluster', label: t('cluster'), icon: Network },
+    ],
+  },
+  {
+    title: t('authorityControl'),
+    items: [
+      { path: '/users', label: t('users'), icon: Users },
+      { path: '/roles', label: t('roles'), icon: ShieldAlert },
+      { path: '/permissions', label: t('permissions'), icon: Key },
+    ],
+  },
+])
+
+const currentPageLabel = computed(() => {
+  const allItems = navGroups.value.flatMap((g) => g.items)
+  return allItems.find((i) => i.path === route.path)?.label || 'Overview'
+})
 </script>
-
-<style scoped>
-.nacos-layout {
-  height: 100vh;
-}
-
-.sidebar {
-  background-color: #001529;
-}
-
-.logo {
-  padding: 16px;
-  text-align: center;
-  color: white;
-  border-bottom: 1px solid #1f2937;
-}
-
-.logo h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.version {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.nacos-menu {
-  border-right: none;
-  height: calc(100vh - 80px);
-  overflow-y: auto;
-}
-
-.header {
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-}
-
-.header-left {
-  flex: 1;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 4px;
-  transition: background-color 0.3s;
-}
-
-.user-info:hover {
-  background-color: #f3f4f6;
-}
-
-.main-content {
-  background-color: #f5f5f5;
-  padding: 24px;
-  position: relative;
-}
-
-.loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-}
-
-:deep(.el-menu-item),
-:deep(.el-sub-menu__title) {
-  height: 48px;
-  line-height: 48px;
-}
-
-:deep(.el-menu-item.is-active) {
-  background-color: #1890ff !important;
-}
-
-:deep(.el-loading-mask) {
-  background-color: rgba(255, 255, 255, 0.8);
-}
-</style>

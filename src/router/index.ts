@@ -18,58 +18,38 @@ const router = createRouter({
       children: [
         {
           path: '',
-          name: 'dashboard',
-          component: () => import('../views/DashboardView.vue'),
+          name: 'configs',
+          component: () => import('../views/ConfigListView.vue'),
         },
         {
           path: 'services',
           name: 'services',
-          component: () => import('../views/ServicesView.vue'),
-        },
-        {
-          path: 'service-detail',
-          name: 'service-detail',
-          component: () => import('../views/ServicesView.vue'),
-        },
-        {
-          path: 'configs',
-          name: 'configs',
-          component: () => import('../views/ConfigsView.vue'),
-        },
-        {
-          path: 'config-editor',
-          name: 'config-editor',
-          component: () => import('../views/ConfigsView.vue'),
-        },
-        {
-          path: 'config-history',
-          name: 'config-history',
-          component: () => import('../views/ConfigsView.vue'),
+          component: () => import('../views/ServiceListView.vue'),
         },
         {
           path: 'namespaces',
           name: 'namespaces',
-          component: () => import('../views/NamespacesView.vue'),
+          component: () => import('../views/NamespaceListView.vue'),
         },
         {
-          path: 'cluster-nodes',
-          name: 'cluster-nodes',
-          component: () => import('../views/ClusterNodesView.vue'),
+          path: 'cluster',
+          name: 'cluster',
+          component: () => import('../views/ClusterListView.vue'),
         },
         {
-          path: 'cluster-health',
-          name: 'cluster-health',
-          component: () => import('../views/ClusterNodesView.vue'),
+          path: 'users',
+          name: 'users',
+          component: () => import('../views/UserListView.vue'),
+        },
+        {
+          path: 'roles',
+          name: 'roles',
+          component: () => import('../views/RoleListView.vue'),
         },
         {
           path: 'permissions',
           name: 'permissions',
-          component: () => import('../views/AboutView.vue'),
-        },
-        {
-          path: 'system',
-          name: 'system',
-          component: () => import('../views/AboutView.vue'),
+          component: () => import('../views/PermissionListView.vue'),
         },
       ],
     },
@@ -79,6 +59,16 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, _from, next) => {
   const nacosStore = useNacosStore()
+
+  // Restore user session from localStorage if not already in store
+  if (!nacosStore.isAuthenticated) {
+    const savedUser = localStorage.getItem('nacos_user')
+    const savedToken = localStorage.getItem('nacos-token')
+    if (savedUser && savedToken) {
+      const user = JSON.parse(savedUser)
+      nacosStore.currentUser = { username: user.name, token: savedToken }
+    }
+  }
 
   if (to.meta.requiresAuth !== false && !nacosStore.isAuthenticated) {
     // 需要认证但未登录，跳转到登录页
