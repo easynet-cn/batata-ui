@@ -62,12 +62,12 @@ onMounted(() => {
               >N</span
             >
           </div>
-          <h1 class="text-2xl font-bold text-white mb-2">{{ t('welcomeBack') }}</h1>
+          <h1 class="text-base font-semibold text-white mb-1">{{ t('welcomeBack') }}</h1>
           <p class="text-slate-400 text-sm">{{ t('loginSubtitle') }}</p>
         </div>
 
-        <form @submit.prevent="handleSubmit" class="p-8 space-y-6">
-          <div class="space-y-4">
+        <form @submit.prevent="handleSubmit" class="p-8 space-y-3">
+          <div class="space-y-3">
             <div class="relative group">
               <div
                 class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors"

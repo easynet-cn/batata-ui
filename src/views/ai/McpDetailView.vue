@@ -1,0 +1,229 @@
+<template>
+  <div class="space-y-3">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button @click="goBack" class="btn btn-ghost btn-sm">
+          <ArrowLeft class="w-3.5 h-3.5" />
+        </button>
+        <div>
+          <h1 class="text-base font-semibold text-text-primary">
+            {{ server?.name || t('mcpServerDetail') }}
+          </h1>
+          <p class="text-xs text-text-secondary mt-0.5">{{ t('mcpServerDetailDesc') }}</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button @click="refreshTools" class="btn btn-secondary btn-sm" :disabled="refreshing">
+          <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': refreshing }" />
+          {{ t('refreshTools') }}
+        </button>
+        <button @click="handleEdit" class="btn btn-primary btn-sm">
+          <Pencil class="w-3.5 h-3.5" />
+          {{ t('edit') }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="card p-8 text-center">
+      <Loader2 class="w-8 h-8 animate-spin mx-auto text-primary" />
+    </div>
+
+    <template v-else-if="server">
+      <!-- Server Info -->
+      <div class="card">
+        <div class="p-4">
+          <h3 class="text-sm font-medium text-text-primary mb-4">{{ t('serverInfo') }}</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div>
+              <span class="text-sm text-text-secondary">{{ t('serverName') }}</span>
+              <p class="font-medium text-text-primary">{{ server.name }}</p>
+            </div>
+            <div>
+              <span class="text-sm text-text-secondary">{{ t('serverType') }}</span>
+              <p>
+                <span :class="getTypeClass(server.type)">{{ server.type }}</span>
+              </p>
+            </div>
+            <div>
+              <span class="text-sm text-text-secondary">{{ t('status') }}</span>
+              <p>
+                <span :class="server.enabled ? 'badge badge-success' : 'badge badge-danger'">
+                  {{ server.enabled ? t('enabled') : t('disabled') }}
+                </span>
+              </p>
+            </div>
+            <div v-if="server.type === 'stdio'">
+              <span class="text-sm text-text-secondary">{{ t('command') }}</span>
+              <p class="font-mono text-sm text-text-primary">{{ server.command }}</p>
+            </div>
+            <div v-else>
+              <span class="text-sm text-text-secondary">{{ t('serverUrl') }}</span>
+              <p class="font-mono text-sm text-text-primary">{{ server.url }}</p>
+            </div>
+            <div>
+              <span class="text-sm text-text-secondary">{{ t('toolCount') }}</span>
+              <p class="font-medium text-text-primary">{{ tools.length }}</p>
+            </div>
+            <div class="md:col-span-2 lg:col-span-3" v-if="server.description">
+              <span class="text-sm text-text-secondary">{{ t('description') }}</span>
+              <p class="text-text-primary">{{ server.description }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tools List -->
+      <div class="card">
+        <div class="p-4 border-b border-border">
+          <h3 class="text-sm font-medium text-text-primary">{{ t('availableTools') }}</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>{{ t('toolName') }}</th>
+                <th>{{ t('description') }}</th>
+                <th>{{ t('parameters') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="tools.length === 0">
+                <td colspan="3" class="text-center py-6 text-text-secondary">
+                  {{ t('noToolsFound') }}
+                </td>
+              </tr>
+              <tr v-for="tool in tools" :key="tool.name" class="hover:bg-bg-secondary">
+                <td class="font-mono font-medium">{{ tool.name }}</td>
+                <td class="text-text-secondary max-w-md">{{ tool.description || '-' }}</td>
+                <td>
+                  <button
+                    v-if="tool.inputSchema"
+                    @click="showParameters(tool)"
+                    class="btn btn-ghost btn-sm"
+                  >
+                    <Code class="w-3.5 h-3.5" />
+                    {{ t('viewSchema') }}
+                  </button>
+                  <span v-else class="text-text-tertiary">-</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+
+    <!-- Parameters Modal -->
+    <div v-if="showSchemaModal" class="modal-backdrop" @click="showSchemaModal = false">
+      <div class="modal max-w-2xl" @click.stop>
+        <div class="modal-header">
+          <h3 class="text-sm font-semibold text-text-primary">
+            {{ selectedTool?.name }} - {{ t('inputSchema') }}
+          </h3>
+          <button @click="showSchemaModal = false" class="btn btn-ghost btn-sm">
+            <X class="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <div class="modal-body">
+          <pre class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono">{{
+            JSON.stringify(selectedTool?.inputSchema, null, 2)
+          }}</pre>
+        </div>
+        <div class="modal-footer">
+          <button @click="showSchemaModal = false" class="btn btn-secondary">
+            {{ t('close') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { ArrowLeft, RefreshCw, Pencil, Loader2, Code, X } from 'lucide-vue-next'
+import { useI18n } from '@/i18n'
+import nacosApi from '@/api/nacos'
+import type { McpServerInfo, McpToolInfo, Namespace } from '@/types'
+
+defineProps<{
+  namespace: Namespace
+}>()
+
+const router = useRouter()
+const route = useRoute()
+const { t } = useI18n()
+
+// State
+const loading = ref(false)
+const refreshing = ref(false)
+const server = ref<McpServerInfo | null>(null)
+const tools = ref<McpToolInfo[]>([])
+
+// Modal
+const showSchemaModal = ref(false)
+const selectedTool = ref<McpToolInfo | null>(null)
+
+// Methods
+const fetchMcpServer = async () => {
+  if (!route.query.id) return
+
+  loading.value = true
+  try {
+    const [serverRes, toolsRes] = await Promise.all([
+      nacosApi.getMcpServerDetail(route.query.id as string),
+      nacosApi.getMcpServerTools(route.query.id as string),
+    ])
+    server.value = serverRes.data.data
+    tools.value = toolsRes.data.data || []
+  } catch (error) {
+    console.error('Failed to fetch MCP server:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const refreshTools = async () => {
+  if (!route.query.id) return
+
+  refreshing.value = true
+  try {
+    const response = await nacosApi.getMcpServerTools(route.query.id as string)
+    tools.value = response.data.data || []
+  } catch (error) {
+    console.error('Failed to refresh tools:', error)
+  } finally {
+    refreshing.value = false
+  }
+}
+
+const getTypeClass = (type: string) => {
+  const classes: Record<string, string> = {
+    stdio: 'badge badge-info',
+    sse: 'badge badge-success',
+    http: 'badge badge-primary',
+  }
+  return classes[type] || 'badge'
+}
+
+const goBack = () => {
+  router.push('/mcp')
+}
+
+const handleEdit = () => {
+  router.push(`/mcp/edit?id=${route.query.id}`)
+}
+
+const showParameters = (tool: McpToolInfo) => {
+  selectedTool.value = tool
+  showSchemaModal.value = true
+}
+
+// Lifecycle
+onMounted(() => {
+  fetchMcpServer()
+})
+</script>

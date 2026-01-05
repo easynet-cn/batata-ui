@@ -7,25 +7,9 @@ import type {
   RoleInfo,
   PermissionInfo,
   NodeInfo,
-  InstanceInfo,
 } from '@/types'
 
 const Random = Mock.Random
-
-const generateInstances = (count: number): InstanceInfo[] => {
-  return Array.from({ length: count }, () => ({
-    ip: `10.0.${Random.integer(1, 255)}.${Random.integer(1, 255)}`,
-    port: Random.pick([8080, 8081, 9000, 9001, 3000]) as number,
-    weight: parseFloat(Random.float(0.1, 1.0, 1, 1).toFixed(1)),
-    healthy: Math.random() < 0.8,
-    enabled: true,
-    ephemeral: true,
-    metadata: {
-      version: `1.0.${Random.integer(0, 9)}`,
-      preserved: 'true',
-    },
-  }))
-}
 
 export const mockConfigs: ConfigInfo[] = Array.from({ length: 15 }, () => ({
   id: Random.guid(),
@@ -36,13 +20,13 @@ export const mockConfigs: ConfigInfo[] = Array.from({ length: 15 }, () => ({
   type: 'yaml' as const,
   md5: Random.string('lower', 32),
   tenant: 'public',
-  lastModifiedTime: Date.now() - Random.integer(0, 86400000 * 30),
+  createTime: Date.now() - Random.integer(86400000 * 30, 86400000 * 60),
+  modifyTime: Date.now() - Random.integer(0, 86400000 * 30),
 }))
 
 export const mockServices: ServiceInfo[] = Array.from({ length: 10 }, () => {
   const ipCount = Random.integer(1, 10)
-  const instances = generateInstances(ipCount)
-  const healthyCount = instances.filter((i) => i.healthy).length
+  const healthyCount = Math.floor(ipCount * 0.8)
 
   return {
     name: `service-${Random.word(4, 8)}`,
@@ -50,8 +34,7 @@ export const mockServices: ServiceInfo[] = Array.from({ length: 10 }, () => {
     clusterCount: Random.integer(1, 3),
     ipCount: ipCount,
     healthyInstanceCount: healthyCount,
-    triggerThreshold: 0.6,
-    instances: instances,
+    protectThreshold: 0.6,
   }
 })
 
@@ -74,9 +57,9 @@ export const mockNamespaces: Namespace[] = [
 ]
 
 export const mockUsers: UserInfo[] = [
-  { username: 'nacos' },
-  { username: 'admin' },
-  { username: 'developer' },
+  { username: 'nacos', enabled: true },
+  { username: 'admin', enabled: true },
+  { username: 'developer', enabled: true },
 ]
 
 export const mockRoles: RoleInfo[] = [
@@ -86,8 +69,8 @@ export const mockRoles: RoleInfo[] = [
 ]
 
 export const mockPermissions: PermissionInfo[] = [
-  { role: 'ROLE_ADMIN', resource: '*:*:*', action: 'RW' },
-  { role: 'ROLE_DEVELOPER', resource: 'public:*:*', action: 'R' },
+  { role: 'ROLE_ADMIN', resource: '*:*:*', action: 'rw' },
+  { role: 'ROLE_DEVELOPER', resource: 'public:*:*', action: 'r' },
 ]
 
 export const mockNodes: NodeInfo[] = [
@@ -95,30 +78,36 @@ export const mockNodes: NodeInfo[] = [
     ip: '192.168.1.101',
     port: 8848,
     state: 'UP',
-    uptime: '15d 4h 22m',
-    version: '2.3.2',
-    isLeader: true,
-    cpuUsage: 12.5,
-    memoryUsage: 45.2,
+    address: '192.168.1.101:8848',
+    abilities: {
+      remoteAbility: { supportRemoteConnection: true },
+      configAbility: { supportRemoteMetrics: true },
+      namingAbility: { supportDeltaPush: true, supportJraft: true },
+    },
+    metadata: { version: '2.3.2' },
   },
   {
     ip: '192.168.1.102',
     port: 8848,
     state: 'UP',
-    uptime: '15d 4h 21m',
-    version: '2.3.2',
-    isLeader: false,
-    cpuUsage: 8.4,
-    memoryUsage: 42.1,
+    address: '192.168.1.102:8848',
+    abilities: {
+      remoteAbility: { supportRemoteConnection: true },
+      configAbility: { supportRemoteMetrics: true },
+      namingAbility: { supportDeltaPush: true, supportJraft: true },
+    },
+    metadata: { version: '2.3.2' },
   },
   {
     ip: '192.168.1.103',
     port: 8848,
     state: 'UP',
-    uptime: '10d 2h 15m',
-    version: '2.3.2',
-    isLeader: false,
-    cpuUsage: 15.1,
-    memoryUsage: 48.9,
+    address: '192.168.1.103:8848',
+    abilities: {
+      remoteAbility: { supportRemoteConnection: true },
+      configAbility: { supportRemoteMetrics: true },
+      namingAbility: { supportDeltaPush: true, supportJraft: true },
+    },
+    metadata: { version: '2.3.2' },
   },
 ]

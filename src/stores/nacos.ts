@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { ServiceInfo, ServiceInstance, ConfigItem, Namespace } from '@/api/nacos'
+import type { ServiceInfo, ConfigInfo, Namespace, NodeInfo } from '@/types'
 import nacosApi from '@/api/nacos'
 
 export const useNacosStore = defineStore('nacos', () => {
@@ -13,20 +13,18 @@ export const useNacosStore = defineStore('nacos', () => {
   const services = ref<ServiceInfo[]>([])
   const serviceTotal = ref(0)
   const currentService = ref<ServiceInfo | null>(null)
-  const serviceInstances = ref<ServiceInstance[]>([])
 
   // 配置管理状态
-  const configs = ref<ConfigItem[]>([])
+  const configs = ref<ConfigInfo[]>([])
   const configTotal = ref(0)
-  const currentConfig = ref<ConfigItem | null>(null)
+  const currentConfig = ref<ConfigInfo | null>(null)
 
   // 命名空间状态
   const namespaces = ref<Namespace[]>([])
   const currentNamespace = ref<string>('public')
 
   // 集群状态
-  const clusterNodes = ref<Record<string, unknown>[]>([])
-  const clusterHealth = ref<Record<string, unknown> | null>(null)
+  const clusterNodes = ref<NodeInfo[]>([])
 
   // 计算属性
   const isAuthenticated = computed(() => !!currentUser.value)
@@ -46,6 +44,7 @@ export const useNacosStore = defineStore('nacos', () => {
 
       currentUser.value = { username, token: accessToken }
       localStorage.setItem('nacos-token', accessToken)
+      localStorage.setItem('nacos-username', username)
 
       return true
     } catch (err: unknown) {
@@ -59,20 +58,33 @@ export const useNacosStore = defineStore('nacos', () => {
   function logout() {
     currentUser.value = null
     localStorage.removeItem('nacos-token')
+    localStorage.removeItem('nacos-username')
     // 清空所有数据
     services.value = []
     configs.value = []
     namespaces.value = []
-    serviceInstances.value = []
   }
 
-  async function fetchServices(pageNo = 1, pageSize = 20, groupName?: string) {
+  async function fetchServices(params?: {
+    pageNo?: number
+    pageSize?: number
+    groupName?: string
+    serviceName?: string
+    namespaceId?: string
+  }) {
     try {
       loading.value = true
       error.value = null
 
-      const response = await nacosApi.getServiceList(pageNo, pageSize, groupName)
-      services.value = response.data.data.doms
+      const response = await nacosApi.getServiceList({
+        pageNo: params?.pageNo ?? 1,
+        pageSize: params?.pageSize ?? 20,
+        groupName: params?.groupName,
+        serviceName: params?.serviceName,
+        namespaceId: params?.namespaceId,
+        hasIpCount: true,
+      })
+      services.value = response.data.data.serviceList
       serviceTotal.value = response.data.data.count
 
       return response.data.data
@@ -85,17 +97,15 @@ export const useNacosStore = defineStore('nacos', () => {
     }
   }
 
-  async function fetchServiceInstances(serviceName: string, groupName?: string) {
+  async function fetchServiceDetail(serviceName: string, groupName: string, namespaceId?: string) {
     try {
       loading.value = true
       error.value = null
 
-      const response = await nacosApi.getServiceDetail(serviceName, groupName)
-      serviceInstances.value = response.data.data
-
+      const response = await nacosApi.getServiceDetail(serviceName, groupName, namespaceId)
       return response.data.data
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '获取服务实例失败'
+      const message = err instanceof Error ? err.message : '获取服务详情失败'
       error.value = message
       throw err
     } finally {
@@ -103,18 +113,24 @@ export const useNacosStore = defineStore('nacos', () => {
     }
   }
 
-  async function fetchConfigs(
-    pageNo = 1,
-    pageSize = 20,
-    dataId?: string,
-    group?: string,
-    tenant?: string,
-  ) {
+  async function fetchConfigs(params?: {
+    pageNo?: number
+    pageSize?: number
+    dataId?: string
+    group?: string
+    tenant?: string
+  }) {
     try {
       loading.value = true
       error.value = null
 
-      const response = await nacosApi.getConfigList(pageNo, pageSize, dataId, group, tenant)
+      const response = await nacosApi.getConfigList({
+        pageNo: params?.pageNo ?? 1,
+        pageSize: params?.pageSize ?? 20,
+        dataId: params?.dataId,
+        group: params?.group,
+        tenant: params?.tenant,
+      })
       configs.value = response.data.data.pageItems
       configTotal.value = response.data.data.totalCount
 
@@ -133,8 +149,8 @@ export const useNacosStore = defineStore('nacos', () => {
       loading.value = true
       error.value = null
 
-      const content = await nacosApi.getConfig(dataId, group, tenant)
-      return content
+      const response = await nacosApi.getConfig(dataId, group, tenant)
+      return response.data.data
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '获取配置内容失败'
       error.value = message
@@ -167,7 +183,7 @@ export const useNacosStore = defineStore('nacos', () => {
       loading.value = true
       error.value = null
 
-      const response = await nacosApi.getNodeList()
+      const response = await nacosApi.getClusterNodes()
       clusterNodes.value = response.data.data
 
       return response.data.data
@@ -180,12 +196,12 @@ export const useNacosStore = defineStore('nacos', () => {
     }
   }
 
-  async function deleteService(serviceName: string, groupName?: string) {
+  async function deleteService(serviceName: string, groupName: string, namespaceId?: string) {
     try {
       loading.value = true
       error.value = null
 
-      await nacosApi.deleteService(serviceName, groupName)
+      await nacosApi.deleteService(serviceName, groupName, namespaceId)
       return true
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '删除服务失败'
@@ -196,16 +212,18 @@ export const useNacosStore = defineStore('nacos', () => {
     }
   }
 
-  async function createService(
-    serviceName: string,
-    groupName?: string,
-    metadata?: Record<string, string>,
-  ) {
+  async function createService(data: {
+    serviceName: string
+    groupName?: string
+    namespaceId?: string
+    protectThreshold?: number
+    metadata?: Record<string, string>
+  }) {
     try {
       loading.value = true
       error.value = null
 
-      await nacosApi.createService(serviceName, groupName, metadata)
+      await nacosApi.createService(data)
       return true
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '创建服务失败'
@@ -232,18 +250,20 @@ export const useNacosStore = defineStore('nacos', () => {
     }
   }
 
-  async function publishConfig(
-    dataId: string,
-    group: string,
-    content: string,
-    type?: string,
-    tenant?: string,
-  ) {
+  async function publishConfig(data: {
+    dataId: string
+    group: string
+    content: string
+    type?: string
+    tenant?: string
+    appName?: string
+    desc?: string
+  }) {
     try {
       loading.value = true
       error.value = null
 
-      await nacosApi.publishConfig(dataId, group, content, type, tenant)
+      await nacosApi.publishConfig(data)
       return true
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '发布配置失败'
@@ -270,16 +290,16 @@ export const useNacosStore = defineStore('nacos', () => {
     }
   }
 
-  async function createNamespace(
-    namespaceId: string,
-    namespaceName: string,
-    namespaceDesc?: string,
-  ) {
+  async function createNamespace(data: {
+    namespaceId?: string
+    namespaceName: string
+    namespaceDesc?: string
+  }) {
     try {
       loading.value = true
       error.value = null
 
-      await nacosApi.createNamespace(namespaceId, namespaceName, namespaceDesc)
+      await nacosApi.createNamespace(data)
       return true
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '创建命名空间失败'
@@ -302,14 +322,12 @@ export const useNacosStore = defineStore('nacos', () => {
     services,
     serviceTotal,
     currentService,
-    serviceInstances,
     configs,
     configTotal,
     currentConfig,
     namespaces,
     currentNamespace,
     clusterNodes,
-    clusterHealth,
 
     // 计算属性
     isAuthenticated,
@@ -320,7 +338,7 @@ export const useNacosStore = defineStore('nacos', () => {
     login,
     logout,
     fetchServices,
-    fetchServiceInstances,
+    fetchServiceDetail,
     fetchConfigs,
     fetchConfigContent,
     fetchNamespaces,
