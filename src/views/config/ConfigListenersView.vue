@@ -11,22 +11,26 @@
       <div class="p-3">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div>
-            <label class="block text-xs font-medium text-text-secondary mb-1">Data ID</label>
+            <label class="block text-xs font-medium text-text-secondary mb-1">{{
+              t('dataId')
+            }}</label>
             <input
               v-model="searchParams.dataId"
               type="text"
               class="input"
-              placeholder="Data ID"
+              :placeholder="t('dataId')"
               @keyup.enter="handleSearch"
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-text-secondary mb-1">Group</label>
+            <label class="block text-xs font-medium text-text-secondary mb-1">{{
+              t('group')
+            }}</label>
             <input
               v-model="searchParams.group"
               type="text"
               class="input"
-              placeholder="Group"
+              :placeholder="t('group')"
               @keyup.enter="handleSearch"
             />
           </div>
@@ -59,9 +63,9 @@
         <table class="table">
           <thead>
             <tr>
-              <th>Data ID</th>
-              <th>Group</th>
-              <th>MD5</th>
+              <th>{{ t('dataId') }}</th>
+              <th>{{ t('group') }}</th>
+              <th>{{ t('md5') }}</th>
               <th>{{ t('listeningIp') }}</th>
               <th>{{ t('status') }}</th>
             </tr>

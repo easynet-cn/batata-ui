@@ -47,11 +47,11 @@
           <h2 class="text-sm font-semibold text-text-primary mb-4">{{ t('basicInfo') }}</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
-              <label class="block text-sm text-text-tertiary mb-1">Data ID</label>
+              <label class="block text-sm text-text-tertiary mb-1">{{ t('dataId') }}</label>
               <p class="text-text-primary font-medium">{{ config.dataId }}</p>
             </div>
             <div>
-              <label class="block text-sm text-text-tertiary mb-1">Group</label>
+              <label class="block text-sm text-text-tertiary mb-1">{{ t('group') }}</label>
               <p class="text-text-primary font-medium">{{ config.group }}</p>
             </div>
             <div>

@@ -12,148 +12,195 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
+      path: '/register',
+      name: 'register',
+      component: () => import('../views/RegisterView.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/',
       component: NacosLayout,
       meta: { requiresAuth: true },
       children: [
-        // 配置管理
+        // Dashboard
         {
           path: '',
+          name: 'dashboard',
+          component: () => import('../views/dashboard/DashboardView.vue'),
+          meta: { titleKey: 'routeDashboard' },
+        },
+        // Configuration Management
+        {
+          path: 'configs',
           name: 'configs',
           component: () => import('../views/config/ConfigListView.vue'),
-          meta: { title: '配置列表' },
+          meta: { titleKey: 'routeConfigs' },
         },
         {
           path: 'config/new',
           name: 'config-new',
           component: () => import('../views/config/ConfigEditorView.vue'),
-          meta: { title: '新建配置' },
+          meta: { titleKey: 'routeNewConfig' },
         },
         {
           path: 'config/edit',
           name: 'config-edit',
           component: () => import('../views/config/ConfigEditorView.vue'),
-          meta: { title: '编辑配置' },
+          meta: { titleKey: 'routeEditConfig' },
         },
         {
           path: 'config/detail',
           name: 'config-detail',
           component: () => import('../views/config/ConfigDetailView.vue'),
-          meta: { title: '配置详情' },
+          meta: { titleKey: 'routeConfigDetail' },
         },
         {
           path: 'config/history',
           name: 'config-history',
           component: () => import('../views/config/ConfigHistoryView.vue'),
-          meta: { title: '历史版本' },
+          meta: { titleKey: 'routeConfigHistory' },
         },
         {
           path: 'config/listeners',
           name: 'config-listeners',
           component: () => import('../views/config/ConfigListenersView.vue'),
-          meta: { title: '监听查询' },
+          meta: { titleKey: 'routeConfigListeners' },
         },
-        // 服务管理
+        {
+          path: 'config/sync',
+          name: 'config-sync',
+          component: () => import('../views/config/ConfigSyncView.vue'),
+          meta: { titleKey: 'routeConfigSync' },
+        },
+        // Service Management
         {
           path: 'services',
           name: 'services',
           component: () => import('../views/service/ServiceListView.vue'),
-          meta: { title: '服务列表' },
+          meta: { titleKey: 'routeServices' },
         },
         {
           path: 'service/detail',
           name: 'service-detail',
           component: () => import('../views/service/ServiceDetailView.vue'),
-          meta: { title: '服务详情' },
+          meta: { titleKey: 'routeServiceDetail' },
         },
         {
           path: 'subscribers',
           name: 'subscribers',
           component: () => import('../views/service/SubscriberListView.vue'),
-          meta: { title: '订阅者列表' },
+          meta: { titleKey: 'routeSubscribers' },
         },
-        // 命名空间
+        // Namespace
         {
           path: 'namespaces',
           name: 'namespaces',
           component: () => import('../views/namespace/NamespaceListView.vue'),
-          meta: { title: '命名空间' },
+          meta: { titleKey: 'routeNamespaces' },
         },
-        // 集群管理
+        // Cluster Management
         {
           path: 'cluster',
           name: 'cluster',
           component: () => import('../views/cluster/ClusterListView.vue'),
-          meta: { title: '集群节点' },
+          meta: { titleKey: 'routeCluster' },
         },
-        // 权限控制
+        // Authority Control
         {
           path: 'users',
           name: 'users',
           component: () => import('../views/auth/UserListView.vue'),
-          meta: { title: '用户管理' },
+          meta: { titleKey: 'routeUsers' },
         },
         {
           path: 'roles',
           name: 'roles',
           component: () => import('../views/auth/RoleListView.vue'),
-          meta: { title: '角色管理' },
+          meta: { titleKey: 'routeRoles' },
         },
         {
           path: 'permissions',
           name: 'permissions',
           component: () => import('../views/auth/PermissionListView.vue'),
-          meta: { title: '权限管理' },
+          meta: { titleKey: 'routePermissions' },
         },
-        // AI/MCP 管理
+        // AI/MCP Management
         {
           path: 'mcp',
           name: 'mcp',
           component: () => import('../views/ai/McpListView.vue'),
-          meta: { title: 'MCP 管理' },
+          meta: { titleKey: 'routeMcp' },
         },
         {
           path: 'mcp/new',
           name: 'mcp-new',
           component: () => import('../views/ai/McpEditorView.vue'),
-          meta: { title: '新建 MCP' },
+          meta: { titleKey: 'routeNewMcp' },
         },
         {
           path: 'mcp/edit',
           name: 'mcp-edit',
           component: () => import('../views/ai/McpEditorView.vue'),
-          meta: { title: '编辑 MCP' },
+          meta: { titleKey: 'routeEditMcp' },
         },
         {
           path: 'mcp/detail',
           name: 'mcp-detail',
           component: () => import('../views/ai/McpDetailView.vue'),
-          meta: { title: 'MCP 详情' },
+          meta: { titleKey: 'routeMcpDetail' },
         },
         {
           path: 'agents',
           name: 'agents',
           component: () => import('../views/ai/AgentListView.vue'),
-          meta: { title: 'Agent 管理' },
+          meta: { titleKey: 'routeAgents' },
         },
         {
           path: 'agent/new',
           name: 'agent-new',
           component: () => import('../views/ai/AgentEditorView.vue'),
-          meta: { title: '新建 Agent' },
+          meta: { titleKey: 'routeNewAgent' },
         },
         {
           path: 'agent/edit',
           name: 'agent-edit',
           component: () => import('../views/ai/AgentEditorView.vue'),
-          meta: { title: '编辑 Agent' },
+          meta: { titleKey: 'routeEditAgent' },
         },
-        // 设置中心
+        // Multi-datacenter
+        {
+          path: 'datacenters',
+          name: 'datacenters',
+          component: () => import('../views/datacenter/DatacenterView.vue'),
+          meta: { titleKey: 'routeDatacenters' },
+        },
+        // Tracing
+        {
+          path: 'tracing',
+          name: 'tracing',
+          component: () => import('../views/tracing/TracingView.vue'),
+          meta: { titleKey: 'routeTracing' },
+        },
+        // Audit Log
+        {
+          path: 'audit',
+          name: 'audit',
+          component: () => import('../views/audit/AuditLogView.vue'),
+          meta: { titleKey: 'routeAudit' },
+        },
+        // Plugin Management
+        {
+          path: 'plugins',
+          name: 'plugins',
+          component: () => import('../views/plugin/PluginListView.vue'),
+          meta: { titleKey: 'routePlugins' },
+        },
+        // Settings
         {
           path: 'settings',
           name: 'settings',
           component: () => import('../views/settings/SettingsView.vue'),
-          meta: { title: '设置中心' },
+          meta: { titleKey: 'routeSettings' },
         },
       ],
     },

@@ -120,6 +120,98 @@
         </div>
 
         <div class="flex items-center space-x-3 text-slate-600">
+          <!-- Connection Status -->
+          <div
+            v-if="wsEnabled"
+            class="flex items-center gap-1.5 px-2 py-1 rounded-md"
+            :class="connectionStatusClass"
+            :title="connectionStatusText"
+          >
+            <div
+              class="w-2 h-2 rounded-full"
+              :class="{
+                'bg-emerald-500 animate-pulse': wsStatus === 'connected',
+                'bg-amber-500 animate-pulse': wsStatus === 'connecting',
+                'bg-slate-400': wsStatus === 'disconnected',
+                'bg-red-500': wsStatus === 'error',
+              }"
+            ></div>
+            <span class="text-[10px] font-medium hidden sm:inline">{{ connectionStatusText }}</span>
+          </div>
+
+          <!-- Notifications -->
+          <div class="relative">
+            <button
+              @click="showNotifications = !showNotifications"
+              class="relative p-1.5 hover:bg-slate-50 rounded-md transition-all"
+            >
+              <Bell :size="14" class="text-slate-400" />
+              <span
+                v-if="unreadCount > 0"
+                class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center"
+              >
+                {{ unreadCount > 9 ? '9+' : unreadCount }}
+              </span>
+            </button>
+            <template v-if="showNotifications">
+              <div class="fixed inset-0 z-40" @click="showNotifications = false" />
+              <div
+                class="absolute right-0 mt-1 w-72 bg-white border border-slate-200 rounded-lg shadow-lg z-50"
+              >
+                <div class="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
+                  <span class="text-xs font-semibold text-slate-900">{{ t('notifications') }}</span>
+                  <button
+                    v-if="notifications.length > 0"
+                    @click="clearNotifications"
+                    class="text-[10px] text-slate-500 hover:text-slate-700"
+                  >
+                    {{ t('clearAll') }}
+                  </button>
+                </div>
+                <div class="max-h-64 overflow-y-auto">
+                  <div
+                    v-if="notifications.length === 0"
+                    class="p-4 text-center text-xs text-slate-400"
+                  >
+                    {{ t('noNotifications') }}
+                  </div>
+                  <div
+                    v-for="notification in notifications.slice(0, 5)"
+                    :key="notification.id"
+                    class="px-3 py-2 hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                    :class="{ 'bg-blue-50/50': !notification.read }"
+                    @click="markNotificationAsRead(notification.id)"
+                  >
+                    <div class="flex items-start gap-2">
+                      <div
+                        class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                        :class="{
+                          'bg-blue-100 text-blue-600': notification.type === 'info',
+                          'bg-emerald-100 text-emerald-600': notification.type === 'success',
+                          'bg-amber-100 text-amber-600': notification.type === 'warning',
+                          'bg-red-100 text-red-600': notification.type === 'error',
+                        }"
+                      >
+                        <Info v-if="notification.type === 'info'" :size="10" />
+                        <CheckCircle v-else-if="notification.type === 'success'" :size="10" />
+                        <AlertTriangle v-else-if="notification.type === 'warning'" :size="10" />
+                        <XCircle v-else :size="10" />
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-xs font-medium text-slate-900 truncate">
+                          {{ notification.title }}
+                        </p>
+                        <p v-if="notification.message" class="text-[10px] text-slate-500 truncate">
+                          {{ notification.message }}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+
           <!-- Language Selector -->
           <div class="relative">
             <button
@@ -229,16 +321,30 @@ import {
   Key,
   Network,
   Globe,
+  Globe2,
   Languages,
   FileCode,
   Bot,
   Cpu,
   Cog,
+  LayoutDashboard,
+  Bell,
+  Info,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  FileText,
+  Activity,
+  RefreshCw,
+  Puzzle,
 } from 'lucide-vue-next'
 import { useI18n, type Language } from '@/i18n'
 import { mockNamespaces } from '@/mock/data'
 import type { Namespace } from '@/types'
 import { useNacosStore } from '@/stores/nacos'
+import { useGlobalWebSocket } from '@/composables/useWebSocket'
+import { globalNotifications } from '@/composables/useNotifications'
+import { config } from '@/config'
 
 const { t, language, setLanguage } = useI18n()
 const route = useRoute()
@@ -249,6 +355,49 @@ const isSidebarOpen = ref(true)
 const showUserMenu = ref(false)
 const showNamespaceMenu = ref(false)
 const showLangMenu = ref(false)
+const showNotifications = ref(false)
+
+// WebSocket
+const wsEnabled = config.websocket.enabled
+const { status: wsStatus } = useGlobalWebSocket()
+
+// Notifications
+const { notifications, unreadCount, markAsRead, clearAll } = globalNotifications
+
+const connectionStatusClass = computed(() => {
+  switch (wsStatus.value) {
+    case 'connected':
+      return 'bg-emerald-50 text-emerald-700'
+    case 'connecting':
+      return 'bg-amber-50 text-amber-700'
+    case 'error':
+      return 'bg-red-50 text-red-700'
+    default:
+      return 'bg-slate-100 text-slate-600'
+  }
+})
+
+const connectionStatusText = computed(() => {
+  switch (wsStatus.value) {
+    case 'connected':
+      return t('connected')
+    case 'connecting':
+      return t('connecting')
+    case 'error':
+      return t('connectionError')
+    default:
+      return t('disconnected')
+  }
+})
+
+const markNotificationAsRead = (id: string) => {
+  markAsRead(id)
+}
+
+const clearNotifications = () => {
+  clearAll()
+  showNotifications.value = false
+}
 
 const user = ref<{ name: string } | null>(null)
 const defaultNamespace: Namespace = {
@@ -298,12 +447,18 @@ const switchNamespace = (ns: Namespace) => {
 
 const navGroups = computed(() => [
   {
+    title: t('overview'),
+    items: [{ path: '/', label: t('dashboard'), icon: LayoutDashboard }],
+  },
+  {
     title: t('coreFeatures'),
     items: [
-      { path: '/', label: t('configuration'), icon: FileCode },
+      { path: '/configs', label: t('configuration'), icon: FileCode },
+      { path: '/config/sync', label: t('configSync'), icon: RefreshCw },
       { path: '/services', label: t('services'), icon: Server },
       { path: '/namespaces', label: t('namespaces'), icon: Layers },
       { path: '/cluster', label: t('cluster'), icon: Network },
+      { path: '/datacenters', label: t('multiDatacenter'), icon: Globe2 },
     ],
   },
   {
@@ -322,8 +477,18 @@ const navGroups = computed(() => [
     ],
   },
   {
+    title: t('observability'),
+    items: [
+      { path: '/tracing', label: t('tracing'), icon: Activity },
+      { path: '/audit', label: t('auditLog'), icon: FileText },
+    ],
+  },
+  {
     title: t('system'),
-    items: [{ path: '/settings', label: t('settings'), icon: Cog }],
+    items: [
+      { path: '/plugins', label: t('plugins'), icon: Puzzle },
+      { path: '/settings', label: t('settings'), icon: Cog },
+    ],
   },
 ])
 

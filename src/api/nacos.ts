@@ -5,6 +5,7 @@ import type {
   ConfigInfo,
   ConfigHistoryInfo,
   ConfigListenerInfo,
+  ConfigGrayInfo,
   ServiceInfo,
   ServiceDetail,
   InstanceInfo,
@@ -16,8 +17,15 @@ import type {
   PermissionInfo,
   McpServerInfo,
   AgentInfo,
+  AuditLogItem,
+  AuditLogSearch,
+  AuditStats,
   PageResult,
   LoginResponse,
+  PluginInfo,
+  SyncEnvironment,
+  SyncHistory,
+  SyncRequest,
 } from '@/types'
 import { config } from '@/config'
 import { ApiError, AuthError, NetworkError } from '@/utils/error'
@@ -589,6 +597,204 @@ class NacosApi {
 
   async getAgentVersions(id: string) {
     return this.instance.get<NacosResponse<AgentInfo[]>>('/ai/a2a/version/list', {
+      params: { id },
+    })
+  }
+
+  // ============================================
+  // Audit Log API (V2)
+  // ============================================
+
+  private v2Instance: AxiosInstance | null = null
+
+  private getV2Instance(): AxiosInstance {
+    if (!this.v2Instance) {
+      this.v2Instance = axios.create({
+        baseURL: `${config.api.baseUrl}/nacos/v2/console`,
+        timeout: config.api.timeout,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      // Request interceptor
+      this.v2Instance.interceptors.request.use(
+        (reqConfig) => {
+          const token = localStorage.getItem(config.storage.tokenKey)
+          if (token) {
+            reqConfig.headers.accessToken = token
+          }
+          const username = localStorage.getItem(config.storage.usernameKey)
+          if (username) {
+            reqConfig.headers.username = username
+          }
+          return reqConfig
+        },
+        (error) => Promise.reject(error),
+      )
+
+      // Response interceptor
+      this.v2Instance.interceptors.response.use(
+        (response: AxiosResponse<NacosResponse>) => {
+          const { data } = response
+          if (data.code !== 0 && data.code !== 200) {
+            throw new ApiError(data.code, data.message || 'Request failed')
+          }
+          return response
+        },
+        (error) => {
+          if (!error.response) {
+            throw new NetworkError()
+          }
+          if (error.response?.status === 401 || error.response?.status === 403) {
+            localStorage.removeItem(config.storage.tokenKey)
+            localStorage.removeItem(config.storage.usernameKey)
+            window.location.href = '/login'
+            throw new AuthError()
+          }
+          throw new ApiError(
+            error.response?.status || 500,
+            error.response?.data?.message || error.message,
+          )
+        },
+      )
+    }
+    return this.v2Instance
+  }
+
+  async getAuditLogList(params: AuditLogSearch) {
+    return this.getV2Instance().get<NacosResponse<PageResult<AuditLogItem>>>('/audit/list', {
+      params,
+    })
+  }
+
+  async getAuditLog(id: number) {
+    return this.getV2Instance().get<NacosResponse<AuditLogItem>>('/audit', {
+      params: { id },
+    })
+  }
+
+  async getAuditStats(params?: { tenantId?: string; startTime?: string; endTime?: string }) {
+    return this.getV2Instance().get<NacosResponse<AuditStats>>('/audit/stats', {
+      params,
+    })
+  }
+
+  // ============================================
+  // Beta/Gray Config API
+  // ============================================
+
+  async getBetaConfig(dataId: string, group: string, tenant?: string) {
+    return this.instance.get<NacosResponse<ConfigGrayInfo>>('/cs/config/beta', {
+      params: { dataId, groupName: group, namespaceId: tenant || '' },
+    })
+  }
+
+  async publishBetaConfig(data: {
+    dataId: string
+    group: string
+    content: string
+    tenant?: string
+    betaIps?: string
+  }) {
+    return this.instance.post<NacosResponse>('/cs/config/beta', {
+      dataId: data.dataId,
+      groupName: data.group,
+      namespaceId: data.tenant || '',
+      content: data.content,
+      grayName: 'beta',
+      grayRule: data.betaIps || '',
+    })
+  }
+
+  async deleteBetaConfig(dataId: string, group: string, tenant?: string) {
+    return this.instance.delete<NacosResponse>('/cs/config/beta', {
+      params: { dataId, groupName: group, namespaceId: tenant || '' },
+    })
+  }
+
+  async promoteBetaConfig(dataId: string, group: string, tenant?: string) {
+    // Get beta config content first, then publish as stable
+    const betaResponse = await this.getBetaConfig(dataId, group, tenant)
+    const betaConfig = betaResponse.data.data
+    if (!betaConfig || !betaConfig.content) {
+      throw new ApiError(404, 'Beta config not found')
+    }
+
+    // Publish as stable config
+    await this.publishConfig({
+      dataId,
+      group,
+      content: betaConfig.content,
+      tenant,
+    })
+
+    // Delete beta config
+    await this.deleteBetaConfig(dataId, group, tenant)
+
+    return { success: true }
+  }
+
+  // ============================================
+  // User Registration API
+  // ============================================
+
+  async register(data: { username: string; password: string }) {
+    return this.instance.post<NacosResponse>('/uc/user/register', data)
+  }
+
+  // ============================================
+  // Plugin Management API
+  // ============================================
+
+  async getPluginList() {
+    return this.instance.get<NacosResponse<PluginInfo[]>>('/core/plugin/list')
+  }
+
+  async getPluginDetail(name: string) {
+    return this.instance.get<NacosResponse<PluginInfo>>('/core/plugin', {
+      params: { name },
+    })
+  }
+
+  async updatePluginStatus(name: string, enabled: boolean) {
+    return this.instance.put<NacosResponse>('/core/plugin/status', {
+      name,
+      enabled,
+    })
+  }
+
+  async updatePluginConfig(name: string, config: Record<string, unknown>) {
+    return this.instance.put<NacosResponse>('/core/plugin/config', {
+      name,
+      config,
+    })
+  }
+
+  // ============================================
+  // Config Sync API
+  // ============================================
+
+  async getSyncEnvironments() {
+    return this.instance.get<NacosResponse<SyncEnvironment[]>>('/cs/config/sync/environments')
+  }
+
+  async getSyncHistory(tenant?: string) {
+    return this.instance.get<NacosResponse<SyncHistory[]>>('/cs/config/sync/history', {
+      params: { tenant },
+    })
+  }
+
+  async syncConfigs(data: SyncRequest) {
+    return this.instance.post<NacosResponse>('/cs/config/sync', data)
+  }
+
+  async addSyncEnvironment(data: { name: string; endpoint: string; accessToken?: string }) {
+    return this.instance.post<NacosResponse>('/cs/config/sync/environment', data)
+  }
+
+  async deleteSyncEnvironment(id: string) {
+    return this.instance.delete<NacosResponse>('/cs/config/sync/environment', {
       params: { id },
     })
   }

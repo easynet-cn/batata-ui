@@ -26,6 +26,12 @@ export const config = {
     maxSize: 100,
     ttl: 60000, // 1 minute
   },
+  websocket: {
+    url: import.meta.env.VITE_WS_URL || '',
+    reconnectInterval: 5000,
+    maxReconnectAttempts: 5,
+    enabled: import.meta.env.VITE_WS_ENABLED === 'true',
+  },
 } as const
 
 export type Config = typeof config

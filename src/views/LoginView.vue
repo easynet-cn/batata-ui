@@ -127,6 +127,15 @@ onMounted(() => {
               <ArrowRight :size="18" />
             </template>
           </button>
+
+          <div class="text-center">
+            <router-link
+              to="/register"
+              class="text-slate-400 hover:text-blue-400 text-sm transition-colors"
+            >
+              {{ t('noAccount') }}
+            </router-link>
+          </div>
         </form>
 
         <div class="p-6 bg-slate-800/30 border-t border-white/5 text-center">

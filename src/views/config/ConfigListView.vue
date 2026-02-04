@@ -31,22 +31,26 @@
       <div class="p-3">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
           <div>
-            <label class="block text-xs font-medium text-text-secondary mb-1">Data ID</label>
+            <label class="block text-xs font-medium text-text-secondary mb-1">{{
+              t('dataId')
+            }}</label>
             <input
               v-model="searchParams.dataId"
               type="text"
               class="input"
-              placeholder="Data ID"
+              :placeholder="t('dataId')"
               @keyup.enter="handleSearch"
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-text-secondary mb-1">Group</label>
+            <label class="block text-xs font-medium text-text-secondary mb-1">{{
+              t('group')
+            }}</label>
             <input
               v-model="searchParams.group"
               type="text"
               class="input"
-              placeholder="Group"
+              :placeholder="t('group')"
               @keyup.enter="handleSearch"
             />
           </div>
@@ -93,31 +97,42 @@
             }}</label>
             <select v-model="searchParams.types" class="input">
               <option value="">{{ t('all') }}</option>
-              <option value="json">JSON</option>
-              <option value="yaml">YAML</option>
-              <option value="properties">Properties</option>
-              <option value="xml">XML</option>
-              <option value="text">Text</option>
+              <option value="json">{{ t('configTypeJson') }}</option>
+              <option value="yaml">{{ t('configTypeYaml') }}</option>
+              <option value="properties">{{ t('configTypeProperties') }}</option>
+              <option value="xml">{{ t('configTypeXml') }}</option>
+              <option value="text">{{ t('configTypeText') }}</option>
             </select>
           </div>
-          <div class="flex items-center gap-2 md:col-span-2">
-            <label class="flex items-center gap-1.5 cursor-pointer">
+          <div class="flex items-center gap-4 md:col-span-2">
+            <div class="flex items-center gap-2">
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  v-model="searchParams.search"
+                  value="blur"
+                  class="w-3.5 h-3.5 text-primary"
+                />
+                <span class="text-xs text-text-primary">{{ t('fuzzySearch') }}</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  v-model="searchParams.search"
+                  value="accurate"
+                  class="w-3.5 h-3.5 text-primary"
+                />
+                <span class="text-xs text-text-primary">{{ t('exactSearch') }}</span>
+              </label>
+            </div>
+            <label class="flex items-center gap-1.5 cursor-pointer border-l pl-4 border-slate-200">
               <input
-                type="radio"
-                v-model="searchParams.search"
-                value="blur"
-                class="w-3.5 h-3.5 text-primary"
+                type="checkbox"
+                v-model="searchParams.showBetaOnly"
+                class="w-3.5 h-3.5 text-purple-600 rounded"
               />
-              <span class="text-xs text-text-primary">{{ t('fuzzySearch') }}</span>
-            </label>
-            <label class="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="radio"
-                v-model="searchParams.search"
-                value="accurate"
-                class="w-3.5 h-3.5 text-primary"
-              />
-              <span class="text-xs text-text-primary">{{ t('exactSearch') }}</span>
+              <FlaskConical class="w-3 h-3 text-purple-500" />
+              <span class="text-xs text-text-primary">{{ t('betaOnly') }}</span>
             </label>
           </div>
         </div>
@@ -138,8 +153,8 @@
                   class="w-3.5 h-3.5 rounded"
                 />
               </th>
-              <th>Data ID</th>
-              <th>Group</th>
+              <th>{{ t('dataId') }}</th>
+              <th>{{ t('group') }}</th>
               <th>{{ t('appName') }}</th>
               <th>{{ t('configType') }}</th>
               <th>{{ t('modifyTime') }}</th>
@@ -184,7 +199,25 @@
               <td>{{ config.group }}</td>
               <td>{{ config.appName || '-' }}</td>
               <td>
-                <span class="badge badge-info">{{ config.type?.toUpperCase() || 'TEXT' }}</span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="badge badge-info">{{ config.type?.toUpperCase() || 'TEXT' }}</span>
+                  <span
+                    v-if="config.encryptedDataKey"
+                    class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-medium rounded"
+                    :title="t('encrypted')"
+                  >
+                    <Lock class="w-2.5 h-2.5" />
+                    {{ t('encrypted') }}
+                  </span>
+                  <span
+                    v-if="isBetaConfig(config)"
+                    class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-purple-50 text-purple-700 text-[10px] font-medium rounded"
+                    :title="t('betaConfig')"
+                  >
+                    <FlaskConical class="w-2.5 h-2.5" />
+                    {{ t('beta') }}
+                  </span>
+                </div>
               </td>
               <td class="text-text-secondary">
                 {{ formatTime(config.modifyTime) }}
@@ -239,6 +272,14 @@
                     :title="t('clone')"
                   >
                     <Copy class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    v-if="isBetaConfig(config)"
+                    @click="handlePromote(config)"
+                    class="btn btn-ghost btn-sm text-purple-600"
+                    :title="t('promoteToStable')"
+                  >
+                    <ArrowUpCircle class="w-3.5 h-3.5" />
                   </button>
                   <button
                     @click="handleDelete(config)"
@@ -391,6 +432,50 @@
         </div>
       </div>
     </div>
+
+    <!-- Promote Modal -->
+    <div v-if="showPromoteModal" class="modal-backdrop" @click="showPromoteModal = false">
+      <div class="modal" @click.stop>
+        <div class="modal-header">
+          <h3 class="text-sm font-semibold text-text-primary">{{ t('promoteToStable') }}</h3>
+          <button @click="showPromoteModal = false" class="btn btn-ghost btn-sm">
+            <X class="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <div class="modal-body space-y-3">
+          <div class="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
+            <FlaskConical class="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+            <div>
+              <p class="text-xs font-medium text-purple-900">{{ t('promoteConfirmTitle') }}</p>
+              <p class="text-xs text-purple-700 mt-1">
+                {{ t('promoteConfirmDesc') }}
+              </p>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-text-secondary">{{ t('betaConfig') }}:</span>
+              <span class="font-medium text-text-primary">{{ configToPromote?.dataId }}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-text-secondary">{{ t('stableConfig') }}:</span>
+              <span class="font-medium text-emerald-600">
+                {{ configToPromote?.dataId.replace('-beta', '').replace('.beta', '') }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="showPromoteModal = false" class="btn btn-secondary">
+            {{ t('cancel') }}
+          </button>
+          <button @click="confirmPromote" class="btn btn-primary bg-purple-600 hover:bg-purple-700">
+            <ArrowUpCircle class="w-3.5 h-3.5" />
+            {{ t('promote') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -412,6 +497,9 @@ import {
   Upload,
   Download,
   SlidersHorizontal,
+  Lock,
+  FlaskConical,
+  ArrowUpCircle,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import nacosApi from '@/api/nacos'
@@ -441,6 +529,7 @@ const searchParams = reactive({
   tags: '',
   types: '',
   search: 'blur' as 'accurate' | 'blur',
+  showBetaOnly: false,
 })
 
 // Modals
@@ -472,6 +561,8 @@ const fetchConfigs = async () => {
     })
     configs.value = response.data.data.pageItems || []
     total.value = response.data.data.totalCount || 0
+    // Check beta status for configs (non-blocking)
+    checkAllBetaConfigs()
   } catch (error) {
     console.error('Failed to fetch configs:', error)
   } finally {
@@ -501,6 +592,7 @@ const handleReset = () => {
     tags: '',
     types: '',
     search: 'blur',
+    showBetaOnly: false,
   })
   handleSearch()
 }
@@ -606,6 +698,100 @@ const confirmClone = async () => {
 const formatTime = (timestamp: number) => {
   if (!timestamp) return '-'
   return new Date(timestamp).toLocaleString()
+}
+
+// Track which configs have beta versions
+const betaConfigMap = ref<Map<string, boolean>>(new Map())
+
+// Check if config has a beta version using the API
+const checkBetaConfig = async (config: ConfigInfo) => {
+  const key = `${config.dataId}:${config.group}`
+  if (betaConfigMap.value.has(key)) return betaConfigMap.value.get(key)
+
+  try {
+    const response = await nacosApi.getBetaConfig(
+      config.dataId,
+      config.group,
+      props.namespace.namespace,
+    )
+    const hasBeta = !!response.data.data
+    betaConfigMap.value.set(key, hasBeta)
+    return hasBeta
+  } catch {
+    betaConfigMap.value.set(key, false)
+    return false
+  }
+}
+
+// Check if config is a beta config (by naming convention or has gray config)
+const isBetaConfig = (config: ConfigInfo) => {
+  // Check for beta tag in dataId (naming convention)
+  const hasBetaTag = config.dataId.includes('-beta') || config.dataId.includes('.beta')
+  // Also check the beta config map (for configs with gray release)
+  const key = `${config.dataId}:${config.group}`
+  return hasBetaTag || betaConfigMap.value.get(key) === true
+}
+
+// Check beta status for all configs after loading
+const checkAllBetaConfigs = async () => {
+  for (const config of configs.value) {
+    await checkBetaConfig(config)
+  }
+}
+
+// Promote modal
+const showPromoteModal = ref(false)
+const configToPromote = ref<ConfigInfo | null>(null)
+const promoting = ref(false)
+
+const handlePromote = (config: ConfigInfo) => {
+  configToPromote.value = config
+  showPromoteModal.value = true
+}
+
+const confirmPromote = async () => {
+  if (!configToPromote.value) return
+  promoting.value = true
+  try {
+    // Try to use the beta config API first
+    try {
+      await nacosApi.promoteBetaConfig(
+        configToPromote.value.dataId,
+        configToPromote.value.group,
+        props.namespace.namespace,
+      )
+    } catch {
+      // Fallback: Get the current config content and publish as stable
+      const response = await nacosApi.getConfig(
+        configToPromote.value.dataId,
+        configToPromote.value.group,
+        props.namespace.namespace,
+      )
+      const config = response.data.data
+
+      // Create a new stable config (remove beta suffix if present)
+      const stableDataId = config.dataId.replace('-beta', '').replace('.beta', '')
+
+      await nacosApi.publishConfig({
+        dataId: stableDataId,
+        group: config.group,
+        content: config.content,
+        type: config.type,
+        tenant: props.namespace.namespace,
+        appName: config.appName,
+        desc: `Promoted from beta: ${config.dataId}`,
+      })
+    }
+
+    showPromoteModal.value = false
+    // Clear the beta config map and refetch
+    betaConfigMap.value.clear()
+    fetchConfigs()
+  } catch (error) {
+    console.error('Failed to promote config:', error)
+  } finally {
+    promoting.value = false
+  }
 }
 
 // Watch namespace change

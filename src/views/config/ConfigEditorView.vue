@@ -54,15 +54,74 @@
               {{ t('configType') }} <span class="text-danger">*</span>
             </label>
             <select v-model="form.type" class="input">
-              <option value="text">Text</option>
-              <option value="json">JSON</option>
-              <option value="yaml">YAML</option>
-              <option value="properties">Properties</option>
-              <option value="xml">XML</option>
-              <option value="html">HTML</option>
-              <option value="toml">TOML</option>
+              <option value="text">{{ t('configTypeText') }}</option>
+              <option value="json">{{ t('configTypeJson') }}</option>
+              <option value="yaml">{{ t('configTypeYaml') }}</option>
+              <option value="properties">{{ t('configTypeProperties') }}</option>
+              <option value="xml">{{ t('configTypeXml') }}</option>
+              <option value="html">{{ t('configTypeHtml') }}</option>
+              <option value="toml">{{ t('configTypeToml') }}</option>
             </select>
           </div>
+        </div>
+
+        <!-- Beta Release Toggle -->
+        <div
+          class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="w-8 h-8 rounded-lg flex items-center justify-center"
+              :class="form.beta ? 'bg-purple-50' : 'bg-slate-100'"
+            >
+              <FlaskConical :size="16" :class="form.beta ? 'text-purple-600' : 'text-slate-400'" />
+            </div>
+            <div>
+              <p class="text-xs font-medium text-text-primary">{{ t('betaRelease') }}</p>
+              <p class="text-xs text-text-tertiary">{{ t('betaReleaseHint') }}</p>
+            </div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" v-model="form.beta" class="sr-only peer" />
+            <div
+              class="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"
+            ></div>
+          </label>
+        </div>
+
+        <!-- Beta IPs (shown when beta is enabled) -->
+        <div v-if="form.beta" class="space-y-2">
+          <label class="block text-xs font-medium text-text-primary">
+            {{ t('betaIps') }}
+          </label>
+          <textarea
+            v-model="form.betaIps"
+            class="input min-h-[80px] font-mono text-xs"
+            :placeholder="t('betaIpsPlaceholder')"
+          />
+          <p class="text-xs text-text-tertiary">{{ t('betaIpsHint') }}</p>
+        </div>
+
+        <!-- Encryption Toggle -->
+        <div
+          class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200"
+        >
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+              <Lock v-if="form.encrypted" :size="16" class="text-amber-600" />
+              <Unlock v-else :size="16" class="text-slate-400" />
+            </div>
+            <div>
+              <p class="text-xs font-medium text-text-primary">{{ t('configEncryption') }}</p>
+              <p class="text-xs text-text-tertiary">{{ t('configEncryptionHint') }}</p>
+            </div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" v-model="form.encrypted" class="sr-only peer" />
+            <div
+              class="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"
+            ></div>
+          </label>
         </div>
 
         <!-- Tags -->
@@ -129,7 +188,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Code, Loader2 } from 'lucide-vue-next'
+import { ArrowLeft, Code, Loader2, Lock, Unlock, FlaskConical } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import nacosApi from '@/api/nacos'
 import { toast } from '@/utils/error'
@@ -155,6 +214,9 @@ const form = reactive({
   tags: '',
   desc: '',
   content: '',
+  encrypted: false,
+  beta: false,
+  betaIps: '',
 })
 
 // Methods
@@ -166,12 +228,11 @@ const fetchConfig = async () => {
   const { dataId, group, tenant } = route.query
   if (!dataId || !group) return
 
+  const namespaceId = (tenant as string) || props.namespace.namespace
+
   try {
-    const response = await nacosApi.getConfig(
-      dataId as string,
-      group as string,
-      (tenant as string) || props.namespace.namespace,
-    )
+    // First get the regular config
+    const response = await nacosApi.getConfig(dataId as string, group as string, namespaceId)
     const config = response.data.data
     Object.assign(form, {
       dataId: config.dataId,
@@ -180,7 +241,28 @@ const fetchConfig = async () => {
       type: config.type || 'text',
       desc: config.desc || '',
       content: config.content || '',
+      encrypted: !!config.encryptedDataKey,
     })
+
+    // Check if there's a beta version
+    try {
+      const betaResponse = await nacosApi.getBetaConfig(
+        dataId as string,
+        group as string,
+        namespaceId,
+      )
+      const betaConfig = betaResponse.data.data
+      if (betaConfig) {
+        form.beta = true
+        form.betaIps = betaConfig.grayRule || ''
+        // Use beta content if available
+        if (betaConfig.content) {
+          form.content = betaConfig.content
+        }
+      }
+    } catch {
+      // No beta config exists, that's fine
+    }
   } catch (error) {
     console.error('Failed to fetch config:', error)
   }
@@ -205,16 +287,28 @@ const handleSubmit = async () => {
 
   saving.value = true
   try {
-    await nacosApi.publishConfig({
-      dataId: form.dataId,
-      group: form.group,
-      content: form.content,
-      type: form.type,
-      tenant: props.namespace.namespace,
-      appName: form.appName,
-      desc: form.desc,
-      tags: form.tags,
-    })
+    if (form.beta) {
+      // Publish as beta/gray config
+      await nacosApi.publishBetaConfig({
+        dataId: form.dataId,
+        group: form.group,
+        content: form.content,
+        tenant: props.namespace.namespace,
+        betaIps: form.betaIps,
+      })
+    } else {
+      // Publish as regular config
+      await nacosApi.publishConfig({
+        dataId: form.dataId,
+        group: form.group,
+        content: form.content,
+        type: form.type,
+        tenant: props.namespace.namespace,
+        appName: form.appName,
+        desc: form.desc,
+        tags: form.tags,
+      })
+    }
     router.push({ name: 'configs' })
   } catch (error) {
     console.error('Failed to publish config:', error)

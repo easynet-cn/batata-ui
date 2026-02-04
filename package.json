@@ -31,11 +31,13 @@
   "dependencies": {
     "@vueuse/core": "^14.2.0",
     "axios": "^1.13.4",
+    "echarts": "^6.0.0",
     "lru-cache": "^11.2.5",
     "lucide-vue-next": "^0.563.0",
     "mockjs": "^1.1.0",
     "pinia": "^3.0.4",
     "vue": "^3.5.27",
+    "vue-echarts": "^8.0.1",
     "vue-router": "^5.0.2"
   },
   "devDependencies": {

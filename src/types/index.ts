@@ -257,3 +257,131 @@ export interface LoginResponse {
   globalAdmin: boolean
   username: string
 }
+
+// ============================================
+// Audit Log Types
+// ============================================
+
+export type AuditOperation =
+  | 'CREATE'
+  | 'UPDATE'
+  | 'DELETE'
+  | 'QUERY'
+  | 'LOGIN'
+  | 'LOGOUT'
+  | 'PUBLISH'
+  | 'ROLLBACK'
+  | 'IMPORT'
+  | 'EXPORT'
+  | 'CLONE'
+
+export type AuditResourceType =
+  | 'CONFIG'
+  | 'SERVICE'
+  | 'INSTANCE'
+  | 'NAMESPACE'
+  | 'USER'
+  | 'ROLE'
+  | 'PERMISSION'
+  | 'CAPACITY'
+  | 'CLUSTER'
+
+export interface AuditLogItem {
+  id: number
+  operation: AuditOperation
+  resourceType: AuditResourceType
+  resourceId?: string
+  tenantId?: string
+  operator: string
+  sourceIp?: string
+  result: 'SUCCESS' | 'FAILURE'
+  errorMessage?: string
+  details?: string
+  gmtCreate: string
+}
+
+export interface AuditLogSearch {
+  operation?: string
+  resourceType?: string
+  resourceId?: string
+  tenantId?: string
+  operator?: string
+  result?: string
+  startTime?: string
+  endTime?: string
+  pageNo?: number
+  pageSize?: number
+}
+
+export interface AuditStats {
+  [operation: string]: number
+}
+
+// ============================================
+// Beta/Gray Config Types
+// ============================================
+
+export interface ConfigGrayInfo {
+  id?: string
+  dataId: string
+  group: string
+  tenant: string
+  grayName: string
+  grayRule: string
+  content?: string
+  md5?: string
+  srcIp?: string
+  srcUser?: string
+  createTime?: string
+  modifyTime?: string
+}
+
+// ============================================
+// Plugin Types
+// ============================================
+
+export type PluginType = 'config' | 'auth' | 'naming' | 'datasource' | 'other'
+export type PluginStatus = 'enabled' | 'disabled' | 'error'
+
+export interface PluginInfo {
+  name: string
+  type: PluginType
+  version: string
+  status: PluginStatus
+  description?: string
+  author?: string
+  order?: number
+  configurable?: boolean
+  config?: Record<string, unknown>
+  dependencies?: string[]
+  metadata?: Record<string, string>
+}
+
+// ============================================
+// Config Sync Types
+// ============================================
+
+export interface SyncEnvironment {
+  id: string
+  name: string
+  endpoint: string
+  status: 'online' | 'offline'
+  configCount: number
+  accessToken?: string
+}
+
+export interface SyncRequest {
+  configIds: string[]
+  targetEnvIds: string[]
+  policy: 'SKIP' | 'OVERWRITE' | 'ABORT'
+  sourceTenant: string
+}
+
+export interface SyncHistory {
+  id: string
+  configCount: number
+  targetEnv: string
+  timestamp: number
+  status: 'success' | 'failed' | 'running'
+  error?: string
+}

@@ -208,3 +208,73 @@ background: #f8fafc;
 ## Testing
 
 Vitest is configured (`vitest.config.ts`). Run tests with `pnpm test:unit`.
+
+## Development Rules
+
+### Language Rules
+
+- **All code comments MUST be written in English**
+- **All documentation files MUST be written in English**
+- **All commit messages MUST be written in English**
+- **Variable names, function names, and other identifiers MUST use English**
+
+### Task Tracking Rules
+
+- **MUST record task completion status truthfully**
+- **DO NOT mark tasks as "completed" if they only contain placeholder code**
+- **DO NOT mark tasks as "completed" if the actual functionality is not working**
+- **If a task is partially completed, mark it as "partial" with detailed notes**
+- **If a task cannot be completed due to technical limitations, document the reasons**
+- **Update task status in `docs/TASK_STATUS.md` after each task is completed**
+
+### Internationalization (i18n) Rules
+
+- **ALL user-facing text MUST use the i18n system** - no hardcoded strings in templates
+- **Use `t('key')` function** for all display text in Vue templates
+- **Add translations for both languages** (English and Chinese) in `src/i18n/translations.ts`
+- **Translation keys should be camelCase** (e.g., `configList`, `saveChanges`)
+
+**Required i18n usage:**
+
+```vue
+<!-- CORRECT -->
+<h1>{{ t('configuration') }}</h1>
+<button>{{ t('save') }}</button>
+<th>{{ t('dataId') }}</th>
+<option value="json">{{ t('configTypeJson') }}</option>
+
+<!-- WRONG - hardcoded text -->
+<h1>Configuration</h1>
+<button>Save</button>
+<th>Data ID</th>
+<option value="json">JSON</option>
+```
+
+**Exceptions (do NOT translate):**
+
+- Language names in language selector (e.g., "English", "简体中文")
+- Technical terms that are universally used (e.g., "JSON", "YAML", "XML")
+- Brand names and product names (e.g., "Nacos", "Claude")
+- Code examples and technical identifiers
+
+**Adding new translations:**
+
+```typescript
+// src/i18n/translations.ts
+export const translations = {
+  en: {
+    myNewKey: 'English text',
+    // ...
+  },
+  zh: {
+    myNewKey: '中文文本',
+    // ...
+  },
+}
+```
+
+### Code Quality Rules
+
+- All new code must pass `pnpm type-check` without errors
+- All new code must pass `pnpm lint` without errors
+- Follow existing code style and patterns in the codebase
