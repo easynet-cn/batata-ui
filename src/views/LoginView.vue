@@ -3,35 +3,43 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Lock, User, ShieldCheck, ArrowRight } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import { useNacosStore } from '@/stores/nacos'
+import { useBatataStore } from '@/stores/batata'
 
 const { t } = useI18n()
 const router = useRouter()
-const nacosStore = useNacosStore()
+const batataStore = useBatataStore()
 
-const username = ref('admin')
-const password = ref('nacos')
+const username = ref('')
+const password = ref('')
 const isLoading = ref(false)
 
-const handleSubmit = () => {
+const loginError = ref('')
+
+const handleSubmit = async () => {
   isLoading.value = true
-  setTimeout(() => {
-    const user = { name: username.value }
-    localStorage.setItem('nacos_user', JSON.stringify(user))
-    // Also set in store for router guard
-    nacosStore.currentUser = { username: username.value, token: 'mock-token' }
-    localStorage.setItem('nacos-token', 'mock-token')
+  loginError.value = ''
+  try {
+    const success = await batataStore.login(username.value, password.value)
+    if (success) {
+      const user = { name: username.value }
+      localStorage.setItem('batata_user', JSON.stringify(user))
+      router.push('/')
+    } else {
+      loginError.value = batataStore.error || t('loginFailed')
+    }
+  } catch {
+    loginError.value = t('loginFailed')
+  } finally {
     isLoading.value = false
-    router.push('/')
-  }, 800)
+  }
 }
 
 onMounted(() => {
-  const savedUser = localStorage.getItem('nacos_user')
-  const savedToken = localStorage.getItem('nacos-token')
+  const savedUser = localStorage.getItem('batata_user')
+  const savedToken = localStorage.getItem('batata-token')
   if (savedUser && savedToken) {
     const user = JSON.parse(savedUser)
-    nacosStore.currentUser = { username: user.name, token: savedToken }
+    batataStore.currentUser = { username: user.name, token: savedToken }
     router.push('/')
   }
 })
@@ -59,7 +67,7 @@ onMounted(() => {
             class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg mb-6 transform -rotate-6 group"
           >
             <span class="text-white font-black text-3xl group-hover:rotate-6 transition-transform"
-              >N</span
+              >B</span
             >
           </div>
           <h1 class="text-base font-semibold text-white mb-1">{{ t('welcomeBack') }}</h1>
@@ -97,6 +105,10 @@ onMounted(() => {
                 required
               />
             </div>
+          </div>
+
+          <div v-if="loginError" class="text-red-400 text-sm text-center">
+            {{ loginError }}
           </div>
 
           <div class="flex items-center justify-between text-xs">
@@ -141,7 +153,7 @@ onMounted(() => {
         <div class="p-6 bg-slate-800/30 border-t border-white/5 text-center">
           <p class="text-slate-500 text-xs flex items-center justify-center">
             <ShieldCheck :size="14" class="mr-1 text-emerald-500" />
-            Secure connection established via Nacos Node
+            Secure connection established via Batata Node
           </p>
         </div>
       </div>

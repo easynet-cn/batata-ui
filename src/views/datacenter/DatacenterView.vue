@@ -317,7 +317,7 @@
               v-model="form.endpoint"
               type="text"
               class="input"
-              placeholder="https://nacos.example.com:8848"
+              placeholder="https://batata.example.com:8848"
             />
           </div>
           <div>
@@ -403,7 +403,7 @@ import {
   MapPin,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import type { Namespace, NodeInfo } from '@/types'
 
 // Types
@@ -462,7 +462,7 @@ const fetchDatacenters = async () => {
   loading.value = true
   try {
     // Fetch cluster nodes and derive datacenter info from them
-    const response = await nacosApi.getClusterNodes({})
+    const response = await batataApi.getClusterNodes({})
     const nodes = response.data.data || []
 
     // Group nodes by datacenter (from extendInfo or metadata)

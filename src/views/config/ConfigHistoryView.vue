@@ -226,7 +226,7 @@ import {
   X,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import type { ConfigHistoryInfo, Namespace } from '@/types'
 
 const props = defineProps<{
@@ -260,15 +260,15 @@ const goBack = () => {
 }
 
 const fetchHistories = async () => {
-  const { dataId, group, tenant } = route.query
-  if (!dataId || !group) return
+  const { dataId, groupName, namespaceId } = route.query
+  if (!dataId || !groupName) return
 
   loading.value = true
   try {
-    const response = await nacosApi.getConfigHistoryList({
+    const response = await batataApi.getConfigHistoryList({
       dataId: dataId as string,
-      group: group as string,
-      tenant: (tenant as string) || props.namespace.namespace,
+      groupName: groupName as string,
+      namespaceId: (namespaceId as string) || props.namespace.namespace,
       pageNo: currentPage.value,
       pageSize: pageSize.value,
     })
@@ -282,14 +282,14 @@ const fetchHistories = async () => {
 }
 
 const fetchCurrentConfig = async () => {
-  const { dataId, group, tenant } = route.query
-  if (!dataId || !group) return
+  const { dataId, groupName, namespaceId } = route.query
+  if (!dataId || !groupName) return
 
   try {
-    const response = await nacosApi.getConfig(
+    const response = await batataApi.getConfig(
       dataId as string,
-      group as string,
-      (tenant as string) || props.namespace.namespace,
+      groupName as string,
+      (namespaceId as string) || props.namespace.namespace,
     )
     currentContent.value = response.data.data.content || ''
   } catch (error) {
@@ -315,12 +315,12 @@ const viewHistory = async (item: ConfigHistoryInfo) => {
   selectedHistory.value = item
   if (!item.content) {
     try {
-      const { dataId, group, tenant } = route.query
-      const response = await nacosApi.getConfigHistory(
+      const { dataId, groupName, namespaceId } = route.query
+      const response = await batataApi.getConfigHistory(
         item.id,
         dataId as string,
-        group as string,
-        (tenant as string) || props.namespace.namespace,
+        groupName as string,
+        (namespaceId as string) || props.namespace.namespace,
       )
       selectedHistory.value = response.data.data
     } catch (error) {
@@ -334,12 +334,12 @@ const compareHistory = async (item: ConfigHistoryInfo) => {
   selectedHistory.value = item
   if (!item.content) {
     try {
-      const { dataId, group, tenant } = route.query
-      const response = await nacosApi.getConfigHistory(
+      const { dataId, groupName, namespaceId } = route.query
+      const response = await batataApi.getConfigHistory(
         item.id,
         dataId as string,
-        group as string,
-        (tenant as string) || props.namespace.namespace,
+        groupName as string,
+        (namespaceId as string) || props.namespace.namespace,
       )
       selectedHistory.value = response.data.data
     } catch (error) {
@@ -356,14 +356,14 @@ const rollbackHistory = (item: ConfigHistoryInfo) => {
 
 const confirmRollback = async () => {
   if (!selectedHistory.value) return
-  const { dataId, group, tenant } = route.query
+  const { dataId, groupName, namespaceId } = route.query
 
   try {
-    await nacosApi.rollbackConfig(
+    await batataApi.rollbackConfig(
       selectedHistory.value.id,
       dataId as string,
-      group as string,
-      (tenant as string) || props.namespace.namespace,
+      groupName as string,
+      (namespaceId as string) || props.namespace.namespace,
     )
     showRollbackModal.value = false
     fetchHistories()

@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useNacosStore } from '@/stores/nacos'
-import NacosLayout from '@/layout/NacosLayout.vue'
+import { useBatataStore } from '@/stores/batata'
+import BatataLayout from '@/layout/BatataLayout.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -19,7 +19,7 @@ const router = createRouter({
     },
     {
       path: '/',
-      component: NacosLayout,
+      component: BatataLayout,
       meta: { requiresAuth: true },
       children: [
         // Dashboard
@@ -209,24 +209,24 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to, _from, next) => {
-  const nacosStore = useNacosStore()
+  const batataStore = useBatataStore()
 
   // Restore user session from localStorage if not already in store
-  if (!nacosStore.isAuthenticated) {
-    const savedUser = localStorage.getItem('nacos_user')
-    const savedToken = localStorage.getItem('nacos-token')
+  if (!batataStore.isAuthenticated) {
+    const savedUser = localStorage.getItem('batata_user')
+    const savedToken = localStorage.getItem('batata-token')
     if (savedUser && savedToken) {
       const user = JSON.parse(savedUser)
-      nacosStore.currentUser = {
+      batataStore.currentUser = {
         username: user.name,
         token: savedToken,
       }
     }
   }
 
-  if (to.meta.requiresAuth !== false && !nacosStore.isAuthenticated) {
+  if (to.meta.requiresAuth !== false && !batataStore.isAuthenticated) {
     next('/login')
-  } else if (to.path === '/login' && nacosStore.isAuthenticated) {
+  } else if (to.path === '/login' && batataStore.isAuthenticated) {
     next('/')
   } else {
     next()

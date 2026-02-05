@@ -172,7 +172,7 @@
                   />
                 </td>
                 <td class="font-medium">{{ config.dataId }}</td>
-                <td>{{ config.group }}</td>
+                <td>{{ config.groupName }}</td>
                 <td>
                   <span class="badge badge-info">{{ config.type?.toUpperCase() || 'TEXT' }}</span>
                 </td>
@@ -313,7 +313,7 @@ import {
   X,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import type { ConfigInfo, Namespace } from '@/types'
 
@@ -370,7 +370,7 @@ const filteredConfigs = computed(() => {
   if (!configSearch.value) return configs.value
   const search = configSearch.value.toLowerCase()
   return configs.value.filter(
-    (c) => c.dataId.toLowerCase().includes(search) || c.group.toLowerCase().includes(search),
+    (c) => c.dataId.toLowerCase().includes(search) || c.groupName.toLowerCase().includes(search),
   )
 })
 
@@ -384,7 +384,7 @@ const isAllConfigsSelected = computed(() => {
 // Methods
 const fetchEnvironments = async () => {
   try {
-    const response = await nacosApi.getSyncEnvironments()
+    const response = await batataApi.getSyncEnvironments()
     environments.value = response.data.data || []
   } catch (error) {
     console.error('Failed to fetch environments:', error)
@@ -396,10 +396,10 @@ const fetchEnvironments = async () => {
 const fetchConfigs = async () => {
   loading.value = true
   try {
-    const response = await nacosApi.getConfigList({
+    const response = await batataApi.getConfigList({
       pageNo: 1,
       pageSize: 1000,
-      tenant: props.namespace.namespace,
+      namespaceId: props.namespace.namespace,
     })
     configs.value = (response.data.data.pageItems || []).map((c: ConfigInfo) => ({
       ...c,
@@ -414,7 +414,7 @@ const fetchConfigs = async () => {
 
 const fetchSyncHistory = async () => {
   try {
-    const response = await nacosApi.getSyncHistory(props.namespace.namespace)
+    const response = await batataApi.getSyncHistory(props.namespace.namespace)
     syncHistory.value = response.data.data || []
   } catch (error) {
     console.error('Failed to fetch sync history:', error)
@@ -470,7 +470,7 @@ const executeSync = async () => {
 
   syncing.value = true
   try {
-    await nacosApi.syncConfigs({
+    await batataApi.syncConfigs({
       configIds: selectedConfigs.value,
       targetEnvIds: selectedEnvs.value,
       policy: syncPolicy.value,

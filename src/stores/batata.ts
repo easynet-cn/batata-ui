@@ -1,9 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ServiceInfo, ConfigInfo, Namespace, NodeInfo } from '@/types'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 
-export const useNacosStore = defineStore('nacos', () => {
+export const useBatataStore = defineStore('batata', () => {
   // 状态
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -39,12 +39,12 @@ export const useNacosStore = defineStore('nacos', () => {
       loading.value = true
       error.value = null
 
-      const response = await nacosApi.login(username, password)
-      const { accessToken } = response.data.data
+      const response = await batataApi.login(username, password)
+      const { accessToken } = response.data
 
       currentUser.value = { username, token: accessToken }
-      localStorage.setItem('nacos-token', accessToken)
-      localStorage.setItem('nacos-username', username)
+      localStorage.setItem('batata-token', accessToken)
+      localStorage.setItem('batata-username', username)
 
       return true
     } catch (err: unknown) {
@@ -57,8 +57,8 @@ export const useNacosStore = defineStore('nacos', () => {
 
   function logout() {
     currentUser.value = null
-    localStorage.removeItem('nacos-token')
-    localStorage.removeItem('nacos-username')
+    localStorage.removeItem('batata-token')
+    localStorage.removeItem('batata-username')
     // 清空所有数据
     services.value = []
     configs.value = []
@@ -76,7 +76,7 @@ export const useNacosStore = defineStore('nacos', () => {
       loading.value = true
       error.value = null
 
-      const response = await nacosApi.getServiceList({
+      const response = await batataApi.getServiceList({
         pageNo: params?.pageNo ?? 1,
         pageSize: params?.pageSize ?? 20,
         groupName: params?.groupName,
@@ -84,8 +84,8 @@ export const useNacosStore = defineStore('nacos', () => {
         namespaceId: params?.namespaceId,
         hasIpCount: true,
       })
-      services.value = response.data.data.serviceList
-      serviceTotal.value = response.data.data.count
+      services.value = response.data.data.pageItems || []
+      serviceTotal.value = response.data.data.totalCount || 0
 
       return response.data.data
     } catch (err: unknown) {
@@ -102,7 +102,7 @@ export const useNacosStore = defineStore('nacos', () => {
       loading.value = true
       error.value = null
 
-      const response = await nacosApi.getServiceDetail(serviceName, groupName, namespaceId)
+      const response = await batataApi.getServiceDetail(serviceName, groupName, namespaceId)
       return response.data.data
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '获取服务详情失败'
@@ -124,12 +124,12 @@ export const useNacosStore = defineStore('nacos', () => {
       loading.value = true
       error.value = null
 
-      const response = await nacosApi.getConfigList({
+      const response = await batataApi.getConfigList({
         pageNo: params?.pageNo ?? 1,
         pageSize: params?.pageSize ?? 20,
         dataId: params?.dataId,
-        group: params?.group,
-        tenant: params?.tenant,
+        groupName: params?.group,
+        namespaceId: params?.tenant,
       })
       configs.value = response.data.data.pageItems
       configTotal.value = response.data.data.totalCount
@@ -149,7 +149,7 @@ export const useNacosStore = defineStore('nacos', () => {
       loading.value = true
       error.value = null
 
-      const response = await nacosApi.getConfig(dataId, group, tenant)
+      const response = await batataApi.getConfig(dataId, group, tenant)
       return response.data.data
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '获取配置内容失败'
@@ -165,7 +165,7 @@ export const useNacosStore = defineStore('nacos', () => {
       loading.value = true
       error.value = null
 
-      const response = await nacosApi.getNamespaceList()
+      const response = await batataApi.getNamespaceList()
       namespaces.value = response.data.data
 
       return response.data.data
@@ -183,7 +183,7 @@ export const useNacosStore = defineStore('nacos', () => {
       loading.value = true
       error.value = null
 
-      const response = await nacosApi.getClusterNodes()
+      const response = await batataApi.getClusterNodes()
       clusterNodes.value = response.data.data
 
       return response.data.data
@@ -201,7 +201,7 @@ export const useNacosStore = defineStore('nacos', () => {
       loading.value = true
       error.value = null
 
-      await nacosApi.deleteService(serviceName, groupName, namespaceId)
+      await batataApi.deleteService(serviceName, groupName, namespaceId)
       return true
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '删除服务失败'
@@ -223,7 +223,7 @@ export const useNacosStore = defineStore('nacos', () => {
       loading.value = true
       error.value = null
 
-      await nacosApi.createService(data)
+      await batataApi.createService(data)
       return true
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '创建服务失败'
@@ -239,7 +239,7 @@ export const useNacosStore = defineStore('nacos', () => {
       loading.value = true
       error.value = null
 
-      await nacosApi.deleteConfig(dataId, group, tenant)
+      await batataApi.deleteConfig(dataId, group, tenant)
       return true
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '删除配置失败'
@@ -252,10 +252,10 @@ export const useNacosStore = defineStore('nacos', () => {
 
   async function publishConfig(data: {
     dataId: string
-    group: string
+    groupName: string
     content: string
     type?: string
-    tenant?: string
+    namespaceId?: string
     appName?: string
     desc?: string
   }) {
@@ -263,7 +263,7 @@ export const useNacosStore = defineStore('nacos', () => {
       loading.value = true
       error.value = null
 
-      await nacosApi.publishConfig(data)
+      await batataApi.publishConfig(data)
       return true
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '发布配置失败'
@@ -279,7 +279,7 @@ export const useNacosStore = defineStore('nacos', () => {
       loading.value = true
       error.value = null
 
-      await nacosApi.deleteNamespace(namespaceId)
+      await batataApi.deleteNamespace(namespaceId)
       return true
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '删除命名空间失败'
@@ -299,7 +299,7 @@ export const useNacosStore = defineStore('nacos', () => {
       loading.value = true
       error.value = null
 
-      await nacosApi.createNamespace(data)
+      await batataApi.createNamespace(data)
       return true
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '创建命名空间失败'

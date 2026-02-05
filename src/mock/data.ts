@@ -14,12 +14,12 @@ const Random = Mock.Random
 export const mockConfigs: ConfigInfo[] = Array.from({ length: 15 }, () => ({
   id: Random.guid(),
   dataId: `com.alibaba.nacos.${Random.word(3, 8)}.yaml`,
-  group: Random.pick(['DEFAULT_GROUP', 'DEV_GROUP', 'PROD_GROUP']) as string,
+  groupName: Random.pick(['DEFAULT_GROUP', 'DEV_GROUP', 'PROD_GROUP']) as string,
   appName: Random.word(4, 10),
   content: 'server:\n  port: 8080\nspring:\n  application:\n    name: demo-app',
   type: 'yaml' as const,
   md5: Random.string('lower', 32),
-  tenant: 'public',
+  namespaceId: 'public',
   createTime: Date.now() - Random.integer(86400000 * 30, 86400000 * 60),
   modifyTime: Date.now() - Random.integer(0, 86400000 * 30),
 }))

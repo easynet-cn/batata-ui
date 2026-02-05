@@ -324,7 +324,7 @@ import {
   XCircle,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import type { Namespace, AuditLogItem } from '@/types'
 
 // Internal view type that maps from API response
@@ -447,7 +447,7 @@ const fetchLogs = async () => {
   loading.value = true
   try {
     const timeRange = getTimeRange()
-    const response = await nacosApi.getAuditLogList({
+    const response = await batataApi.getAuditLogList({
       operator: filters.username || undefined,
       resourceType: filters.resourceType?.toUpperCase() || undefined,
       operation: filters.action?.toUpperCase() || undefined,

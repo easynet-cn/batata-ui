@@ -190,7 +190,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Code, Loader2, Lock, Unlock, FlaskConical } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import type { Namespace, ConfigType } from '@/types'
 
@@ -225,18 +225,18 @@ const goBack = () => {
 }
 
 const fetchConfig = async () => {
-  const { dataId, group, tenant } = route.query
-  if (!dataId || !group) return
+  const { dataId, groupName, namespaceId: queryNamespaceId } = route.query
+  if (!dataId || !groupName) return
 
-  const namespaceId = (tenant as string) || props.namespace.namespace
+  const namespaceId = (queryNamespaceId as string) || props.namespace.namespace
 
   try {
     // First get the regular config
-    const response = await nacosApi.getConfig(dataId as string, group as string, namespaceId)
+    const response = await batataApi.getConfig(dataId as string, groupName as string, namespaceId)
     const config = response.data.data
     Object.assign(form, {
       dataId: config.dataId,
-      group: config.group,
+      group: config.groupName,
       appName: config.appName || '',
       type: config.type || 'text',
       desc: config.desc || '',
@@ -246,9 +246,9 @@ const fetchConfig = async () => {
 
     // Check if there's a beta version
     try {
-      const betaResponse = await nacosApi.getBetaConfig(
+      const betaResponse = await batataApi.getBetaConfig(
         dataId as string,
-        group as string,
+        groupName as string,
         namespaceId,
       )
       const betaConfig = betaResponse.data.data
@@ -289,24 +289,24 @@ const handleSubmit = async () => {
   try {
     if (form.beta) {
       // Publish as beta/gray config
-      await nacosApi.publishBetaConfig({
+      await batataApi.publishBetaConfig({
         dataId: form.dataId,
-        group: form.group,
+        groupName: form.group,
         content: form.content,
-        tenant: props.namespace.namespace,
+        namespaceId: props.namespace.namespace,
         betaIps: form.betaIps,
       })
     } else {
       // Publish as regular config
-      await nacosApi.publishConfig({
+      await batataApi.publishConfig({
         dataId: form.dataId,
-        group: form.group,
+        groupName: form.group,
         content: form.content,
         type: form.type,
-        tenant: props.namespace.namespace,
+        namespaceId: props.namespace.namespace,
         appName: form.appName,
         desc: form.desc,
-        tags: form.tags,
+        configTags: form.tags,
       })
     }
     router.push({ name: 'configs' })

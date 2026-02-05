@@ -146,7 +146,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, RefreshCw, Pencil, Loader2, Code, X } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import type { McpServerInfo, McpToolInfo, Namespace } from '@/types'
 
 defineProps<{
@@ -169,16 +169,16 @@ const selectedTool = ref<McpToolInfo | null>(null)
 
 // Methods
 const fetchMcpServer = async () => {
-  if (!route.query.id) return
+  const namespace = route.query.namespace as string
+  const name = route.query.name as string
+  if (!namespace || !name) return
 
   loading.value = true
   try {
-    const [serverRes, toolsRes] = await Promise.all([
-      nacosApi.getMcpServerDetail(route.query.id as string),
-      nacosApi.getMcpServerTools(route.query.id as string),
-    ])
+    const serverRes = await batataApi.getMcpServerDetail(namespace, name)
     server.value = serverRes.data.data
-    tools.value = toolsRes.data.data || []
+    // Tools are included in the server detail response
+    tools.value = serverRes.data.data?.tools || []
   } catch (error) {
     console.error('Failed to fetch MCP server:', error)
   } finally {
@@ -187,12 +187,14 @@ const fetchMcpServer = async () => {
 }
 
 const refreshTools = async () => {
-  if (!route.query.id) return
+  const namespace = route.query.namespace as string
+  const name = route.query.name as string
+  if (!namespace || !name) return
 
   refreshing.value = true
   try {
-    const response = await nacosApi.getMcpServerTools(route.query.id as string)
-    tools.value = response.data.data || []
+    const response = await batataApi.getMcpServerDetail(namespace, name)
+    tools.value = response.data.data?.tools || []
   } catch (error) {
     console.error('Failed to refresh tools:', error)
   } finally {
@@ -214,7 +216,9 @@ const goBack = () => {
 }
 
 const handleEdit = () => {
-  router.push(`/mcp/edit?id=${route.query.id}`)
+  router.push(
+    `/mcp/edit?namespace=${encodeURIComponent(route.query.namespace as string)}&name=${encodeURIComponent(route.query.name as string)}`,
+  )
 }
 
 const showParameters = (tool: McpToolInfo) => {

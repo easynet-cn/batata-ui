@@ -57,7 +57,7 @@ pnpm format
 ```
 src/
 ├── api/                    # API 接口层
-│   └── nacos.ts           # Nacos API 封装
+│   └── batata.ts          # Batata API 封装
 ├── assets/                # 静态资源和样式
 │   └── main.css          # 主样式入口
 ├── components/            # 通用组件
@@ -66,7 +66,7 @@ src/
 │   ├── index.ts          # i18n 配置
 │   └── translations.ts   # 翻译文本
 ├── layout/               # 布局组件
-│   └── NacosLayout.vue   # 主布局
+│   └── BatataLayout.vue  # 主布局
 ├── mock/                 # Mock 数据
 │   ├── index.ts         # Mock 入口
 │   ├── data.ts          # Mock 数据
@@ -74,7 +74,7 @@ src/
 ├── router/              # 路由配置
 │   └── index.ts        # 路由定义
 ├── stores/             # Pinia 状态管理
-│   └── nacos.ts       # Nacos 状态
+│   └── batata.ts      # Batata 状态
 ├── types/             # TypeScript 类型定义
 │   └── index.ts      # 类型导出
 ├── views/            # 页面组件

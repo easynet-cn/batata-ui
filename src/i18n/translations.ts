@@ -61,13 +61,14 @@ export const translations = {
 
     // Login
     welcomeBack: 'Welcome Back',
-    loginSubtitle: 'Nacos Modern Management Console',
+    loginSubtitle: 'Batata Management Console',
     username: 'Username',
     password: 'Password',
     signIn: 'Sign In',
     rememberMe: 'Remember me',
     forgotPassword: 'Forgot password?',
     noAccount: "Don't have an account? Register",
+    loginFailed: 'Login failed, please check your username and password',
 
     // Config
     dataId: 'Data ID',
@@ -443,7 +444,7 @@ export const translations = {
 
     // Register
     createAccount: 'Create Account',
-    registerSubtitle: 'Join Nacos Management Console',
+    registerSubtitle: 'Join Batata Management Console',
     confirmPassword: 'Confirm Password',
     passwordMismatch: 'Passwords do not match',
     passwordTooShort: 'Password must be at least 6 characters',
@@ -649,13 +650,14 @@ export const translations = {
 
     // Login
     welcomeBack: '欢迎回来',
-    loginSubtitle: 'Nacos 现代管理控制台',
+    loginSubtitle: 'Batata 管理控制台',
     username: '用户名',
     password: '密码',
     signIn: '登录',
     rememberMe: '记住我',
     forgotPassword: '忘记密码？',
     noAccount: '没有账户？立即注册',
+    loginFailed: '登录失败，请检查用户名和密码',
 
     // Config
     dataId: '配置 ID',
@@ -1030,7 +1032,7 @@ export const translations = {
 
     // Register
     createAccount: '创建账户',
-    registerSubtitle: '加入 Nacos 管理控制台',
+    registerSubtitle: '加入 Batata 管理控制台',
     confirmPassword: '确认密码',
     passwordMismatch: '两次输入的密码不一致',
     passwordTooShort: '密码至少需要6个字符',

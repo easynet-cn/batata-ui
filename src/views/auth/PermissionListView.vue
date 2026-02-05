@@ -178,7 +178,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { Plus, Search, Trash2, Loader2, X, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import type { PermissionInfo, Namespace } from '@/types'
 
@@ -215,7 +215,7 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
 const fetchPermissions = async () => {
   loading.value = true
   try {
-    const response = await nacosApi.getPermissionList({
+    const response = await batataApi.getPermissionList({
       pageNo: currentPage.value,
       pageSize: pageSize.value,
       role: searchRole.value || undefined,
@@ -265,7 +265,7 @@ const submitCreate = async () => {
 
   saving.value = true
   try {
-    await nacosApi.createPermission(createForm)
+    await batataApi.createPermission(createForm)
     showCreateModal.value = false
     Object.assign(createForm, { role: '', resource: '', action: 'r' })
     fetchPermissions()
@@ -284,7 +284,7 @@ const handleDelete = (perm: PermissionInfo) => {
 const confirmDelete = async () => {
   if (!permToDelete.value) return
   try {
-    await nacosApi.deletePermission(
+    await batataApi.deletePermission(
       permToDelete.value.role,
       permToDelete.value.resource,
       permToDelete.value.action,

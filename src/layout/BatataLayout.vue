@@ -11,10 +11,10 @@
         <div
           class="w-6 h-6 bg-blue-500 rounded flex items-center justify-center mr-2 shrink-0 shadow shadow-blue-500/20"
         >
-          <span class="text-white font-bold text-sm">N</span>
+          <span class="text-white font-bold text-sm">B</span>
         </div>
         <span v-if="isSidebarOpen" class="font-semibold text-white text-sm tracking-tight truncate"
-          >NACOS</span
+          >BATATA</span
         >
       </div>
 
@@ -98,7 +98,7 @@
                   {{ t('selectNamespace') }}
                 </div>
                 <button
-                  v-for="ns in mockNamespaces"
+                  v-for="ns in namespaces"
                   :key="ns.namespace"
                   @click="switchNamespace(ns)"
                   :class="[
@@ -324,8 +324,6 @@ import {
   Globe2,
   Languages,
   FileCode,
-  Bot,
-  Cpu,
   Cog,
   LayoutDashboard,
   Bell,
@@ -334,14 +332,16 @@ import {
   AlertTriangle,
   XCircle,
   FileText,
+  Bot,
+  Cpu,
   Activity,
   RefreshCw,
   Puzzle,
 } from 'lucide-vue-next'
 import { useI18n, type Language } from '@/i18n'
-import { mockNamespaces } from '@/mock/data'
 import type { Namespace } from '@/types'
-import { useNacosStore } from '@/stores/nacos'
+import { useBatataStore } from '@/stores/batata'
+import batataApi from '@/api/batata'
 import { useGlobalWebSocket } from '@/composables/useWebSocket'
 import { globalNotifications } from '@/composables/useNotifications'
 import { config } from '@/config'
@@ -349,7 +349,7 @@ import { config } from '@/config'
 const { t, language, setLanguage } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const nacosStore = useNacosStore()
+const batataStore = useBatataStore()
 
 const isSidebarOpen = ref(true)
 const showUserMenu = ref(false)
@@ -407,23 +407,46 @@ const defaultNamespace: Namespace = {
   quota: 200,
   configCount: 0,
 }
-const currentNamespace = ref<Namespace>(mockNamespaces[0] || defaultNamespace)
+const namespaces = ref<Namespace[]>([defaultNamespace])
+const currentNamespace = ref<Namespace>(defaultNamespace)
+
+const fetchNamespaces = async () => {
+  try {
+    const response = await batataApi.getNamespaceList()
+    const list = response.data?.data
+    if (list && list.length > 0) {
+      namespaces.value = list
+      // Restore saved namespace or use the first one
+      const savedNs = localStorage.getItem('batata_current_ns')
+      if (savedNs) {
+        const parsed = JSON.parse(savedNs) as Namespace
+        const found = list.find((ns: Namespace) => ns.namespace === parsed.namespace)
+        if (found) {
+          currentNamespace.value = found
+          return
+        }
+      }
+      if (list[0]) {
+        currentNamespace.value = list[0]
+      }
+    }
+  } catch {
+    // Fallback to default namespace on error
+  }
+}
 
 onMounted(() => {
-  const savedUser = localStorage.getItem('nacos_user')
-  const savedToken = localStorage.getItem('nacos-token')
+  const savedUser = localStorage.getItem('batata_user')
+  const savedToken = localStorage.getItem('batata-token')
   if (savedUser) {
     user.value = JSON.parse(savedUser)
     // Also restore store state for router guard
     if (savedToken) {
-      nacosStore.currentUser = { username: user.value!.name, token: savedToken }
+      batataStore.currentUser = { username: user.value!.name, token: savedToken }
     }
   }
 
-  const savedNs = localStorage.getItem('nacos_current_ns')
-  if (savedNs) {
-    currentNamespace.value = JSON.parse(savedNs)
-  }
+  fetchNamespaces()
 })
 
 const handlerChangeLanguage = (lang: Language) => {
@@ -433,15 +456,15 @@ const handlerChangeLanguage = (lang: Language) => {
 
 const handleLogout = () => {
   user.value = null
-  localStorage.removeItem('nacos_user')
-  localStorage.removeItem('nacos-token')
-  nacosStore.logout()
+  localStorage.removeItem('batata_user')
+  localStorage.removeItem('batata-token')
+  batataStore.logout()
   router.push('/login')
 }
 
 const switchNamespace = (ns: Namespace) => {
   currentNamespace.value = ns
-  localStorage.setItem('nacos_current_ns', JSON.stringify(ns))
+  localStorage.setItem('batata_current_ns', JSON.stringify(ns))
   showNamespaceMenu.value = false
 }
 

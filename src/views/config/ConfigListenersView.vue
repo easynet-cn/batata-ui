@@ -27,7 +27,7 @@
               t('group')
             }}</label>
             <input
-              v-model="searchParams.group"
+              v-model="searchParams.groupName"
               type="text"
               class="input"
               :placeholder="t('group')"
@@ -83,7 +83,7 @@
             </tr>
             <tr v-for="(item, index) in listeners" :key="index" class="hover:bg-bg-secondary">
               <td class="font-medium">{{ item.dataId }}</td>
-              <td>{{ item.group }}</td>
+              <td>{{ item.groupName }}</td>
               <td class="font-mono text-sm text-text-secondary">{{ item.md5 }}</td>
               <td class="font-mono text-sm">{{ item.listeningIp || '-' }}</td>
               <td>
@@ -127,7 +127,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { Search, RotateCcw, Loader2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import type { ConfigListenerInfo, Namespace } from '@/types'
 
 const props = defineProps<{
@@ -145,7 +145,7 @@ const pageSize = ref(10)
 
 const searchParams = reactive({
   dataId: '',
-  group: '',
+  groupName: '',
   ip: '',
 })
 
@@ -156,9 +156,9 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
 const fetchListeners = async () => {
   loading.value = true
   try {
-    const response = await nacosApi.getConfigListeners({
+    const response = await batataApi.getConfigListeners({
       ...searchParams,
-      tenant: props.namespace.namespace,
+      namespaceId: props.namespace.namespace,
       pageNo: currentPage.value,
       pageSize: pageSize.value,
     })
@@ -179,7 +179,7 @@ const handleSearch = () => {
 const handleReset = () => {
   Object.assign(searchParams, {
     dataId: '',
-    group: '',
+    groupName: '',
     ip: '',
   })
   handleSearch()

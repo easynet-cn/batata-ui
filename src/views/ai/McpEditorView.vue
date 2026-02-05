@@ -200,7 +200,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import type { Namespace } from '@/types'
 
@@ -232,15 +232,17 @@ const form = reactive({
 })
 
 // Computed
-const isEdit = computed(() => !!route.query.id)
+const isEdit = computed(() => !!route.query.name)
 
 // Methods
 const fetchMcpServer = async () => {
-  if (!route.query.id) return
+  const namespace = route.query.namespace as string
+  const name = route.query.name as string
+  if (!namespace || !name) return
 
   loading.value = true
   try {
-    const response = await nacosApi.getMcpServerDetail(route.query.id as string)
+    const response = await batataApi.getMcpServerDetail(namespace, name)
     const server = response.data.data
     Object.assign(form, {
       id: server.id,
@@ -322,10 +324,11 @@ const handleSubmit = async () => {
     }
 
     if (isEdit.value) {
-      payload.id = form.id
-      await nacosApi.updateMcpServer(payload)
+      const namespace = (route.query.namespace as string) || 'default'
+      const name = route.query.name as string
+      await batataApi.updateMcpServer(namespace, name, payload)
     } else {
-      await nacosApi.createMcpServer(payload)
+      await batataApi.createMcpServer(payload)
     }
 
     router.push('/mcp')

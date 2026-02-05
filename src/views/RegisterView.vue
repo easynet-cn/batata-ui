@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Lock, User, ShieldCheck, ArrowRight, UserPlus } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 
 const { t } = useI18n()
@@ -32,7 +32,7 @@ const handleSubmit = async () => {
 
   isLoading.value = true
   try {
-    await nacosApi.register({
+    await batataApi.register({
       username: username.value,
       password: password.value,
     })

@@ -225,7 +225,7 @@
               <span class="text-text-primary">Apache-2.0</span>
             </div>
             <a
-              href="https://github.com/alibaba/nacos"
+              href="https://github.com/easynet-cn/batata"
               target="_blank"
               class="btn btn-ghost btn-sm w-full justify-start"
             >
@@ -284,7 +284,7 @@ const serverInfo = reactive({
 
 // Methods
 const loadSettings = () => {
-  const saved = localStorage.getItem('nacos-settings')
+  const saved = localStorage.getItem('batata-settings')
   if (saved) {
     try {
       Object.assign(settings, JSON.parse(saved))
@@ -297,7 +297,7 @@ const loadSettings = () => {
 const handleSave = async () => {
   saving.value = true
   try {
-    localStorage.setItem('nacos-settings', JSON.stringify(settings))
+    localStorage.setItem('batata-settings', JSON.stringify(settings))
     // Apply theme
     document.documentElement.setAttribute('data-theme', settings.theme)
   } catch (error) {

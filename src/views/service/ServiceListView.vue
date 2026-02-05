@@ -313,7 +313,7 @@ import {
   X,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import type { ServiceInfo, Namespace } from '@/types'
 
@@ -359,14 +359,14 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
 const fetchServices = async () => {
   loading.value = true
   try {
-    const response = await nacosApi.getServiceList({
+    const response = await batataApi.getServiceList({
       pageNo: currentPage.value,
       pageSize: pageSize.value,
       namespaceId: props.namespace.namespace,
       ...searchParams,
     })
-    services.value = response.data.data.serviceList || []
-    total.value = response.data.data.count || 0
+    services.value = response.data.data.pageItems || []
+    total.value = response.data.data.totalCount || 0
   } catch (error) {
     console.error('Failed to fetch services:', error)
   } finally {
@@ -443,9 +443,9 @@ const handleSubmit = async () => {
     }
 
     if (showEditModal.value) {
-      await nacosApi.updateService(data)
+      await batataApi.updateService(data)
     } else {
-      await nacosApi.createService(data)
+      await batataApi.createService(data)
     }
     closeModal()
     fetchServices()
@@ -464,7 +464,7 @@ const handleDelete = (service: ServiceInfo) => {
 const confirmDelete = async () => {
   if (!serviceToDelete.value) return
   try {
-    await nacosApi.deleteService(
+    await batataApi.deleteService(
       serviceToDelete.value.name,
       serviceToDelete.value.groupName,
       props.namespace.namespace,

@@ -113,7 +113,7 @@
 import { ref, onMounted } from 'vue'
 import { RefreshCw, Server, Loader2, Info, X } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import type { NodeInfo, Namespace } from '@/types'
 
 defineProps<{
@@ -132,7 +132,7 @@ const selectedMetadata = ref<Record<string, string>>({})
 const fetchNodes = async () => {
   loading.value = true
   try {
-    const response = await nacosApi.getClusterNodes()
+    const response = await batataApi.getClusterNodes()
     nodes.value = response.data.data || []
   } catch (error) {
     console.error('Failed to fetch nodes:', error)

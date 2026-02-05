@@ -47,7 +47,7 @@
               t('group')
             }}</label>
             <input
-              v-model="searchParams.group"
+              v-model="searchParams.groupName"
               type="text"
               class="input"
               :placeholder="t('group')"
@@ -89,13 +89,18 @@
             <label class="block text-xs font-medium text-text-secondary mb-1">{{
               t('tags')
             }}</label>
-            <input v-model="searchParams.tags" type="text" class="input" :placeholder="t('tags')" />
+            <input
+              v-model="searchParams.configTags"
+              type="text"
+              class="input"
+              :placeholder="t('tags')"
+            />
           </div>
           <div>
             <label class="block text-xs font-medium text-text-secondary mb-1">{{
               t('configType')
             }}</label>
-            <select v-model="searchParams.types" class="input">
+            <select v-model="searchParams.type" class="input">
               <option value="">{{ t('all') }}</option>
               <option value="json">{{ t('configTypeJson') }}</option>
               <option value="yaml">{{ t('configTypeYaml') }}</option>
@@ -187,8 +192,8 @@
                     name: 'config-detail',
                     query: {
                       dataId: config.dataId,
-                      group: config.group,
-                      tenant: namespace.namespace,
+                      groupName: config.groupName,
+                      namespaceId: namespace.namespace,
                     },
                   }"
                   class="text-primary hover:underline font-medium"
@@ -196,7 +201,7 @@
                   {{ config.dataId }}
                 </router-link>
               </td>
-              <td>{{ config.group }}</td>
+              <td>{{ config.groupName }}</td>
               <td>{{ config.appName || '-' }}</td>
               <td>
                 <div class="flex items-center gap-1.5 flex-wrap">
@@ -229,7 +234,7 @@
                       name: 'config-detail',
                       query: {
                         dataId: config.dataId,
-                        group: config.group,
+                        group: config.groupName,
                         tenant: namespace.namespace,
                       },
                     }"
@@ -243,7 +248,7 @@
                       name: 'config-edit',
                       query: {
                         dataId: config.dataId,
-                        group: config.group,
+                        group: config.groupName,
                         tenant: namespace.namespace,
                       },
                     }"
@@ -257,7 +262,7 @@
                       name: 'config-history',
                       query: {
                         dataId: config.dataId,
-                        group: config.group,
+                        group: config.groupName,
                         tenant: namespace.namespace,
                       },
                     }"
@@ -502,7 +507,7 @@ import {
   ArrowUpCircle,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import type { ConfigInfo, Namespace } from '@/types'
 
 const props = defineProps<{
@@ -524,10 +529,10 @@ const namespaces = ref<Namespace[]>([])
 // Search params
 const searchParams = reactive({
   dataId: '',
-  group: '',
+  groupName: '',
   appName: '',
-  tags: '',
-  types: '',
+  configTags: '',
+  type: '',
   search: 'blur' as 'accurate' | 'blur',
   showBetaOnly: false,
 })
@@ -553,10 +558,10 @@ const isAllSelected = computed(
 const fetchConfigs = async () => {
   loading.value = true
   try {
-    const response = await nacosApi.getConfigList({
+    const response = await batataApi.getConfigList({
       pageNo: currentPage.value,
       pageSize: pageSize.value,
-      tenant: props.namespace.namespace,
+      namespaceId: props.namespace.namespace,
       ...searchParams,
     })
     configs.value = response.data.data.pageItems || []
@@ -572,7 +577,7 @@ const fetchConfigs = async () => {
 
 const fetchNamespaces = async () => {
   try {
-    const response = await nacosApi.getNamespaceList()
+    const response = await batataApi.getNamespaceList()
     namespaces.value = response.data.data || []
   } catch (error) {
     console.error('Failed to fetch namespaces:', error)
@@ -587,10 +592,10 @@ const handleSearch = () => {
 const handleReset = () => {
   Object.assign(searchParams, {
     dataId: '',
-    group: '',
+    groupName: '',
     appName: '',
-    tags: '',
-    types: '',
+    configTags: '',
+    type: '',
     search: 'blur',
     showBetaOnly: false,
   })
@@ -627,9 +632,9 @@ const handleDelete = (config: ConfigInfo) => {
 const confirmDelete = async () => {
   if (!configToDelete.value) return
   try {
-    await nacosApi.deleteConfig(
+    await batataApi.deleteConfig(
       configToDelete.value.dataId,
-      configToDelete.value.group,
+      configToDelete.value.groupName,
       props.namespace.namespace,
     )
     showDeleteModal.value = false
@@ -651,7 +656,7 @@ const handleFileChange = (event: Event) => {
 const confirmImport = async () => {
   if (!importFile.value) return
   try {
-    await nacosApi.importConfig(importFile.value, props.namespace.namespace, importPolicy.value)
+    await batataApi.importConfig(importFile.value, props.namespace.namespace, importPolicy.value)
     showImportModal.value = false
     fetchConfigs()
   } catch (error) {
@@ -662,12 +667,12 @@ const confirmImport = async () => {
 const handleExport = async () => {
   if (selectedIds.value.length === 0) return
   try {
-    const response = await nacosApi.exportConfig(selectedIds.value)
+    const response = await batataApi.exportConfig(selectedIds.value)
     const blob = new Blob([response.data as BlobPart], { type: 'application/zip' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `nacos_config_export_${Date.now()}.zip`
+    a.download = `batata_config_export_${Date.now()}.zip`
     a.click()
     window.URL.revokeObjectURL(url)
   } catch (error) {
@@ -684,9 +689,9 @@ const handleClone = (config: ConfigInfo) => {
 const confirmClone = async () => {
   if (!configToClone.value) return
   try {
-    await nacosApi.cloneConfig({
-      ids: [configToClone.value.id],
-      targetTenant: cloneTargetNs.value,
+    await batataApi.cloneConfig({
+      ids: configToClone.value.id,
+      targetNamespaceId: cloneTargetNs.value,
       policy: clonePolicy.value,
     })
     showCloneModal.value = false
@@ -705,13 +710,13 @@ const betaConfigMap = ref<Map<string, boolean>>(new Map())
 
 // Check if config has a beta version using the API
 const checkBetaConfig = async (config: ConfigInfo) => {
-  const key = `${config.dataId}:${config.group}`
+  const key = `${config.dataId}:${config.groupName}`
   if (betaConfigMap.value.has(key)) return betaConfigMap.value.get(key)
 
   try {
-    const response = await nacosApi.getBetaConfig(
+    const response = await batataApi.getBetaConfig(
       config.dataId,
-      config.group,
+      config.groupName,
       props.namespace.namespace,
     )
     const hasBeta = !!response.data.data
@@ -728,7 +733,7 @@ const isBetaConfig = (config: ConfigInfo) => {
   // Check for beta tag in dataId (naming convention)
   const hasBetaTag = config.dataId.includes('-beta') || config.dataId.includes('.beta')
   // Also check the beta config map (for configs with gray release)
-  const key = `${config.dataId}:${config.group}`
+  const key = `${config.dataId}:${config.groupName}`
   return hasBetaTag || betaConfigMap.value.get(key) === true
 }
 
@@ -755,16 +760,16 @@ const confirmPromote = async () => {
   try {
     // Try to use the beta config API first
     try {
-      await nacosApi.promoteBetaConfig(
+      await batataApi.promoteBetaConfig(
         configToPromote.value.dataId,
-        configToPromote.value.group,
+        configToPromote.value.groupName,
         props.namespace.namespace,
       )
     } catch {
       // Fallback: Get the current config content and publish as stable
-      const response = await nacosApi.getConfig(
+      const response = await batataApi.getConfig(
         configToPromote.value.dataId,
-        configToPromote.value.group,
+        configToPromote.value.groupName,
         props.namespace.namespace,
       )
       const config = response.data.data
@@ -772,12 +777,12 @@ const confirmPromote = async () => {
       // Create a new stable config (remove beta suffix if present)
       const stableDataId = config.dataId.replace('-beta', '').replace('.beta', '')
 
-      await nacosApi.publishConfig({
+      await batataApi.publishConfig({
         dataId: stableDataId,
-        group: config.group,
+        groupName: config.groupName,
         content: config.content,
         type: config.type,
-        tenant: props.namespace.namespace,
+        namespaceId: props.namespace.namespace,
         appName: config.appName,
         desc: `Promoted from beta: ${config.dataId}`,
       })

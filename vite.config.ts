@@ -1,5 +1,5 @@
 import { fileURLToPath, URL } from 'node:url'
-import { defineConfig, type PluginOption } from 'vite'
+import { defineConfig, loadEnv, type PluginOption } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
@@ -10,6 +10,9 @@ import { visualizer } from 'rollup-plugin-visualizer'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:8848'
+
   const plugins: PluginOption[] = [
     vue(),
     vueDevTools(),
@@ -106,8 +109,8 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       host: true,
       proxy: {
-        '/nacos': {
-          target: 'http://localhost:8848',
+        '/v3': {
+          target: apiProxyTarget,
           changeOrigin: true,
         },
       },

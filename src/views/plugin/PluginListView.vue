@@ -131,7 +131,7 @@
                   </div>
                   <div>
                     <p class="font-medium text-text-primary">{{ plugin.name }}</p>
-                    <p class="text-xs text-text-tertiary">{{ plugin.author || 'Nacos Team' }}</p>
+                    <p class="text-xs text-text-tertiary">{{ plugin.author || 'Batata Team' }}</p>
                   </div>
                 </div>
               </td>
@@ -209,7 +209,9 @@
             </div>
             <div>
               <h4 class="text-lg font-semibold text-text-primary">{{ selectedPlugin.name }}</h4>
-              <p class="text-sm text-text-secondary">{{ selectedPlugin.author || 'Nacos Team' }}</p>
+              <p class="text-sm text-text-secondary">
+                {{ selectedPlugin.author || 'Batata Team' }}
+              </p>
             </div>
           </div>
 
@@ -337,7 +339,7 @@ import {
   Box,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import type { PluginInfo, Namespace } from '@/types'
 
@@ -382,7 +384,7 @@ const errorCount = computed(() => plugins.value.filter((p) => p.status === 'erro
 const fetchPlugins = async () => {
   loading.value = true
   try {
-    const response = await nacosApi.getPluginList()
+    const response = await batataApi.getPluginList()
     plugins.value = response.data.data || []
   } catch (error) {
     console.error('Failed to fetch plugins:', error)
@@ -406,7 +408,7 @@ const viewPluginDetail = (plugin: PluginInfo) => {
 
 const togglePlugin = async (plugin: PluginInfo, enable: boolean) => {
   try {
-    await nacosApi.updatePluginStatus(plugin.name, enable)
+    await batataApi.updatePluginStatus(plugin.name, enable)
     plugin.status = enable ? 'enabled' : 'disabled'
     toast.success(enable ? t('pluginEnabled') : t('pluginDisabled'))
   } catch (error) {
@@ -433,7 +435,7 @@ const savePluginConfig = async () => {
 
   saving.value = true
   try {
-    await nacosApi.updatePluginConfig(selectedPlugin.value.name, JSON.parse(configJson.value))
+    await batataApi.updatePluginConfig(selectedPlugin.value.name, JSON.parse(configJson.value))
     selectedPlugin.value.config = JSON.parse(configJson.value)
     showConfigModal.value = false
     toast.success(t('configSaved'))

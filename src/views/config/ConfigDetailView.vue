@@ -15,7 +15,11 @@
         <router-link
           :to="{
             name: 'config-history',
-            query: { dataId: config?.dataId, group: config?.group, tenant: namespace.namespace },
+            query: {
+              dataId: config?.dataId,
+              groupName: config?.groupName,
+              namespaceId: namespace.namespace,
+            },
           }"
           class="btn btn-secondary btn-sm"
         >
@@ -25,7 +29,11 @@
         <router-link
           :to="{
             name: 'config-edit',
-            query: { dataId: config?.dataId, group: config?.group, tenant: namespace.namespace },
+            query: {
+              dataId: config?.dataId,
+              groupName: config?.groupName,
+              namespaceId: namespace.namespace,
+            },
           }"
           class="btn btn-primary btn-sm"
         >
@@ -52,7 +60,7 @@
             </div>
             <div>
               <label class="block text-sm text-text-tertiary mb-1">{{ t('group') }}</label>
-              <p class="text-text-primary font-medium">{{ config.group }}</p>
+              <p class="text-text-primary font-medium">{{ config.groupName }}</p>
             </div>
             <div>
               <label class="block text-sm text-text-tertiary mb-1">{{ t('namespace') }}</label>
@@ -120,7 +128,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, History, Pencil, Loader2, Copy } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import type { ConfigInfo, Namespace } from '@/types'
 
 const props = defineProps<{
@@ -141,15 +149,15 @@ const goBack = () => {
 }
 
 const fetchConfig = async () => {
-  const { dataId, group, tenant } = route.query
-  if (!dataId || !group) return
+  const { dataId, groupName, namespaceId } = route.query
+  if (!dataId || !groupName) return
 
   loading.value = true
   try {
-    const response = await nacosApi.getConfig(
+    const response = await batataApi.getConfig(
       dataId as string,
-      group as string,
-      (tenant as string) || props.namespace.namespace,
+      groupName as string,
+      (namespaceId as string) || props.namespace.namespace,
     )
     config.value = response.data.data
   } catch (error) {

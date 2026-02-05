@@ -167,7 +167,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { Plus, Search, Trash2, Loader2, X, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import type { RoleInfo, Namespace } from '@/types'
 
@@ -203,7 +203,7 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
 const fetchRoles = async () => {
   loading.value = true
   try {
-    const response = await nacosApi.getRoleList({
+    const response = await batataApi.getRoleList({
       pageNo: currentPage.value,
       pageSize: pageSize.value,
       search: searchKeyword.value || undefined,
@@ -235,7 +235,7 @@ const submitCreate = async () => {
 
   saving.value = true
   try {
-    await nacosApi.createRole(createForm)
+    await batataApi.createRole(createForm)
     showCreateModal.value = false
     Object.assign(createForm, { role: '', username: '' })
     fetchRoles()
@@ -254,7 +254,7 @@ const handleDelete = (role: RoleInfo) => {
 const confirmDelete = async () => {
   if (!roleToDelete.value) return
   try {
-    await nacosApi.deleteRole(roleToDelete.value.role, roleToDelete.value.username)
+    await batataApi.deleteRole(roleToDelete.value.role, roleToDelete.value.username)
     showDeleteModal.value = false
     fetchRoles()
   } catch (error) {

@@ -100,81 +100,49 @@
       </div>
     </div>
 
-    <!-- Recent Activity & Quick Actions -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <!-- Recent Activity -->
-      <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-        <h3 class="text-sm font-semibold text-slate-900 mb-4">{{ t('recentActivity') }}</h3>
-        <div v-if="recentActivity.length === 0" class="text-center py-8 text-slate-400">
-          <Clock :size="32" class="mx-auto mb-2 opacity-50" />
-          <p class="text-sm">{{ t('noRecentActivity') }}</p>
-        </div>
-        <div v-else class="space-y-3">
-          <div
-            v-for="activity in recentActivity"
-            :key="activity.id"
-            class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors"
-          >
-            <div
-              :class="[
-                'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
-                getActivityIconClass(activity.type),
-              ]"
-            >
-              <component :is="getActivityIcon(activity.type)" :size="16" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm text-slate-900 truncate">{{ activity.message }}</p>
-              <p class="text-xs text-slate-500 mt-0.5">{{ activity.time }}</p>
-            </div>
+    <!-- Quick Actions -->
+    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <h3 class="text-sm font-semibold text-slate-900 mb-4">{{ t('quickActions') }}</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+        <RouterLink
+          to="/config/new"
+          class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+        >
+          <div class="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+            <Plus :size="16" class="text-indigo-500" />
           </div>
-        </div>
-      </div>
+          <span class="text-sm font-medium text-slate-700">{{ t('createConfig') }}</span>
+        </RouterLink>
 
-      <!-- Quick Actions -->
-      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-        <h3 class="text-sm font-semibold text-slate-900 mb-4">{{ t('quickActions') }}</h3>
-        <div class="space-y-2">
-          <RouterLink
-            to="/config/new"
-            class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
-          >
-            <div class="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
-              <Plus :size="16" class="text-indigo-500" />
-            </div>
-            <span class="text-sm font-medium text-slate-700">{{ t('createConfig') }}</span>
-          </RouterLink>
+        <RouterLink
+          to="/services"
+          class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+        >
+          <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+            <Server :size="16" class="text-blue-500" />
+          </div>
+          <span class="text-sm font-medium text-slate-700">{{ t('manageServices') }}</span>
+        </RouterLink>
 
-          <RouterLink
-            to="/services"
-            class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
-          >
-            <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-              <Server :size="16" class="text-blue-500" />
-            </div>
-            <span class="text-sm font-medium text-slate-700">{{ t('manageServices') }}</span>
-          </RouterLink>
+        <RouterLink
+          to="/namespaces"
+          class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+        >
+          <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+            <Layers :size="16" class="text-purple-500" />
+          </div>
+          <span class="text-sm font-medium text-slate-700">{{ t('manageNamespaces') }}</span>
+        </RouterLink>
 
-          <RouterLink
-            to="/namespaces"
-            class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
-          >
-            <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-              <Layers :size="16" class="text-purple-500" />
-            </div>
-            <span class="text-sm font-medium text-slate-700">{{ t('manageNamespaces') }}</span>
-          </RouterLink>
-
-          <RouterLink
-            to="/cluster"
-            class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
-          >
-            <div class="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
-              <Network :size="16" class="text-emerald-500" />
-            </div>
-            <span class="text-sm font-medium text-slate-700">{{ t('viewCluster') }}</span>
-          </RouterLink>
-        </div>
+        <RouterLink
+          to="/cluster"
+          class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+        >
+          <div class="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+            <Network :size="16" class="text-emerald-500" />
+          </div>
+          <span class="text-sm font-medium text-slate-700">{{ t('viewCluster') }}</span>
+        </RouterLink>
       </div>
     </div>
 
@@ -222,16 +190,11 @@ import {
   RefreshCw,
   CheckCircle,
   Activity,
-  Clock,
   Plus,
-  Settings,
-  AlertCircle,
-  Trash2,
-  Edit3,
 } from 'lucide-vue-next'
 import * as echarts from 'echarts'
 import { useI18n } from '@/i18n'
-import { useNacosStore } from '@/stores/nacos'
+import { useBatataStore } from '@/stores/batata'
 import type { NodeInfo, Namespace } from '@/types'
 
 // Props
@@ -240,7 +203,7 @@ defineProps<{
 }>()
 
 const { t } = useI18n()
-const nacosStore = useNacosStore()
+const batataStore = useBatataStore()
 
 // Refs
 const loading = ref(false)
@@ -264,35 +227,6 @@ const stats = ref({
   healthyNodes: 0,
 })
 
-// Mock recent activity data
-const recentActivity = ref([
-  {
-    id: 1,
-    type: 'config_update',
-    message: 'Configuration "application.yaml" updated',
-    time: '5 minutes ago',
-  },
-  {
-    id: 2,
-    type: 'service_register',
-    message: 'Service "user-service" registered',
-    time: '15 minutes ago',
-  },
-  {
-    id: 3,
-    type: 'config_create',
-    message: 'Configuration "redis.properties" created',
-    time: '1 hour ago',
-  },
-  {
-    id: 4,
-    type: 'service_deregister',
-    message: 'Instance "10.0.0.5:8080" deregistered',
-    time: '2 hours ago',
-  },
-  { id: 5, type: 'namespace_create', message: 'Namespace "staging" created', time: '3 hours ago' },
-])
-
 // Config types distribution data
 const configTypeData = ref([
   { name: 'YAML', value: 35 },
@@ -301,46 +235,6 @@ const configTypeData = ref([
   { name: 'XML', value: 10 },
   { name: 'Text', value: 10 },
 ])
-
-// Get activity icon based on type
-const getActivityIcon = (type: string) => {
-  switch (type) {
-    case 'config_update':
-      return Edit3
-    case 'config_create':
-      return Plus
-    case 'config_delete':
-      return Trash2
-    case 'service_register':
-      return CheckCircle
-    case 'service_deregister':
-      return AlertCircle
-    case 'namespace_create':
-      return Layers
-    default:
-      return Settings
-  }
-}
-
-// Get activity icon class based on type
-const getActivityIconClass = (type: string) => {
-  switch (type) {
-    case 'config_update':
-      return 'bg-blue-50 text-blue-500'
-    case 'config_create':
-      return 'bg-emerald-50 text-emerald-500'
-    case 'config_delete':
-      return 'bg-red-50 text-red-500'
-    case 'service_register':
-      return 'bg-emerald-50 text-emerald-500'
-    case 'service_deregister':
-      return 'bg-amber-50 text-amber-500'
-    case 'namespace_create':
-      return 'bg-purple-50 text-purple-500'
-    default:
-      return 'bg-slate-50 text-slate-500'
-  }
-}
 
 // Initialize health chart
 const initHealthChart = () => {
@@ -479,21 +373,44 @@ const updateCharts = () => {
   }
 }
 
+// Update config chart with new data
+const updateConfigChart = () => {
+  if (configChart) {
+    configChart.setOption({
+      series: [
+        {
+          data: configTypeData.value.map((item, index) => ({
+            value: item.value,
+            name: item.name,
+            itemStyle: {
+              color: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#64748b'][index % 5],
+            },
+          })),
+        },
+      ],
+    })
+  }
+}
+
 // Fetch all data
 const fetchData = async () => {
   loading.value = true
 
+  // Fetch services
   try {
-    // Fetch services
-    const servicesData = await nacosStore.fetchServices({ pageSize: 1000 })
-    stats.value.totalServices = servicesData.count
-    stats.value.healthyServices = nacosStore.healthyServicesCount
+    const servicesData = await batataStore.fetchServices({ pageSize: 1000 })
+    stats.value.totalServices = servicesData.totalCount
+    stats.value.healthyServices = batataStore.healthyServicesCount
+  } catch (error) {
+    console.error('Failed to fetch services:', error)
+  }
 
-    // Fetch configs
-    const configsData = await nacosStore.fetchConfigs({ pageSize: 1000 })
+  // Fetch configs
+  try {
+    const configsData = await batataStore.fetchConfigs({ pageSize: 1000 })
     stats.value.totalConfigs = configsData.totalCount
     // Count unique groups
-    const groups = new Set(configsData.pageItems.map((c) => c.group))
+    const groups = new Set(configsData.pageItems.map((c) => c.groupName))
     stats.value.configGroups = groups.size
 
     // Update config type distribution based on actual data
@@ -506,26 +423,33 @@ const fetchData = async () => {
       name: name.toUpperCase(),
       value,
     }))
+  } catch (error) {
+    console.error('Failed to fetch configs:', error)
+  }
 
-    // Fetch namespaces
-    const namespacesData = await nacosStore.fetchNamespaces()
+  // Fetch namespaces
+  try {
+    const namespacesData = await batataStore.fetchNamespaces()
     stats.value.totalNamespaces = namespacesData.length
     stats.value.customNamespaces = namespacesData.filter((n) => n.type === 2).length
+  } catch (error) {
+    console.error('Failed to fetch namespaces:', error)
+  }
 
-    // Fetch cluster nodes
-    const nodesData = await nacosStore.fetchClusterNodes()
+  // Fetch cluster nodes
+  try {
+    const nodesData = await batataStore.fetchClusterNodes()
     clusterNodes.value = nodesData
     stats.value.totalNodes = nodesData.length
     stats.value.healthyNodes = nodesData.filter((n) => n.state === 'UP').length
-
-    // Update charts
-    updateCharts()
-    initConfigChart()
   } catch (error) {
-    console.error('Failed to fetch dashboard data:', error)
-  } finally {
-    loading.value = false
+    console.error('Failed to fetch cluster nodes:', error)
   }
+
+  // Update charts
+  updateCharts()
+  updateConfigChart()
+  loading.value = false
 }
 
 // Refresh data

@@ -30,8 +30,8 @@ import type {
 import { config } from '@/config'
 import { ApiError, AuthError, NetworkError } from '@/utils/error'
 
-// Nacos API 响应接口
-export interface NacosResponse<T = unknown> {
+// Batata API response interface
+export interface BatataResponse<T = unknown> {
   code: number
   message: string
   data: T
@@ -43,7 +43,7 @@ interface CacheOptions {
   key?: string
 }
 
-class NacosApi {
+class BatataApi {
   private instance: AxiosInstance
   private cache: LRUCache<string, AxiosResponse>
   private pendingRequests: Map<string, Promise<AxiosResponse>>
@@ -83,7 +83,7 @@ class NacosApi {
 
     // 响应拦截器
     this.instance.interceptors.response.use(
-      (response: AxiosResponse<NacosResponse>) => {
+      (response: AxiosResponse<BatataResponse>) => {
         const { data } = response
         if (data.code !== 0 && data.code !== 200) {
           throw new ApiError(data.code, data.message || '请求失败')
@@ -113,24 +113,24 @@ class NacosApi {
     url: string,
     axiosConfig?: AxiosRequestConfig,
     cacheOptions?: CacheOptions,
-  ): Promise<AxiosResponse<NacosResponse<T>>> {
+  ): Promise<AxiosResponse<BatataResponse<T>>> {
     const cacheKey = cacheOptions?.key || `${url}:${JSON.stringify(axiosConfig?.params || {})}`
 
     // Check cache
     const cachedResponse = this.cache.get(cacheKey)
     if (cachedResponse) {
-      return cachedResponse as AxiosResponse<NacosResponse<T>>
+      return cachedResponse as AxiosResponse<BatataResponse<T>>
     }
 
     // Check pending requests (prevent duplicate requests)
     const pendingRequest = this.pendingRequests.get(cacheKey)
     if (pendingRequest) {
-      return pendingRequest as Promise<AxiosResponse<NacosResponse<T>>>
+      return pendingRequest as Promise<AxiosResponse<BatataResponse<T>>>
     }
 
     // Make request
     const promise = this.instance
-      .get<NacosResponse<T>>(url, axiosConfig)
+      .get<BatataResponse<T>>(url, axiosConfig)
       .then((response) => {
         this.cache.set(cacheKey, response, { ttl: cacheOptions?.ttl })
         this.pendingRequests.delete(cacheKey)
@@ -159,6 +159,66 @@ class NacosApi {
   }
 
   // ============================================
+  // Auth Instance (/v3/auth)
+  // ============================================
+
+  private authInstance: AxiosInstance | null = null
+
+  private getAuthInstance(): AxiosInstance {
+    if (!this.authInstance) {
+      this.authInstance = axios.create({
+        baseURL: `${config.api.baseUrl}/v3/auth`,
+        timeout: config.api.timeout,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      this.authInstance.interceptors.request.use(
+        (reqConfig) => {
+          const token = localStorage.getItem(config.storage.tokenKey)
+          if (token) {
+            reqConfig.headers.accessToken = token
+          }
+          const username = localStorage.getItem(config.storage.usernameKey)
+          if (username) {
+            reqConfig.headers.username = username
+          }
+          return reqConfig
+        },
+        (error) => Promise.reject(error),
+      )
+
+      this.authInstance.interceptors.response.use(
+        (response: AxiosResponse) => {
+          const { data } = response
+          // Some auth endpoints (e.g. login) return raw data without BatataResponse wrapper
+          if (data.code !== undefined && data.code !== 0 && data.code !== 200) {
+            throw new ApiError(data.code, data.message || 'Request failed')
+          }
+          return response
+        },
+        (error) => {
+          if (!error.response) {
+            throw new NetworkError()
+          }
+          if (error.response?.status === 401 || error.response?.status === 403) {
+            localStorage.removeItem(config.storage.tokenKey)
+            localStorage.removeItem(config.storage.usernameKey)
+            window.location.href = '/login'
+            throw new AuthError()
+          }
+          throw new ApiError(
+            error.response?.status || 500,
+            error.response?.data?.message || error.message,
+          )
+        },
+      )
+    }
+    return this.authInstance
+  }
+
+  // ============================================
   // 认证相关 API
   // ============================================
 
@@ -167,13 +227,13 @@ class NacosApi {
     formData.append('username', username)
     formData.append('password', password)
 
-    return this.instance.post<NacosResponse<LoginResponse>>('/auth/login', formData, {
+    return this.getAuthInstance().post<LoginResponse>('/user/login', formData, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     })
   }
 
   async logout() {
-    return this.instance.post<NacosResponse>('/auth/logout')
+    return this.getAuthInstance().post<BatataResponse>('/user/logout')
   }
 
   // ============================================
@@ -184,71 +244,71 @@ class NacosApi {
     pageNo?: number
     pageSize?: number
     dataId?: string
-    group?: string
+    groupName?: string
     appName?: string
-    tenant?: string
+    namespaceId?: string
     search?: 'accurate' | 'blur'
-    tags?: string
-    types?: string
-    configDetail?: string
+    configTags?: string
+    type?: string
+    content?: string
   }) {
-    return this.instance.get<NacosResponse<PageResult<ConfigInfo>>>('/cs/config/list', { params })
+    return this.instance.get<BatataResponse<PageResult<ConfigInfo>>>('/cs/config/list', { params })
   }
 
-  async getConfig(dataId: string, group: string, tenant?: string) {
-    return this.instance.get<NacosResponse<ConfigInfo>>('/cs/config', {
-      params: { dataId, group, tenant },
+  async getConfig(dataId: string, groupName: string, namespaceId?: string) {
+    return this.instance.get<BatataResponse<ConfigInfo>>('/cs/config', {
+      params: { dataId, groupName, namespaceId },
     })
   }
 
   async publishConfig(data: {
     dataId: string
-    group: string
+    groupName: string
     content: string
     type?: string
-    tenant?: string
+    namespaceId?: string
     appName?: string
     desc?: string
-    tags?: string
     configTags?: string
   }) {
-    return this.instance.post<NacosResponse>('/cs/config', data)
+    return this.instance.post<BatataResponse>('/cs/config', data)
   }
 
-  async deleteConfig(dataId: string, group: string, tenant?: string) {
-    return this.instance.delete<NacosResponse>('/cs/config', {
-      params: { dataId, group, tenant },
+  async deleteConfig(dataId: string, groupName: string, tenant?: string) {
+    return this.instance.delete<BatataResponse>('/cs/config', {
+      params: { dataId, groupName, tenant },
     })
   }
 
-  async batchDeleteConfig(ids: string[]) {
-    return this.instance.delete<NacosResponse>('/cs/config/batch', {
-      data: { ids },
+  async batchDeleteConfig(ids: string[], namespaceId?: string) {
+    return this.instance.delete<BatataResponse>('/cs/config/batchDelete', {
+      params: { ids: ids.join(','), namespaceId },
     })
   }
 
   async cloneConfig(data: {
-    ids: string[]
-    targetTenant: string
+    ids: string
+    targetNamespaceId: string
     policy: 'ABORT' | 'SKIP' | 'OVERWRITE'
   }) {
-    return this.instance.post<NacosResponse>('/cs/config/clone', data)
+    return this.instance.post<BatataResponse>('/cs/config/clone', null, {
+      params: data,
+    })
   }
 
-  async importConfig(file: File, tenant: string, policy: 'ABORT' | 'SKIP' | 'OVERWRITE') {
+  async importConfig(file: File, namespaceId: string, policy: 'ABORT' | 'SKIP' | 'OVERWRITE') {
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('tenant', tenant)
-    formData.append('policy', policy)
 
-    return this.instance.post<NacosResponse>('/cs/config/import', formData, {
+    return this.instance.post<BatataResponse>('/cs/config/import', formData, {
+      params: { namespaceId, policy },
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   }
 
-  async exportConfig(ids: string[]) {
+  async exportConfig(ids: string[], namespaceId?: string) {
     return this.instance.get('/cs/config/export', {
-      params: { ids: ids.join(',') },
+      params: { dataIds: ids.join(','), namespaceId },
       responseType: 'blob',
     })
   }
@@ -256,39 +316,39 @@ class NacosApi {
   // 配置历史
   async getConfigHistoryList(params: {
     dataId: string
-    group: string
-    tenant?: string
+    groupName: string
+    namespaceId?: string
     pageNo?: number
     pageSize?: number
   }) {
-    return this.instance.get<NacosResponse<PageResult<ConfigHistoryInfo>>>('/cs/history/list', {
+    return this.instance.get<BatataResponse<PageResult<ConfigHistoryInfo>>>('/cs/history/list', {
       params,
     })
   }
 
-  async getConfigHistory(nid: string, dataId: string, group: string, tenant?: string) {
-    return this.instance.get<NacosResponse<ConfigHistoryInfo>>('/cs/history', {
-      params: { nid, dataId, group, tenant },
+  async getConfigHistory(nid: string, dataId: string, groupName: string, namespaceId?: string) {
+    return this.instance.get<BatataResponse<ConfigHistoryInfo>>('/cs/history', {
+      params: { nid, dataId, groupName, namespaceId },
     })
   }
 
-  async rollbackConfig(nid: string, dataId: string, group: string, tenant?: string) {
-    return this.instance.post<NacosResponse>('/cs/history/rollback', null, {
-      params: { nid, dataId, group, tenant },
+  async rollbackConfig(nid: string, dataId: string, groupName: string, namespaceId?: string) {
+    return this.instance.post<BatataResponse>('/cs/history/rollback', null, {
+      params: { nid, dataId, groupName, namespaceId },
     })
   }
 
   // 配置监听
   async getConfigListeners(params: {
     dataId?: string
-    group?: string
-    tenant?: string
+    groupName?: string
+    namespaceId?: string
     ip?: string
     pageNo?: number
     pageSize?: number
   }) {
-    return this.instance.get<NacosResponse<PageResult<ConfigListenerInfo>>>(
-      '/cs/config/listener/list',
+    return this.instance.get<BatataResponse<PageResult<ConfigListenerInfo>>>(
+      '/cs/config/listener',
       { params },
     )
   }
@@ -305,14 +365,13 @@ class NacosApi {
     namespaceId?: string
     hasIpCount?: boolean
   }) {
-    return this.instance.get<NacosResponse<{ count: number; serviceList: ServiceInfo[] }>>(
-      '/ns/service/list',
-      { params },
-    )
+    return this.instance.get<BatataResponse<PageResult<ServiceInfo>>>('/ns/service/list', {
+      params,
+    })
   }
 
   async getServiceDetail(serviceName: string, groupName: string, namespaceId?: string) {
-    return this.instance.get<NacosResponse<ServiceDetail>>('/ns/service', {
+    return this.instance.get<BatataResponse<ServiceDetail>>('/ns/service', {
       params: { serviceName, groupName, namespaceId },
     })
   }
@@ -325,7 +384,7 @@ class NacosApi {
     metadata?: Record<string, string>
     selector?: { type: string; expression?: string }
   }) {
-    return this.instance.post<NacosResponse>('/ns/service', data)
+    return this.instance.post<BatataResponse>('/ns/service', data)
   }
 
   async updateService(data: {
@@ -336,18 +395,18 @@ class NacosApi {
     metadata?: Record<string, string>
     selector?: { type: string; expression?: string }
   }) {
-    return this.instance.put<NacosResponse>('/ns/service', data)
+    return this.instance.put<BatataResponse>('/ns/service', data)
   }
 
   async deleteService(serviceName: string, groupName: string, namespaceId?: string) {
-    return this.instance.delete<NacosResponse>('/ns/service', {
+    return this.instance.delete<BatataResponse>('/ns/service', {
       params: { serviceName, groupName, namespaceId },
     })
   }
 
   // 实例管理
   async getInstanceList(serviceName: string, groupName: string, namespaceId?: string) {
-    return this.instance.get<NacosResponse<{ hosts: InstanceInfo[] }>>('/ns/instance/list', {
+    return this.instance.get<BatataResponse<{ hosts: InstanceInfo[] }>>('/ns/instance/list', {
       params: { serviceName, groupName, namespaceId },
     })
   }
@@ -363,7 +422,7 @@ class NacosApi {
     metadata?: Record<string, string>
     clusterName?: string
   }) {
-    return this.instance.put<NacosResponse>('/ns/instance', data)
+    return this.instance.put<BatataResponse>('/ns/instance', data)
   }
 
   // 集群管理
@@ -375,7 +434,7 @@ class NacosApi {
     healthChecker: { type: string; path?: string; headers?: string }
     metadata?: Record<string, string>
   }) {
-    return this.instance.put<NacosResponse>('/ns/service/cluster', data)
+    return this.instance.put<BatataResponse>('/ns/service/cluster', data)
   }
 
   // 订阅者
@@ -386,7 +445,7 @@ class NacosApi {
     pageNo?: number
     pageSize?: number
   }) {
-    return this.instance.get<NacosResponse<{ count: number; subscribers: SubscriberInfo[] }>>(
+    return this.instance.get<BatataResponse<{ count: number; subscribers: SubscriberInfo[] }>>(
       '/ns/subscriber/list',
       { params },
     )
@@ -394,7 +453,7 @@ class NacosApi {
 
   // 服务路由类型
   async getSelectorTypes() {
-    return this.instance.get<NacosResponse<string[]>>('/ns/service/selector/types')
+    return this.instance.get<BatataResponse<string[]>>('/ns/service/selector/types')
   }
 
   // ============================================
@@ -402,11 +461,11 @@ class NacosApi {
   // ============================================
 
   async getNamespaceList() {
-    return this.instance.get<NacosResponse<Namespace[]>>('/core/namespace/list')
+    return this.instance.get<BatataResponse<Namespace[]>>('/core/namespace/list')
   }
 
   async getNamespace(namespaceId: string) {
-    return this.instance.get<NacosResponse<Namespace>>('/core/namespace', {
+    return this.instance.get<BatataResponse<Namespace>>('/core/namespace', {
       params: { namespaceId },
     })
   }
@@ -416,7 +475,7 @@ class NacosApi {
     namespaceName: string
     namespaceDesc?: string
   }) {
-    return this.instance.post<NacosResponse>('/core/namespace', data)
+    return this.instance.post<BatataResponse>('/core/namespace', data)
   }
 
   async updateNamespace(data: {
@@ -424,11 +483,11 @@ class NacosApi {
     namespaceName: string
     namespaceDesc?: string
   }) {
-    return this.instance.put<NacosResponse>('/core/namespace', data)
+    return this.instance.put<BatataResponse>('/core/namespace', data)
   }
 
   async deleteNamespace(namespaceId: string) {
-    return this.instance.delete<NacosResponse>('/core/namespace', {
+    return this.instance.delete<BatataResponse>('/core/namespace', {
       params: { namespaceId },
     })
   }
@@ -438,11 +497,11 @@ class NacosApi {
   // ============================================
 
   async getClusterNodes(params?: { keyword?: string }) {
-    return this.instance.get<NacosResponse<NodeInfo[]>>('/core/cluster/nodes', { params })
+    return this.instance.get<BatataResponse<NodeInfo[]>>('/core/cluster/nodes', { params })
   }
 
   async updateClusterNode(data: { address: string; metadata?: Record<string, string> }) {
-    return this.instance.put<NacosResponse>('/core/cluster/nodes', data)
+    return this.instance.put<BatataResponse>('/core/cluster/nodes', data)
   }
 
   // ============================================
@@ -450,19 +509,21 @@ class NacosApi {
   // ============================================
 
   async getUserList(params?: { pageNo?: number; pageSize?: number; search?: string }) {
-    return this.instance.get<NacosResponse<PageResult<UserInfo>>>('/uc/user/list', { params })
+    return this.getAuthInstance().get<BatataResponse<PageResult<UserInfo>>>('/user/list', {
+      params,
+    })
   }
 
   async createUser(data: { username: string; password: string }) {
-    return this.instance.post<NacosResponse>('/uc/user', data)
+    return this.getAuthInstance().post<BatataResponse>('/user', data)
   }
 
   async updateUser(data: { username: string; newPassword: string }) {
-    return this.instance.put<NacosResponse>('/uc/user', data)
+    return this.getAuthInstance().put<BatataResponse>('/user', data)
   }
 
   async deleteUser(username: string) {
-    return this.instance.delete<NacosResponse>('/uc/user', {
+    return this.getAuthInstance().delete<BatataResponse>('/user', {
       params: { username },
     })
   }
@@ -472,15 +533,17 @@ class NacosApi {
   // ============================================
 
   async getRoleList(params?: { pageNo?: number; pageSize?: number; search?: string }) {
-    return this.instance.get<NacosResponse<PageResult<RoleInfo>>>('/uc/role/list', { params })
+    return this.getAuthInstance().get<BatataResponse<PageResult<RoleInfo>>>('/role/list', {
+      params,
+    })
   }
 
   async createRole(data: { role: string; username: string }) {
-    return this.instance.post<NacosResponse>('/uc/role', data)
+    return this.getAuthInstance().post<BatataResponse>('/role', data)
   }
 
   async deleteRole(role: string, username: string) {
-    return this.instance.delete<NacosResponse>('/uc/role', {
+    return this.getAuthInstance().delete<BatataResponse>('/role', {
       params: { role, username },
     })
   }
@@ -490,23 +553,24 @@ class NacosApi {
   // ============================================
 
   async getPermissionList(params?: { pageNo?: number; pageSize?: number; role?: string }) {
-    return this.instance.get<NacosResponse<PageResult<PermissionInfo>>>('/uc/permission/list', {
-      params,
-    })
+    return this.getAuthInstance().get<BatataResponse<PageResult<PermissionInfo>>>(
+      '/permission/list',
+      { params },
+    )
   }
 
   async createPermission(data: { role: string; resource: string; action: string }) {
-    return this.instance.post<NacosResponse>('/uc/permission', data)
+    return this.getAuthInstance().post<BatataResponse>('/permission', data)
   }
 
   async deletePermission(role: string, resource: string, action: string) {
-    return this.instance.delete<NacosResponse>('/uc/permission', {
+    return this.getAuthInstance().delete<BatataResponse>('/permission', {
       params: { role, resource, action },
     })
   }
 
   // ============================================
-  // MCP 管理 API
+  // MCP Management API (/v3/console/ai/mcp)
   // ============================================
 
   async getMcpServerList(params?: {
@@ -515,49 +579,49 @@ class NacosApi {
     namespaceId?: string
     search?: string
   }) {
-    return this.instance.get<NacosResponse<PageResult<McpServerInfo>>>('/ai/mcp/list', { params })
-  }
-
-  async getMcpServerDetail(id: string) {
-    return this.instance.get<NacosResponse<McpServerInfo>>('/ai/mcp', {
-      params: { id },
+    return this.instance.get<BatataResponse<PageResult<McpServerInfo>>>('/ai/mcp/servers', {
+      params: {
+        page: params?.pageNo,
+        pageSize: params?.pageSize,
+        namespace: params?.namespaceId,
+        namePattern: params?.search ? `*${params.search}*` : undefined,
+      },
     })
   }
 
-  async getMcpServerTools(id: string) {
-    return this.instance.get<
-      NacosResponse<
-        Array<{ name: string; description?: string; inputSchema?: Record<string, unknown> }>
-      >
-    >('/ai/mcp/tools', {
-      params: { id },
-    })
+  async getMcpServerDetail(namespace: string, name: string) {
+    return this.instance.get<BatataResponse<McpServerInfo>>(
+      `/ai/mcp/servers/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
+    )
   }
 
   async createMcpServer(data: Record<string, unknown>) {
-    return this.instance.post<NacosResponse>('/ai/mcp', data)
+    return this.instance.post<BatataResponse>('/ai/mcp/servers', data)
   }
 
-  async updateMcpServer(data: Record<string, unknown>) {
-    return this.instance.put<NacosResponse>('/ai/mcp', data)
+  async updateMcpServer(namespace: string, name: string, data: Record<string, unknown>) {
+    return this.instance.put<BatataResponse>(
+      `/ai/mcp/servers/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
+      data,
+    )
   }
 
-  async deleteMcpServer(id: string) {
-    return this.instance.delete<NacosResponse>('/ai/mcp', {
-      params: { id },
-    })
+  async deleteMcpServer(namespace: string, name: string) {
+    return this.instance.delete<BatataResponse>(
+      `/ai/mcp/servers/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
+    )
   }
 
-  async validateMcpImport(data: unknown) {
-    return this.instance.post<NacosResponse>('/ai/mcp/import/validate', data)
+  async importMcpServers(data: unknown) {
+    return this.instance.post<BatataResponse>('/ai/mcp/servers/import', data)
   }
 
-  async executeMcpImport(data: unknown) {
-    return this.instance.post<NacosResponse>('/ai/mcp/import/execute', data)
+  async getMcpStats() {
+    return this.instance.get<BatataResponse>('/ai/mcp/servers/stats')
   }
 
   // ============================================
-  // Agent 管理 API
+  // Agent (A2A) Management API (/v3/console/ai/a2a)
   // ============================================
 
   async getAgentList(params?: {
@@ -566,39 +630,47 @@ class NacosApi {
     namespaceId?: string
     name?: string
   }) {
-    return this.instance.get<NacosResponse<PageResult<AgentInfo>>>('/ai/a2a/list', { params })
+    return this.instance.get<BatataResponse<PageResult<AgentInfo>>>('/ai/a2a/agents', {
+      params: {
+        page: params?.pageNo,
+        pageSize: params?.pageSize,
+        namespace: params?.namespaceId,
+        namePattern: params?.name ? `*${params.name}*` : undefined,
+      },
+    })
   }
 
-  async getAgentDetail(id: string) {
-    return this.instance.get<NacosResponse<AgentInfo>>('/ai/a2a', {
-      params: { id },
-    })
+  async getAgentDetail(namespace: string, name: string) {
+    return this.instance.get<BatataResponse<AgentInfo>>(
+      `/ai/a2a/agents/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
+    )
   }
 
   async createAgent(data: Partial<AgentInfo>) {
-    return this.instance.post<NacosResponse>('/ai/a2a', data)
+    return this.instance.post<BatataResponse>('/ai/a2a/agents', data)
   }
 
-  async updateAgent(data: Partial<AgentInfo>) {
-    return this.instance.put<NacosResponse>('/ai/a2a', data)
+  async updateAgent(namespace: string, name: string, data: Partial<AgentInfo>) {
+    return this.instance.put<BatataResponse>(
+      `/ai/a2a/agents/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
+      data,
+    )
   }
 
-  async deleteAgent(id: string) {
-    return this.instance.delete<NacosResponse>('/ai/a2a', {
-      params: { id },
-    })
+  async deleteAgent(namespace: string, name: string) {
+    return this.instance.delete<BatataResponse>(
+      `/ai/a2a/agents/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
+    )
   }
 
-  async batchDeleteAgents(ids: string[]) {
-    return this.instance.delete<NacosResponse>('/ai/a2a/batch', {
-      data: { ids },
-    })
+  async findAgentsBySkill(skill: string) {
+    return this.instance.get<BatataResponse<AgentInfo[]>>(
+      `/ai/a2a/agents/by-skill/${encodeURIComponent(skill)}`,
+    )
   }
 
-  async getAgentVersions(id: string) {
-    return this.instance.get<NacosResponse<AgentInfo[]>>('/ai/a2a/version/list', {
-      params: { id },
-    })
+  async getA2aStats() {
+    return this.instance.get<BatataResponse>('/ai/a2a/agents/stats')
   }
 
   // ============================================
@@ -610,7 +682,7 @@ class NacosApi {
   private getV2Instance(): AxiosInstance {
     if (!this.v2Instance) {
       this.v2Instance = axios.create({
-        baseURL: `${config.api.baseUrl}/nacos/v2/console`,
+        baseURL: `${config.api.baseUrl}/v3/console`,
         timeout: config.api.timeout,
         headers: {
           'Content-Type': 'application/json',
@@ -635,7 +707,7 @@ class NacosApi {
 
       // Response interceptor
       this.v2Instance.interceptors.response.use(
-        (response: AxiosResponse<NacosResponse>) => {
+        (response: AxiosResponse<BatataResponse>) => {
           const { data } = response
           if (data.code !== 0 && data.code !== 200) {
             throw new ApiError(data.code, data.message || 'Request failed')
@@ -663,19 +735,19 @@ class NacosApi {
   }
 
   async getAuditLogList(params: AuditLogSearch) {
-    return this.getV2Instance().get<NacosResponse<PageResult<AuditLogItem>>>('/audit/list', {
+    return this.getV2Instance().get<BatataResponse<PageResult<AuditLogItem>>>('/audit/list', {
       params,
     })
   }
 
   async getAuditLog(id: number) {
-    return this.getV2Instance().get<NacosResponse<AuditLogItem>>('/audit', {
+    return this.getV2Instance().get<BatataResponse<AuditLogItem>>('/audit', {
       params: { id },
     })
   }
 
   async getAuditStats(params?: { tenantId?: string; startTime?: string; endTime?: string }) {
-    return this.getV2Instance().get<NacosResponse<AuditStats>>('/audit/stats', {
+    return this.getV2Instance().get<BatataResponse<AuditStats>>('/audit/stats', {
       params,
     })
   }
@@ -684,38 +756,38 @@ class NacosApi {
   // Beta/Gray Config API
   // ============================================
 
-  async getBetaConfig(dataId: string, group: string, tenant?: string) {
-    return this.instance.get<NacosResponse<ConfigGrayInfo>>('/cs/config/beta', {
-      params: { dataId, groupName: group, namespaceId: tenant || '' },
+  async getBetaConfig(dataId: string, groupName: string, namespaceId?: string) {
+    return this.instance.get<BatataResponse<ConfigGrayInfo>>('/cs/config/beta', {
+      params: { dataId, groupName, namespaceId: namespaceId || '' },
     })
   }
 
   async publishBetaConfig(data: {
     dataId: string
-    group: string
+    groupName: string
     content: string
-    tenant?: string
+    namespaceId?: string
     betaIps?: string
   }) {
-    return this.instance.post<NacosResponse>('/cs/config/beta', {
+    return this.instance.post<BatataResponse>('/cs/config/beta', {
       dataId: data.dataId,
-      groupName: data.group,
-      namespaceId: data.tenant || '',
+      groupName: data.groupName,
+      namespaceId: data.namespaceId || '',
       content: data.content,
       grayName: 'beta',
       grayRule: data.betaIps || '',
     })
   }
 
-  async deleteBetaConfig(dataId: string, group: string, tenant?: string) {
-    return this.instance.delete<NacosResponse>('/cs/config/beta', {
-      params: { dataId, groupName: group, namespaceId: tenant || '' },
+  async deleteBetaConfig(dataId: string, groupName: string, namespaceId?: string) {
+    return this.instance.delete<BatataResponse>('/cs/config/beta', {
+      params: { dataId, groupName, namespaceId: namespaceId || '' },
     })
   }
 
-  async promoteBetaConfig(dataId: string, group: string, tenant?: string) {
+  async promoteBetaConfig(dataId: string, groupName: string, namespaceId?: string) {
     // Get beta config content first, then publish as stable
-    const betaResponse = await this.getBetaConfig(dataId, group, tenant)
+    const betaResponse = await this.getBetaConfig(dataId, groupName, namespaceId)
     const betaConfig = betaResponse.data.data
     if (!betaConfig || !betaConfig.content) {
       throw new ApiError(404, 'Beta config not found')
@@ -724,13 +796,13 @@ class NacosApi {
     // Publish as stable config
     await this.publishConfig({
       dataId,
-      group,
+      groupName,
       content: betaConfig.content,
-      tenant,
+      namespaceId,
     })
 
     // Delete beta config
-    await this.deleteBetaConfig(dataId, group, tenant)
+    await this.deleteBetaConfig(dataId, groupName, namespaceId)
 
     return { success: true }
   }
@@ -740,7 +812,7 @@ class NacosApi {
   // ============================================
 
   async register(data: { username: string; password: string }) {
-    return this.instance.post<NacosResponse>('/uc/user/register', data)
+    return this.getAuthInstance().post<BatataResponse>('/user', data)
   }
 
   // ============================================
@@ -748,24 +820,24 @@ class NacosApi {
   // ============================================
 
   async getPluginList() {
-    return this.instance.get<NacosResponse<PluginInfo[]>>('/core/plugin/list')
+    return this.instance.get<BatataResponse<PluginInfo[]>>('/core/plugin/list')
   }
 
   async getPluginDetail(name: string) {
-    return this.instance.get<NacosResponse<PluginInfo>>('/core/plugin', {
+    return this.instance.get<BatataResponse<PluginInfo>>('/core/plugin', {
       params: { name },
     })
   }
 
   async updatePluginStatus(name: string, enabled: boolean) {
-    return this.instance.put<NacosResponse>('/core/plugin/status', {
+    return this.instance.put<BatataResponse>('/core/plugin/status', {
       name,
       enabled,
     })
   }
 
   async updatePluginConfig(name: string, config: Record<string, unknown>) {
-    return this.instance.put<NacosResponse>('/core/plugin/config', {
+    return this.instance.put<BatataResponse>('/core/plugin/config', {
       name,
       config,
     })
@@ -776,28 +848,28 @@ class NacosApi {
   // ============================================
 
   async getSyncEnvironments() {
-    return this.instance.get<NacosResponse<SyncEnvironment[]>>('/cs/config/sync/environments')
+    return this.instance.get<BatataResponse<SyncEnvironment[]>>('/cs/config/sync/environments')
   }
 
   async getSyncHistory(tenant?: string) {
-    return this.instance.get<NacosResponse<SyncHistory[]>>('/cs/config/sync/history', {
+    return this.instance.get<BatataResponse<SyncHistory[]>>('/cs/config/sync/history', {
       params: { tenant },
     })
   }
 
   async syncConfigs(data: SyncRequest) {
-    return this.instance.post<NacosResponse>('/cs/config/sync', data)
+    return this.instance.post<BatataResponse>('/cs/config/sync', data)
   }
 
   async addSyncEnvironment(data: { name: string; endpoint: string; accessToken?: string }) {
-    return this.instance.post<NacosResponse>('/cs/config/sync/environment', data)
+    return this.instance.post<BatataResponse>('/cs/config/sync/environment', data)
   }
 
   async deleteSyncEnvironment(id: string) {
-    return this.instance.delete<NacosResponse>('/cs/config/sync/environment', {
+    return this.instance.delete<BatataResponse>('/cs/config/sync/environment', {
       params: { id },
     })
   }
 }
 
-export default new NacosApi()
+export default new BatataApi()

@@ -163,7 +163,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { Plus, Pencil, Trash2, Loader2, X } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import type { Namespace } from '@/types'
 
@@ -194,7 +194,7 @@ const form = reactive({
 const fetchNamespaces = async () => {
   loading.value = true
   try {
-    const response = await nacosApi.getNamespaceList()
+    const response = await batataApi.getNamespaceList()
     namespaces.value = response.data.data || []
   } catch (error) {
     console.error('Failed to fetch namespaces:', error)
@@ -249,13 +249,13 @@ const handleSubmit = async () => {
   saving.value = true
   try {
     if (showEditModal.value) {
-      await nacosApi.updateNamespace({
+      await batataApi.updateNamespace({
         namespaceId: form.namespaceId,
         namespaceName: form.namespaceName,
         namespaceDesc: form.namespaceDesc,
       })
     } else {
-      await nacosApi.createNamespace({
+      await batataApi.createNamespace({
         namespaceId: form.namespaceId || undefined,
         namespaceName: form.namespaceName,
         namespaceDesc: form.namespaceDesc,
@@ -278,7 +278,7 @@ const handleDelete = (ns: Namespace) => {
 const confirmDelete = async () => {
   if (!nsToDelete.value) return
   try {
-    await nacosApi.deleteNamespace(nsToDelete.value.namespace)
+    await batataApi.deleteNamespace(nsToDelete.value.namespace)
     showDeleteModal.value = false
     fetchNamespaces()
   } catch (error) {

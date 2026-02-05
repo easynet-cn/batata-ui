@@ -61,7 +61,7 @@
             <tr v-for="server in mcpServers" :key="server.id" class="hover:bg-bg-secondary">
               <td class="font-medium">
                 <router-link
-                  :to="`/mcp/detail?id=${server.id}`"
+                  :to="`/mcp/detail?namespace=${encodeURIComponent(server.namespace || 'default')}&name=${encodeURIComponent(server.name)}`"
                   class="text-primary hover:underline"
                 >
                   {{ server.name }}
@@ -181,7 +181,7 @@ import {
   PowerOff,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import type { McpServerInfo, Namespace } from '@/types'
 
 defineProps<{
@@ -210,7 +210,7 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
 const fetchMcpServers = async () => {
   loading.value = true
   try {
-    const response = await nacosApi.getMcpServerList({
+    const response = await batataApi.getMcpServerList({
       pageNo: currentPage.value,
       pageSize: pageSize.value,
       search: searchKeyword.value || undefined,
@@ -248,12 +248,15 @@ const handleCreate = () => {
 }
 
 const handleEdit = (server: McpServerInfo) => {
-  router.push(`/mcp/edit?id=${server.id}`)
+  router.push(
+    `/mcp/edit?namespace=${encodeURIComponent(server.namespace || 'default')}&name=${encodeURIComponent(server.name)}`,
+  )
 }
 
 const handleToggleStatus = async (server: McpServerInfo) => {
   try {
-    await nacosApi.updateMcpServer({
+    const namespace = server.namespace || 'default'
+    await batataApi.updateMcpServer(namespace, server.name, {
       ...server,
       enabled: !server.enabled,
     })
@@ -271,7 +274,8 @@ const handleDelete = (server: McpServerInfo) => {
 const confirmDelete = async () => {
   if (!serverToDelete.value) return
   try {
-    await nacosApi.deleteMcpServer(serverToDelete.value.id)
+    const namespace = serverToDelete.value.namespace || 'default'
+    await batataApi.deleteMcpServer(namespace, serverToDelete.value.name)
     showDeleteModal.value = false
     fetchMcpServers()
   } catch (error) {

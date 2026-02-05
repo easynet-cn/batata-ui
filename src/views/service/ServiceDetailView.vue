@@ -311,7 +311,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Pencil, Users, Loader2, Server, Power, X } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import type { ServiceDetail, ClusterInfo, InstanceInfo, Namespace } from '@/types'
 
@@ -363,7 +363,7 @@ const fetchService = async () => {
 
   loading.value = true
   try {
-    const response = await nacosApi.getServiceDetail(
+    const response = await batataApi.getServiceDetail(
       serviceName as string,
       groupName as string,
       (namespaceId as string) || props.namespace.namespace,
@@ -396,7 +396,7 @@ const handleEditInstance = (instance: InstanceInfo) => {
 const toggleInstanceStatus = async (instance: InstanceInfo) => {
   const { serviceName, groupName, namespaceId } = route.query
   try {
-    await nacosApi.updateInstance({
+    await batataApi.updateInstance({
       serviceName: serviceName as string,
       groupName: groupName as string,
       namespaceId: (namespaceId as string) || props.namespace.namespace,
@@ -425,7 +425,7 @@ const submitInstance = async () => {
   const { serviceName, groupName, namespaceId } = route.query
   saving.value = true
   try {
-    await nacosApi.updateInstance({
+    await batataApi.updateInstance({
       serviceName: serviceName as string,
       groupName: groupName as string,
       namespaceId: (namespaceId as string) || props.namespace.namespace,
@@ -472,7 +472,7 @@ const submitCluster = async () => {
   const { serviceName, groupName, namespaceId } = route.query
   saving.value = true
   try {
-    await nacosApi.updateCluster({
+    await batataApi.updateCluster({
       serviceName: serviceName as string,
       groupName: groupName as string,
       namespaceId: (namespaceId as string) || props.namespace.namespace,

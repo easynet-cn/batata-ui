@@ -3,20 +3,20 @@
  */
 export const config = {
   api: {
-    baseUrl: import.meta.env.VITE_API_BASE_URL || '/nacos',
+    baseUrl: import.meta.env.VITE_API_BASE_URL ?? '',
     timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 30000,
     retryCount: Number(import.meta.env.VITE_API_RETRY_COUNT) || 3,
   },
   app: {
-    title: import.meta.env.VITE_APP_TITLE || 'Nacos Console',
+    title: import.meta.env.VITE_APP_TITLE || 'Batata Console',
     version: import.meta.env.VITE_APP_VERSION || '2.0.0',
   },
   storage: {
-    tokenKey: 'nacos-token',
-    usernameKey: 'nacos-username',
-    userKey: 'nacos_user',
-    namespaceKey: 'nacos_current_ns',
-    langKey: 'nacos_lang',
+    tokenKey: 'batata-token',
+    usernameKey: 'batata-username',
+    userKey: 'batata_user',
+    namespaceKey: 'batata_current_ns',
+    langKey: 'batata_lang',
   },
   pagination: {
     defaultPageSize: 10,

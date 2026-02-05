@@ -117,7 +117,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Search, RotateCcw, Loader2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import type { SubscriberInfo, Namespace } from '@/types'
 
 const props = defineProps<{
@@ -151,7 +151,7 @@ const goBack = () => {
 const fetchSubscribers = async () => {
   loading.value = true
   try {
-    const response = await nacosApi.getSubscriberList({
+    const response = await batataApi.getSubscriberList({
       ...searchParams,
       namespaceId: props.namespace.namespace,
       pageNo: currentPage.value,

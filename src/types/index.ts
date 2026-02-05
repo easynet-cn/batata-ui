@@ -23,13 +23,16 @@ export type ConfigType = 'text' | 'json' | 'xml' | 'yaml' | 'html' | 'properties
 export interface ConfigInfo {
   id: string
   dataId: string
-  group: string
+  groupName: string
   appName: string
   content: string
   type: ConfigType
   md5: string
-  tenant: string
+  namespaceId: string
   desc?: string
+  createUser?: string
+  createIp?: string
+  configTags?: string
   createTime: number
   modifyTime: number
   encryptedDataKey?: string
@@ -38,21 +41,23 @@ export interface ConfigInfo {
 export interface ConfigHistoryInfo {
   id: string
   dataId: string
-  group: string
-  tenant: string
+  groupName: string
+  namespaceId: string
   appName: string
   md5: string
   content: string
   srcIp: string
   srcUser: string
   opType: string
-  createdTime: string
-  lastModifiedTime: string
+  publishType: string
+  createdTime: number
+  lastModifiedTime: number
+  encryptedDataKey?: string
 }
 
 export interface ConfigListenerInfo {
   dataId: string
-  group: string
+  groupName: string
   lisentersGroupkeyStatus: string
   md5: string
   listeningIp?: string
@@ -183,6 +188,7 @@ export interface PermissionInfo {
 export interface McpServerInfo {
   id: string
   name: string
+  namespace?: string
   type: 'stdio' | 'sse' | 'http'
   enabled: boolean
   description?: string
@@ -215,6 +221,7 @@ export interface McpToolInfo {
 export interface AgentInfo {
   id: string
   name: string
+  namespace?: string
   enabled: boolean
   description?: string
   model?: string
@@ -324,16 +331,14 @@ export interface AuditStats {
 export interface ConfigGrayInfo {
   id?: string
   dataId: string
-  group: string
-  tenant: string
+  groupName: string
+  namespaceId: string
   grayName: string
   grayRule: string
   content?: string
   md5?: string
-  srcIp?: string
   srcUser?: string
-  createTime?: string
-  modifyTime?: string
+  type?: string
 }
 
 // ============================================

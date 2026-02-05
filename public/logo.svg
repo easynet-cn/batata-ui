@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Shield body - outer (orange border) -->
+  <path d="M256 72c0 0-120 32-168 32v176c0 88 168 160 168 160s168-72 168-160V104C376 104 256 72 256 72z" fill="#F5A623" stroke="#E8961E" stroke-width="4"/>
+
+  <!-- Shield body - inner (dark fill) -->
+  <path d="M256 100c0 0-100 28-140 28v152c0 72 140 132 140 132s140-60 140-132V128C356 128 256 100 256 100z" fill="#5C5144"/>
+
+  <!-- Config lines (white rounded bars) -->
+  <rect x="186" y="190" width="140" height="22" rx="11" fill="#ffffff"/>
+  <rect x="186" y="232" width="140" height="22" rx="11" fill="#ffffff"/>
+  <rect x="186" y="274" width="140" height="22" rx="11" fill="#ffffff"/>
+
+  <!-- Checkmark circle (green) -->
+  <circle cx="370" cy="350" r="40" fill="#2ECC71"/>
+  <path d="M350 350l14 14 28-28" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

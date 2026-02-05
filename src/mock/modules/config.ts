@@ -29,8 +29,8 @@ function generateConfigs(count: number = 30) {
     configs.push({
       id: Mock.Random.guid(),
       dataId: `${prefix}${suffix}.${type}`,
-      group: group,
-      tenant: '',
+      groupName: group,
+      namespaceId: '',
       appName: `${prefix}-service`,
       content: generateConfigContent(type),
       md5: Mock.Random.string('lower', 32),
@@ -134,7 +134,7 @@ export function setupConfigMock() {
 
     // 按 tenant 过滤
     if (tenant) {
-      filteredConfigs = filteredConfigs.filter((c) => c.tenant === tenant)
+      filteredConfigs = filteredConfigs.filter((c) => c.namespaceId === tenant)
     }
 
     // 按 dataId 搜索
@@ -146,7 +146,7 @@ export function setupConfigMock() {
 
     // 按 group 过滤
     if (group) {
-      filteredConfigs = filteredConfigs.filter((c) => c.group === group)
+      filteredConfigs = filteredConfigs.filter((c) => c.groupName === group)
     }
 
     const total = filteredConfigs.length
@@ -176,7 +176,7 @@ export function setupConfigMock() {
       cachedConfigs = generateConfigs(50)
     }
 
-    const config = cachedConfigs.find((c) => c.dataId === dataId && c.group === group)
+    const config = cachedConfigs.find((c) => c.dataId === dataId && c.groupName === group)
 
     if (config) {
       return config.content
@@ -216,8 +216,8 @@ export function setupConfigMock() {
       historyItems.push({
         id: Mock.Random.guid(),
         dataId: url.searchParams.get('dataId') || 'application.yaml',
-        group: url.searchParams.get('group') || 'DEFAULT_GROUP',
-        tenant: '',
+        groupName: url.searchParams.get('groupName') || 'DEFAULT_GROUP',
+        namespaceId: '',
         appName: '',
         srcIp: Mock.Random.ip(),
         srcUser: Mock.Random.pick(['nacos', 'admin']),

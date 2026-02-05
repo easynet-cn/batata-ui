@@ -214,7 +214,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { Plus, Search, Key, Trash2, Loader2, X, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import type { UserInfo, Namespace } from '@/types'
 
@@ -253,7 +253,7 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
 const fetchUsers = async () => {
   loading.value = true
   try {
-    const response = await nacosApi.getUserList({
+    const response = await batataApi.getUserList({
       pageNo: currentPage.value,
       pageSize: pageSize.value,
       search: searchKeyword.value || undefined,
@@ -285,7 +285,7 @@ const submitCreate = async () => {
 
   saving.value = true
   try {
-    await nacosApi.createUser(createForm)
+    await batataApi.createUser(createForm)
     showCreateModal.value = false
     Object.assign(createForm, { username: '', password: '' })
     fetchUsers()
@@ -307,7 +307,7 @@ const submitResetPassword = async () => {
 
   saving.value = true
   try {
-    await nacosApi.updateUser({
+    await batataApi.updateUser({
       username: userToReset.value.username,
       newPassword: newPassword.value,
     })
@@ -327,7 +327,7 @@ const handleDelete = (user: UserInfo) => {
 const confirmDelete = async () => {
   if (!userToDelete.value) return
   try {
-    await nacosApi.deleteUser(userToDelete.value.username)
+    await batataApi.deleteUser(userToDelete.value.username)
     showDeleteModal.value = false
     fetchUsers()
   } catch (error) {

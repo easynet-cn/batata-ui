@@ -176,7 +176,7 @@ import {
   Wrench,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import nacosApi from '@/api/nacos'
+import batataApi from '@/api/batata'
 import type { AgentInfo, Namespace } from '@/types'
 
 defineProps<{
@@ -205,7 +205,7 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
 const fetchAgents = async () => {
   loading.value = true
   try {
-    const response = await nacosApi.getAgentList({
+    const response = await batataApi.getAgentList({
       pageNo: currentPage.value,
       pageSize: pageSize.value,
       name: searchKeyword.value || undefined,
@@ -234,12 +234,15 @@ const handleCreate = () => {
 }
 
 const handleEdit = (agent: AgentInfo) => {
-  router.push(`/agent/edit?id=${agent.id}`)
+  router.push(
+    `/agent/edit?namespace=${encodeURIComponent(agent.namespace || 'default')}&name=${encodeURIComponent(agent.name)}`,
+  )
 }
 
 const handleToggleStatus = async (agent: AgentInfo) => {
   try {
-    await nacosApi.updateAgent({
+    const namespace = agent.namespace || 'default'
+    await batataApi.updateAgent(namespace, agent.name, {
       ...agent,
       enabled: !agent.enabled,
     })
@@ -257,7 +260,8 @@ const handleDelete = (agent: AgentInfo) => {
 const confirmDelete = async () => {
   if (!agentToDelete.value) return
   try {
-    await nacosApi.deleteAgent(agentToDelete.value.id)
+    const namespace = agentToDelete.value.namespace || 'default'
+    await batataApi.deleteAgent(namespace, agentToDelete.value.name)
     showDeleteModal.value = false
     fetchAgents()
   } catch (error) {
