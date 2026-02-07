@@ -1,10 +1,12 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  /** 是否启用 Mock 数据 */
+  /** Enable mock data */
   readonly VITE_USE_MOCK: string
-  /** API 基础地址 */
+  /** Batata/Nacos API base URL */
   readonly VITE_API_BASE_URL: string
+  /** Consul API base URL */
+  readonly VITE_CONSUL_API_BASE_URL: string
 }
 
 interface ImportMeta {

@@ -5,6 +5,9 @@ const STORAGE_KEY = 'batata_provider'
 
 const provider = ref<ProviderType>((localStorage.getItem(STORAGE_KEY) as ProviderType) || 'batata')
 
+// Provider change callbacks
+const onChangeCallbacks: Array<(p: ProviderType) => void> = []
+
 export function useProvider() {
   const isBatata = computed(() => provider.value === 'batata')
   const isConsul = computed(() => provider.value === 'consul')
@@ -31,8 +34,18 @@ export function useProvider() {
   const providerLetter = computed(() => (provider.value === 'batata' ? 'B' : 'C'))
 
   function setProvider(p: ProviderType) {
+    const previous = provider.value
     provider.value = p
     localStorage.setItem(STORAGE_KEY, p)
+
+    // Notify listeners on change
+    if (previous !== p) {
+      onChangeCallbacks.forEach((cb) => cb(p))
+    }
+  }
+
+  function onProviderChange(callback: (p: ProviderType) => void) {
+    onChangeCallbacks.push(callback)
   }
 
   return {
@@ -46,5 +59,6 @@ export function useProvider() {
     providerShadowClass,
     providerLetter,
     setProvider,
+    onProviderChange,
   }
 }

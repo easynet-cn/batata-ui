@@ -75,7 +75,7 @@
           <!-- Provider Switcher -->
           <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
             <button
-              @click="setProvider('batata')"
+              @click="handleSwitchProvider('batata')"
               :class="[
                 'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
                 provider === 'batata'
@@ -86,7 +86,7 @@
               BATATA
             </button>
             <button
-              @click="setProvider('consul')"
+              @click="handleSwitchProvider('consul')"
               :class="[
                 'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
                 provider === 'consul'
@@ -101,8 +101,8 @@
           <!-- Divider -->
           <div class="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block" />
 
-          <!-- Namespace Selector -->
-          <div class="relative hidden sm:block">
+          <!-- Namespace Selector (Nacos only) -->
+          <div v-if="provider === 'batata'" class="relative hidden sm:block">
             <button
               @click="showNamespaceMenu = !showNamespaceMenu"
               class="flex items-center space-x-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors group"
@@ -400,6 +400,13 @@ import {
   Puzzle,
   Moon,
   Sun,
+  Database,
+  HeartPulse,
+  Link,
+  Settings2,
+  Timer,
+  HardDrive,
+  Shield,
 } from 'lucide-vue-next'
 import { useI18n, type Language } from '@/i18n'
 import type { Namespace } from '@/types'
@@ -410,6 +417,7 @@ import { globalNotifications } from '@/composables/useNotifications'
 import { config } from '@/config'
 import { useTheme } from '@/composables/useTheme'
 import { useProvider } from '@/composables/useProvider'
+import { switchProviderRoutes } from '@/router'
 
 const { t, language, setLanguage } = useI18n()
 const route = useRoute()
@@ -547,7 +555,14 @@ const isActiveRoute = (path: string) => {
   return route.path.startsWith(path)
 }
 
-const navGroups = computed(() => [
+const handleSwitchProvider = (p: 'batata' | 'consul') => {
+  if (provider.value === p) return
+  setProvider(p)
+  switchProviderRoutes(p)
+  router.push('/')
+}
+
+const nacosNavGroups = computed(() => [
   {
     title: t('overview'),
     items: [{ path: '/', label: t('dashboard'), icon: LayoutDashboard }],
@@ -593,4 +608,50 @@ const navGroups = computed(() => [
     ],
   },
 ])
+
+const consulNavGroups = computed(() => [
+  {
+    title: t('overview'),
+    items: [{ path: '/', label: t('dashboard'), icon: LayoutDashboard }],
+  },
+  {
+    title: t('catalog'),
+    items: [
+      { path: '/catalog/services', label: t('services'), icon: Server },
+      { path: '/catalog/nodes', label: t('nodes'), icon: HardDrive },
+      { path: '/health', label: t('healthChecks'), icon: HeartPulse },
+    ],
+  },
+  {
+    title: t('kvStore'),
+    items: [{ path: '/kv', label: t('kvStore'), icon: Database }],
+  },
+  {
+    title: t('serviceMesh'),
+    items: [
+      { path: '/intentions', label: t('intentions'), icon: Link },
+      { path: '/config-entries', label: t('configEntries'), icon: Settings2 },
+    ],
+  },
+  {
+    title: t('acl'),
+    items: [
+      { path: '/acl/tokens', label: t('aclTokens'), icon: Key },
+      { path: '/acl/policies', label: t('aclPolicies'), icon: Shield },
+      { path: '/acl/roles', label: t('roles'), icon: ShieldAlert },
+    ],
+  },
+  {
+    title: t('cluster'),
+    items: [{ path: '/sessions', label: t('consulSessions'), icon: Timer }],
+  },
+  {
+    title: t('system'),
+    items: [{ path: '/settings', label: t('settings'), icon: Cog }],
+  },
+])
+
+const navGroups = computed(() =>
+  provider.value === 'consul' ? consulNavGroups.value : nacosNavGroups.value,
+)
 </script>
