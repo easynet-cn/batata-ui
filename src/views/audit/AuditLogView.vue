@@ -120,7 +120,7 @@
               <td>
                 <div class="flex items-center gap-2">
                   <div
-                    class="w-6 h-6 rounded bg-slate-100 flex items-center justify-center text-slate-600 text-xs font-semibold uppercase"
+                    class="w-6 h-6 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-400 text-xs font-semibold uppercase"
                   >
                     {{ log.username.charAt(0) }}
                   </div>
@@ -135,9 +135,12 @@
                     'badge-info': log.resourceType === 'config',
                     'badge-success': log.resourceType === 'service',
                     'badge-warning': log.resourceType === 'namespace',
-                    'bg-purple-100 text-purple-700': log.resourceType === 'user',
-                    'bg-pink-100 text-pink-700': log.resourceType === 'role',
-                    'bg-cyan-100 text-cyan-700': log.resourceType === 'permission',
+                    'bg-purple-100 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400':
+                      log.resourceType === 'user',
+                    'bg-pink-100 text-pink-700 dark:bg-pink-950/30 dark:text-pink-400':
+                      log.resourceType === 'role',
+                    'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/30 dark:text-cyan-400':
+                      log.resourceType === 'permission',
                   }"
                 >
                   {{ getResourceTypeLabel(log.resourceType) }}
@@ -158,7 +161,11 @@
               <td>
                 <span
                   class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
-                  :class="log.success ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'"
+                  :class="
+                    log.success
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
+                      : 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400'
+                  "
                 >
                   <CheckCircle v-if="log.success" class="w-3 h-3" />
                   <XCircle v-else class="w-3 h-3" />
@@ -235,7 +242,9 @@
               <span
                 class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
                 :class="
-                  selectedLog.success ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                  selectedLog.success
+                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
+                    : 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400'
                 "
               >
                 <CheckCircle v-if="selectedLog.success" class="w-3 h-3" />
@@ -248,7 +257,7 @@
           <!-- Resource Info -->
           <div class="border-t border-border pt-3">
             <label class="text-xs text-text-secondary">{{ t('resourceInfo') }}</label>
-            <div class="mt-2 p-3 bg-slate-50 rounded-lg">
+            <div class="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <div class="flex items-center justify-between mb-2">
                 <span class="text-xs text-text-secondary">{{ t('resourceType') }}:</span>
                 <span
@@ -277,7 +286,7 @@
           <div v-if="selectedLog.details" class="border-t border-border pt-3">
             <label class="text-xs text-text-secondary">{{ t('changeDetails') }}</label>
             <pre
-              class="mt-2 p-3 bg-slate-900 text-slate-100 rounded-lg text-xs font-mono overflow-auto max-h-48"
+              class="mt-2 p-3 bg-gray-900 text-gray-100 rounded-lg text-xs font-mono overflow-auto max-h-48"
               >{{ JSON.stringify(selectedLog.details, null, 2) }}</pre
             >
           </div>
@@ -288,7 +297,9 @@
             class="border-t border-border pt-3"
           >
             <label class="text-xs text-text-secondary">{{ t('errorMessage') }}</label>
-            <p class="mt-2 p-3 bg-red-50 text-red-700 rounded-lg text-xs">
+            <p
+              class="mt-2 p-3 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 rounded-lg text-xs"
+            >
               {{ selectedLog.errorMessage }}
             </p>
           </div>
@@ -535,13 +546,13 @@ const getActionLabel = (action: string) => {
 
 const getActionClass = (action: string) => {
   const classes: Record<string, string> = {
-    create: 'bg-emerald-50 text-emerald-700',
-    update: 'bg-blue-50 text-blue-700',
-    delete: 'bg-red-50 text-red-700',
-    login: 'bg-purple-50 text-purple-700',
-    logout: 'bg-slate-100 text-slate-700',
+    create: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400',
+    update: 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400',
+    delete: 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400',
+    login: 'bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400',
+    logout: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200',
   }
-  return classes[action] || 'bg-slate-100 text-slate-700'
+  return classes[action] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200'
 }
 
 const getActionIcon = (action: string) => {

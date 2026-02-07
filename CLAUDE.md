@@ -59,14 +59,20 @@ src/
 ├── api/                    # API 接口层
 │   └── batata.ts          # Batata API 封装
 ├── assets/                # 静态资源和样式
-│   └── main.css          # 主样式入口
+│   └── main.css          # 主样式入口 (theme tokens, dark mode, component classes)
 ├── components/            # 通用组件
-│   └── Modal.vue         # 模态框组件
+│   └── feedback/
+│       └── ToastMessage.vue  # Toast 通知组件
+├── composables/           # 组合式函数
+│   ├── useTheme.ts       # 主题切换 (light/dark)
+│   ├── useProvider.ts    # Provider 切换 (batata/consul)
+│   ├── useNotifications.ts # 通知管理
+│   └── useWebSocket.ts   # WebSocket 连接
 ├── i18n/                  # 国际化
 │   ├── index.ts          # i18n 配置
 │   └── translations.ts   # 翻译文本
 ├── layout/               # 布局组件
-│   └── BatataLayout.vue  # 主布局
+│   └── BatataLayout.vue  # 主布局 (sidebar + header + content)
 ├── mock/                 # Mock 数据
 │   ├── index.ts         # Mock 入口
 │   ├── data.ts          # Mock 数据
@@ -77,133 +83,194 @@ src/
 │   └── batata.ts      # Batata 状态
 ├── types/             # TypeScript 类型定义
 │   └── index.ts      # 类型导出
-├── views/            # 页面组件
-│   ├── DashboardView.vue      # 仪表板
-│   ├── ServiceListView.vue    # 服务列表
-│   ├── ConfigListView.vue     # 配置列表
-│   ├── NamespaceListView.vue  # 命名空间列表
-│   ├── ClusterListView.vue    # 集群列表
-│   ├── UserListView.vue       # 用户列表
-│   ├── RoleListView.vue       # 角色列表
-│   ├── PermissionListView.vue # 权限列表
-│   └── LoginView.vue          # 登录页
+├── views/            # 页面组件 (按功能分目录)
+│   ├── dashboard/    # 仪表板
+│   ├── config/       # 配置管理
+│   ├── service/      # 服务管理
+│   ├── namespace/    # 命名空间
+│   ├── cluster/      # 集群管理
+│   ├── datacenter/   # 多数据中心
+│   ├── auth/         # 用户/角色/权限
+│   ├── ai/           # MCP/Agent 管理
+│   ├── audit/        # 审计日志
+│   ├── tracing/      # 链路追踪
+│   ├── plugin/       # 插件管理
+│   ├── settings/     # 系统设置
+│   ├── LoginView.vue
+│   └── RegisterView.vue
 ├── App.vue           # 根组件
 └── main.ts          # 应用入口
 ```
 
 ## Style Guide
 
-### Design System (Material Design 风格)
+### Design System
 
-**主题色 (Primary - Indigo)**
+**Primary Color: Blue-600 (`#2563eb`)**
 
-- `--color-primary`: #4f46e5 (主色)
-- `--color-primary-hover`: #4338ca (悬浮)
-- `--color-primary-active`: #3730a3 (激活)
-- `--color-primary-light`: #e0e7ff (浅色背景)
-- `--color-primary-lighter`: #eef2ff (更浅背景)
+Provider-based accent colors:
 
-**语义色**
+- Batata provider: Blue-600 (`#2563eb`)
+- Consul provider: Fuchsia-600 (`#c026d3`)
 
-- Success: #10b981 (绿色)
-- Warning: #f59e0b (橙色)
-- Danger: #ef4444 (红色)
-- Info: #3b82f6 (蓝色)
+**Font:** System font stack (Inter-like): `Inter, ui-sans-serif, system-ui, -apple-system, sans-serif`
 
-**中性色 (Slate 灰色调)**
+**Dark Mode:** Class-based using Tailwind v4 `@custom-variant dark (&:where(.dark, .dark *))`. Stored in `localStorage('batata_theme')`.
 
-- 文本主色: #0f172a
-- 文本次色: #64748b
-- 边框色: #e2e8f0
-- 背景主色: #ffffff
-- 背景次色: #f8fafc
+### Color Tokens
 
-### CSS 变量使用
+**Light Mode:**
 
-优先使用 CSS 变量而非硬编码颜色值：
+- Background: `bg-white`, content area: `bg-gray-50`
+- Text: `text-gray-900` (primary), `text-gray-600` (secondary), `text-gray-500` (tertiary)
+- Border: `border-gray-200`
+- Hover: `hover:bg-gray-100`
 
-```css
-/* 正确 */
-color: var(--color-primary);
-background: var(--color-bg-secondary);
-box-shadow: var(--shadow-md);
-border-radius: var(--radius-lg);
-transition: all var(--transition-normal) var(--ease-default);
+**Dark Mode:**
 
-/* 避免 */
-color: #4f46e5;
-background: #f8fafc;
+- Background: `dark:bg-gray-900` / `dark:bg-gray-950`
+- Text: `dark:text-gray-100` (primary), `dark:text-gray-400` (secondary), `dark:text-gray-500` (tertiary)
+- Border: `dark:border-gray-800`
+- Hover: `dark:hover:bg-gray-800`
+
+### Layout
+
+**Sidebar (Light theme):**
+
+- Background: `bg-white dark:bg-gray-950`
+- Width: `w-60` (240px), collapsed: `w-16` (64px)
+- Border: `border-r border-gray-200 dark:border-gray-800`
+- Logo: `w-8 h-8` rounded-lg box with provider color, brand name `text-base font-extrabold text-gray-900`
+- Section headers: `text-[11px] font-bold text-gray-400 uppercase tracking-wider`
+- Menu items: `text-sm font-semibold`, icon size `20px`, spacing `px-3 py-2.5 rounded-xl`
+- Inactive items: `text-gray-500 hover:bg-gray-100 hover:text-gray-900`
+- Active items: Provider bg color + `text-white shadow-md`
+- Group spacing: `space-y-6`, item spacing: `space-y-1`
+
+**Header:**
+
+- Height: `h-14`
+- Background: `bg-white dark:bg-gray-900`
+- Border: `border-b border-gray-200 dark:border-gray-800`
+
+**Content Area:**
+
+- Background: `bg-gray-50 dark:bg-gray-950`
+- Padding: `p-4 md:p-5`
+- Max width: `max-w-7xl mx-auto`
+
+### Component Patterns (Tailwind Classes)
+
+**Buttons:**
+
+```html
+<button
+  class="px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors"
+></button>
 ```
 
-**阴影 (Elevation)**
+**Inputs:**
 
-- `--shadow-xs` ~ `--shadow-2xl`: 6 级阴影
-- `--shadow-primary`: 带主题色的悬浮阴影
+```html
+<input
+  class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+/>
+```
 
-**圆角**
+**Cards:**
 
-- `--radius-sm`: 4px
-- `--radius-md`: 6px
-- `--radius-lg`: 8px
-- `--radius-xl`: 12px
-- `--radius-full`: 9999px (圆形)
+```html
+<div
+  class="p-6 bg-white rounded-2xl shadow-sm border border-gray-200 dark:bg-gray-900 dark:border-gray-800"
+></div>
+```
 
-**过渡**
+**Tables:**
 
-- `--transition-fast`: 0.15s
-- `--transition-normal`: 0.2s
-- `--transition-slow`: 0.3s
+```html
+<th
+  class="px-6 py-4 font-bold text-xs uppercase tracking-wider text-gray-500 bg-gray-50 dark:bg-gray-800 dark:text-gray-400"
+></th>
+<td class="px-6 py-5 border-b border-gray-100 dark:border-gray-800"></td>
+```
 
-### Tailwind CSS 规范
+**Badges:**
 
-- 使用 Tailwind CSS v4
-- 优先使用 Tailwind 工具类，复杂样式使用 scoped CSS
-- 颜色使用 Tailwind 内置调色板 (slate, indigo, etc.)
-- 常用类名模式:
+```html
+<span
+  class="px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"
+></span>
+```
 
-  ```html
-  <!-- 按钮 -->
-  <button
-    class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-  >
-    <!-- 输入框 -->
-    <input
-      class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-    />
+**Modals:**
 
-    <!-- 卡片 -->
-    <div class="p-4 bg-white rounded-xl shadow-sm border border-slate-200"></div>
-  </button>
-  ```
+```html
+<div
+  class="bg-white rounded-3xl shadow-2xl dark:bg-gray-900 dark:border dark:border-gray-800"
+></div>
+```
 
-### Vue 组件样式规范
+### Typography
 
-- 使用 `<style scoped>` 避免样式污染
-- 深度选择器使用 `:deep(.class-name)`
-- 组件内样式按功能分组，添加注释分隔
-- 复杂状态样式使用 computed 计算类名：
-  ```typescript
-  const buttonClasses = computed(() => {
-    const classes = ['btn', `btn-${props.type}`, `btn-${props.size}`]
-    if (props.disabled) classes.push('btn-disabled')
-    return classes
-  })
-  ```
+- Headings: `font-extrabold`
+- Sidebar menu: `text-sm font-semibold`
+- Sidebar section headers: `text-[11px] font-bold uppercase tracking-wider`
+- Buttons: `text-sm font-bold`
+- Labels: `font-bold uppercase tracking-wider`
+- Body: `font-medium`
 
-### 响应式设计
+### Spacing
 
-- 断点: 768px (移动端)
-- 使用 Tailwind 响应式前缀: `sm:`, `md:`, `lg:`, `xl:`
-- 工具栏等组件需处理窄屏滚动
+- Buttons: `px-5 py-2`
+- Inputs: `px-4 py-2.5`
+- Card body: `p-6`
+- Table cells: `px-6 py-5`
+- Sidebar items: `px-3 py-2.5`
+- Sidebar nav padding: `py-4 px-3`
 
-### 图标规范
+### Border Radius
 
-- 使用 Lucide Vue Next 图标库
-- 默认尺寸: `class="w-4 h-4"` 或 `class="w-5 h-5"`
-- 导入方式:
-  ```typescript
-  import { IconName } from 'lucide-vue-next'
-  ```
+- Cards: `rounded-2xl`
+- Modals: `rounded-3xl`
+- Inputs/Buttons: `rounded-xl`
+- Sidebar items: `rounded-xl`
+- Badges: `rounded-lg`
+
+### Shadows
+
+- Cards: `shadow-sm`
+- Sidebar: `shadow-sm`
+- Modals: `shadow-2xl`
+- Active sidebar item: `shadow-md` + provider shadow
+- Provider-tinted: `shadow-lg shadow-blue-500/10`
+
+### Provider System
+
+The app supports Batata and Consul providers (visual only):
+
+- Provider is stored in `localStorage('batata_provider')`
+- Sidebar active color and logo change based on provider
+- Use `useProvider()` composable for provider-aware styling
+- Provider switcher in header: segmented BATATA / CONSUL buttons
+
+### Theme System
+
+- Use `useTheme()` composable for theme state
+- Theme stored in `localStorage('batata_theme')`, values: `'light'` | `'dark'`
+- `toggleTheme()` to switch, `isDark` computed for state
+- Moon/Sun icon toggle in header
+
+### Responsive Design
+
+- Breakpoints: 768px (mobile)
+- Tailwind responsive prefixes: `sm:`, `md:`, `lg:`, `xl:`
+
+### Icons
+
+- Library: Lucide Vue Next
+- Sidebar icons: `:size="20"`
+- Header/toolbar icons: `:size="16"` or `:size="13"`
+- Import: `import { IconName } from 'lucide-vue-next'`
 
 ## Testing
 

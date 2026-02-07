@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Lock, User, ShieldCheck, ArrowRight, UserPlus } from 'lucide-vue-next'
+import { Moon, Sun, Languages, UserPlus } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
+import { useTheme } from '@/composables/useTheme'
 
-const { t } = useI18n()
+const { t, language, setLanguage } = useI18n()
 const router = useRouter()
+const { isDark, toggleTheme } = useTheme()
 
 const username = ref('')
 const password = ref('')
@@ -46,128 +48,118 @@ const handleSubmit = async () => {
   }
 }
 
-const goToLogin = () => {
-  router.push('/login')
+const toggleLanguage = () => {
+  setLanguage(language.value === 'zh' ? 'en' : 'zh')
 }
 </script>
 
 <template>
   <div
-    class="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden"
+    class="min-h-screen bg-[#f0f2f5] dark:bg-gray-950 flex flex-col items-center justify-center p-4 transition-colors duration-300 relative"
   >
-    <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-      <div
-        class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-600/20 blur-[120px] rounded-full"
-      />
-      <div
-        class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full"
-      />
+    <!-- Top-right controls -->
+    <div class="absolute top-6 right-6 flex items-center space-x-3">
+      <button
+        @click="toggleTheme"
+        class="p-2.5 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-800 rounded-full transition-all shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-gray-700 bg-white/50 dark:bg-gray-900/50"
+        :title="t('themeToggle')"
+      >
+        <Moon v-if="!isDark" :size="20" />
+        <Sun v-else :size="20" />
+      </button>
+      <button
+        @click="toggleLanguage"
+        class="flex items-center space-x-2 text-sm font-semibold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 px-4 py-2 rounded-full bg-white/50 dark:bg-gray-900/50 hover:bg-white dark:hover:bg-gray-800 transition-all shadow-sm"
+      >
+        <Languages :size="16" />
+        <span>{{ language === 'zh' ? 'English' : '中文' }}</span>
+      </button>
     </div>
 
-    <div class="w-full max-w-md z-10">
-      <div
-        class="bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
-      >
-        <div class="p-8 pb-0 text-center">
+    <!-- Register Card -->
+    <div
+      class="max-w-md w-full bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800 transition-all duration-500"
+    >
+      <div class="p-10 text-center">
+        <div class="flex justify-center mb-6">
           <div
-            class="inline-flex items-center justify-center w-16 h-16 bg-emerald-600 rounded-2xl shadow-lg mb-6 transform rotate-6 group"
+            class="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-500/30 transform rotate-6"
           >
-            <UserPlus class="w-8 h-8 text-white group-hover:-rotate-6 transition-transform" />
+            <UserPlus class="w-8 h-8 text-white" />
           </div>
-          <h1 class="text-base font-semibold text-white mb-1">{{ t('createAccount') }}</h1>
-          <p class="text-slate-400 text-sm">{{ t('registerSubtitle') }}</p>
         </div>
-
-        <form @submit.prevent="handleSubmit" class="p-8 space-y-3">
-          <div class="space-y-3">
-            <div class="relative group">
-              <div
-                class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-500 transition-colors"
-              >
-                <User :size="18" />
-              </div>
-              <input
-                type="text"
-                v-model="username"
-                :placeholder="t('username')"
-                class="w-full bg-slate-800/50 border border-slate-700 text-white pl-10 pr-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-sm placeholder:text-slate-600"
-                required
-              />
-            </div>
-
-            <div class="relative group">
-              <div
-                class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-500 transition-colors"
-              >
-                <Lock :size="18" />
-              </div>
-              <input
-                type="password"
-                v-model="password"
-                :placeholder="t('password')"
-                class="w-full bg-slate-800/50 border border-slate-700 text-white pl-10 pr-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-sm placeholder:text-slate-600"
-                required
-              />
-            </div>
-
-            <div class="relative group">
-              <div
-                class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-500 transition-colors"
-              >
-                <Lock :size="18" />
-              </div>
-              <input
-                type="password"
-                v-model="confirmPassword"
-                :placeholder="t('confirmPassword')"
-                class="w-full bg-slate-800/50 border border-slate-700 text-white pl-10 pr-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-sm placeholder:text-slate-600"
-                required
-              />
-            </div>
-          </div>
-
-          <p class="text-xs text-slate-500">
-            {{ t('passwordRequirement') }}
-          </p>
-
-          <button
-            type="submit"
-            :disabled="isLoading"
-            class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center space-x-2 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            <template v-if="isLoading">
-              <div
-                class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"
-              />
-            </template>
-            <template v-else>
-              <span>{{ t('register') }}</span>
-              <ArrowRight :size="18" />
-            </template>
-          </button>
-
-          <div class="text-center">
-            <button
-              type="button"
-              @click="goToLogin"
-              class="text-slate-400 hover:text-emerald-400 text-sm transition-colors"
-            >
-              {{ t('alreadyHaveAccount') }}
-            </button>
-          </div>
-        </form>
-
-        <div class="p-6 bg-slate-800/30 border-t border-white/5 text-center">
-          <p class="text-slate-500 text-xs flex items-center justify-center">
-            <ShieldCheck :size="14" class="mr-1 text-emerald-500" />
-            {{ t('secureRegistration') }}
-          </p>
-        </div>
+        <h1 class="text-3xl font-extrabold text-gray-800 dark:text-gray-100 mb-2 tracking-tight">
+          {{ t('createAccount') }}
+        </h1>
+        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium italic">
+          {{ t('registerSubtitle') }}
+        </p>
       </div>
 
-      <p class="text-center mt-8 text-slate-600 text-xs">
-        &copy; {{ new Date().getFullYear() }} Alibaba Group. All rights reserved.
-      </p>
+      <form @submit.prevent="handleSubmit" class="px-10 pb-10 space-y-5">
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{ t('username') }}</label>
+          <input
+            type="text"
+            v-model="username"
+            :placeholder="t('loginUserPlaceholder')"
+            class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-gray-100 outline-none transition-all text-sm"
+            required
+          />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{ t('password') }}</label>
+          <input
+            type="password"
+            v-model="password"
+            :placeholder="t('loginPassPlaceholder')"
+            class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-gray-100 outline-none transition-all text-sm"
+            required
+          />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{
+            t('confirmPassword')
+          }}</label>
+          <input
+            type="password"
+            v-model="confirmPassword"
+            :placeholder="t('confirmPasswordPlaceholder')"
+            class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-gray-100 outline-none transition-all text-sm"
+            required
+          />
+        </div>
+
+        <p class="text-xs text-gray-400 dark:text-gray-500 ml-1">
+          {{ t('passwordRequirement') }}
+        </p>
+
+        <button
+          type="submit"
+          :disabled="isLoading"
+          class="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-500/20 active:scale-95 transform disabled:opacity-70 disabled:cursor-not-allowed"
+        >
+          <template v-if="isLoading">
+            <div
+              class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"
+            />
+          </template>
+          <template v-else>
+            {{ t('register') }}
+          </template>
+        </button>
+
+        <div class="text-center">
+          <router-link
+            to="/login"
+            class="text-gray-400 hover:text-emerald-500 text-sm transition-colors"
+          >
+            {{ t('alreadyHaveAccount') }}
+          </router-link>
+        </div>
+      </form>
     </div>
   </div>
 </template>

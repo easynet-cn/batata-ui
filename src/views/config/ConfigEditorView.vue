@@ -67,14 +67,23 @@
 
         <!-- Beta Release Toggle -->
         <div
-          class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200"
+          class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-800"
         >
           <div class="flex items-center gap-3">
             <div
               class="w-8 h-8 rounded-lg flex items-center justify-center"
-              :class="form.beta ? 'bg-purple-50' : 'bg-slate-100'"
+              :class="
+                form.beta ? 'bg-purple-50 dark:bg-purple-950/30' : 'bg-gray-100 dark:bg-gray-800'
+              "
             >
-              <FlaskConical :size="16" :class="form.beta ? 'text-purple-600' : 'text-slate-400'" />
+              <FlaskConical
+                :size="16"
+                :class="
+                  form.beta
+                    ? 'text-purple-600 dark:text-purple-400'
+                    : 'text-gray-400 dark:text-gray-500'
+                "
+              />
             </div>
             <div>
               <p class="text-xs font-medium text-text-primary">{{ t('betaRelease') }}</p>
@@ -84,7 +93,7 @@
           <label class="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" v-model="form.beta" class="sr-only peer" />
             <div
-              class="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"
+              class="w-9 h-5 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"
             ></div>
           </label>
         </div>
@@ -104,12 +113,14 @@
 
         <!-- Encryption Toggle -->
         <div
-          class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200"
+          class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-800"
         >
           <div class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
-              <Lock v-if="form.encrypted" :size="16" class="text-amber-600" />
-              <Unlock v-else :size="16" class="text-slate-400" />
+            <div
+              class="w-8 h-8 bg-amber-50 dark:bg-amber-950/30 rounded-lg flex items-center justify-center"
+            >
+              <Lock v-if="form.encrypted" :size="16" class="text-amber-600 dark:text-amber-400" />
+              <Unlock v-else :size="16" class="text-gray-400 dark:text-gray-500" />
             </div>
             <div>
               <p class="text-xs font-medium text-text-primary">{{ t('configEncryption') }}</p>
@@ -119,7 +130,7 @@
           <label class="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" v-model="form.encrypted" class="sr-only peer" />
             <div
-              class="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"
+              class="w-9 h-5 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"
             ></div>
           </label>
         </div>

@@ -22,8 +22,10 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
       <div class="card p-4">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <Server class="w-5 h-5 text-blue-600" />
+          <div
+            class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center"
+          >
+            <Server class="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
             <p class="text-xs text-text-tertiary">{{ t('targetEnvironments') }}</p>
@@ -33,34 +35,46 @@
       </div>
       <div class="card p-4">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-            <CheckCircle class="w-5 h-5 text-emerald-600" />
+          <div
+            class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center"
+          >
+            <CheckCircle class="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div>
             <p class="text-xs text-text-tertiary">{{ t('syncedConfigs') }}</p>
-            <p class="text-lg font-semibold text-emerald-600">{{ syncStats.synced }}</p>
+            <p class="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+              {{ syncStats.synced }}
+            </p>
           </div>
         </div>
       </div>
       <div class="card p-4">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <AlertTriangle class="w-5 h-5 text-amber-600" />
+          <div
+            class="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center"
+          >
+            <AlertTriangle class="w-5 h-5 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
             <p class="text-xs text-text-tertiary">{{ t('pendingSync') }}</p>
-            <p class="text-lg font-semibold text-amber-600">{{ syncStats.pending }}</p>
+            <p class="text-lg font-semibold text-amber-600 dark:text-amber-400">
+              {{ syncStats.pending }}
+            </p>
           </div>
         </div>
       </div>
       <div class="card p-4">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
-            <XCircle class="w-5 h-5 text-red-600" />
+          <div
+            class="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-950/30 flex items-center justify-center"
+          >
+            <XCircle class="w-5 h-5 text-red-600 dark:text-red-400" />
           </div>
           <div>
             <p class="text-xs text-text-tertiary">{{ t('syncFailed') }}</p>
-            <p class="text-lg font-semibold text-red-600">{{ syncStats.failed }}</p>
+            <p class="text-lg font-semibold text-red-600 dark:text-red-400">
+              {{ syncStats.failed }}
+            </p>
           </div>
         </div>
       </div>
@@ -102,7 +116,13 @@
             <div class="flex items-center gap-2 mt-2 text-xs">
               <span class="text-text-secondary">{{ env.configCount }} {{ t('configs') }}</span>
               <span class="text-text-tertiary">|</span>
-              <span :class="env.status === 'online' ? 'text-emerald-600' : 'text-red-600'">
+              <span
+                :class="
+                  env.status === 'online'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-red-600 dark:text-red-400'
+                "
+              >
                 {{ t(env.status) }}
               </span>
             </div>
@@ -206,10 +226,10 @@
                 class="w-8 h-8 rounded-lg flex items-center justify-center"
                 :class="
                   history.status === 'success'
-                    ? 'bg-emerald-50 text-emerald-600'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400'
                     : history.status === 'failed'
-                      ? 'bg-red-50 text-red-600'
-                      : 'bg-blue-50 text-blue-600'
+                      ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400'
+                      : 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400'
                 "
               >
                 <CheckCircle v-if="history.status === 'success'" class="w-4 h-4" />
@@ -229,7 +249,9 @@
               <span :class="getSyncStatusClass(history.status)">
                 {{ t(history.status) }}
               </span>
-              <p v-if="history.error" class="text-xs text-red-500 mt-1">{{ history.error }}</p>
+              <p v-if="history.error" class="text-xs text-red-500 dark:text-red-400 mt-1">
+                {{ history.error }}
+              </p>
             </div>
           </div>
           <div v-if="syncHistory.length === 0" class="text-center py-6 text-text-secondary text-sm">
@@ -249,11 +271,13 @@
           </button>
         </div>
         <div class="modal-body space-y-4">
-          <div class="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-            <RefreshCw class="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+          <div class="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+            <RefreshCw class="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
             <div>
-              <p class="text-sm font-medium text-blue-900">{{ t('syncConfirmTitle') }}</p>
-              <p class="text-xs text-blue-700 mt-1">
+              <p class="text-sm font-medium text-blue-900 dark:text-blue-100">
+                {{ t('syncConfirmTitle') }}
+              </p>
+              <p class="text-xs text-blue-700 dark:text-blue-300 mt-1">
                 {{ t('syncConfirmDesc') }}
               </p>
             </div>

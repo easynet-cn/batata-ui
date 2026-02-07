@@ -16,8 +16,10 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
       <div class="card p-4">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <Puzzle class="w-5 h-5 text-blue-600" />
+          <div
+            class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center"
+          >
+            <Puzzle class="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
             <p class="text-xs text-text-tertiary">{{ t('totalPlugins') }}</p>
@@ -27,8 +29,10 @@
       </div>
       <div class="card p-4">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-            <CheckCircle class="w-5 h-5 text-emerald-600" />
+          <div
+            class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center"
+          >
+            <CheckCircle class="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div>
             <p class="text-xs text-text-tertiary">{{ t('enabledPlugins') }}</p>
@@ -38,8 +42,10 @@
       </div>
       <div class="card p-4">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center">
-            <Circle class="w-5 h-5 text-slate-400" />
+          <div
+            class="w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center"
+          >
+            <Circle class="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
           <div>
             <p class="text-xs text-text-tertiary">{{ t('disabledPlugins') }}</p>
@@ -49,8 +55,10 @@
       </div>
       <div class="card p-4">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <AlertTriangle class="w-5 h-5 text-amber-600" />
+          <div
+            class="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center"
+          >
+            <AlertTriangle class="w-5 h-5 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
             <p class="text-xs text-text-tertiary">{{ t('errorPlugins') }}</p>
@@ -169,7 +177,7 @@
                   <button
                     v-else-if="plugin.status === 'enabled'"
                     @click="togglePlugin(plugin, false)"
-                    class="btn btn-ghost btn-sm text-slate-500"
+                    class="btn btn-ghost btn-sm text-gray-500 dark:text-gray-400"
                     :title="t('disable')"
                   >
                     <PowerOff class="w-3.5 h-3.5" />
@@ -283,8 +291,8 @@
           </button>
         </div>
         <div class="modal-body space-y-3" v-if="selectedPlugin">
-          <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-            <Puzzle class="w-5 h-5 text-slate-500" />
+          <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <Puzzle class="w-5 h-5 text-gray-500 dark:text-gray-400" />
             <div>
               <p class="font-medium text-text-primary">{{ selectedPlugin.name }}</p>
               <p class="text-xs text-text-tertiary">{{ selectedPlugin.version }}</p>
@@ -471,13 +479,13 @@ const getPluginIcon = (type: string) => {
 
 const getPluginIconClass = (type: string) => {
   const classes: Record<string, string> = {
-    config: 'bg-blue-50 text-blue-600',
-    auth: 'bg-purple-50 text-purple-600',
-    naming: 'bg-emerald-50 text-emerald-600',
-    datasource: 'bg-amber-50 text-amber-600',
-    other: 'bg-slate-50 text-slate-600',
+    config: 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400',
+    auth: 'bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400',
+    naming: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400',
+    datasource: 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400',
+    other: 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400',
   }
-  return classes[type] || 'bg-slate-50 text-slate-600'
+  return classes[type] || 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
 }
 
 const getTypeClass = (type: string) => {

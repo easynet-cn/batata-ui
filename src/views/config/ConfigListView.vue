@@ -130,13 +130,15 @@
                 <span class="text-xs text-text-primary">{{ t('exactSearch') }}</span>
               </label>
             </div>
-            <label class="flex items-center gap-1.5 cursor-pointer border-l pl-4 border-slate-200">
+            <label
+              class="flex items-center gap-1.5 cursor-pointer border-l pl-4 border-gray-200 dark:border-gray-800"
+            >
               <input
                 type="checkbox"
                 v-model="searchParams.showBetaOnly"
                 class="w-3.5 h-3.5 text-purple-600 rounded"
               />
-              <FlaskConical class="w-3 h-3 text-purple-500" />
+              <FlaskConical class="w-3 h-3 text-purple-500 dark:text-purple-400" />
               <span class="text-xs text-text-primary">{{ t('betaOnly') }}</span>
             </label>
           </div>
@@ -208,7 +210,7 @@
                   <span class="badge badge-info">{{ config.type?.toUpperCase() || 'TEXT' }}</span>
                   <span
                     v-if="config.encryptedDataKey"
-                    class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-medium rounded"
+                    class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 text-[10px] font-medium rounded"
                     :title="t('encrypted')"
                   >
                     <Lock class="w-2.5 h-2.5" />
@@ -216,7 +218,7 @@
                   </span>
                   <span
                     v-if="isBetaConfig(config)"
-                    class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-purple-50 text-purple-700 text-[10px] font-medium rounded"
+                    class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 text-[10px] font-medium rounded"
                     :title="t('betaConfig')"
                   >
                     <FlaskConical class="w-2.5 h-2.5" />
@@ -281,7 +283,7 @@
                   <button
                     v-if="isBetaConfig(config)"
                     @click="handlePromote(config)"
-                    class="btn btn-ghost btn-sm text-purple-600"
+                    class="btn btn-ghost btn-sm text-purple-600 dark:text-purple-400"
                     :title="t('promoteToStable')"
                   >
                     <ArrowUpCircle class="w-3.5 h-3.5" />
@@ -448,11 +450,13 @@
           </button>
         </div>
         <div class="modal-body space-y-3">
-          <div class="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
-            <FlaskConical class="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+          <div class="flex items-start gap-3 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+            <FlaskConical class="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
             <div>
-              <p class="text-xs font-medium text-purple-900">{{ t('promoteConfirmTitle') }}</p>
-              <p class="text-xs text-purple-700 mt-1">
+              <p class="text-xs font-medium text-purple-900 dark:text-purple-100">
+                {{ t('promoteConfirmTitle') }}
+              </p>
+              <p class="text-xs text-purple-700 dark:text-purple-300 mt-1">
                 {{ t('promoteConfirmDesc') }}
               </p>
             </div>
@@ -464,7 +468,7 @@
             </div>
             <div class="flex items-center justify-between text-xs">
               <span class="text-text-secondary">{{ t('stableConfig') }}:</span>
-              <span class="font-medium text-emerald-600">
+              <span class="font-medium text-emerald-600 dark:text-emerald-400">
                 {{ configToPromote?.dataId.replace('-beta', '').replace('.beta', '') }}
               </span>
             </div>

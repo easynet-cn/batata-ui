@@ -20,49 +20,75 @@
 
     <!-- Datacenter Overview Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <div
+        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm"
+      >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-slate-500">{{ t('totalDatacenters') }}</p>
-            <p class="text-2xl font-bold text-slate-900 mt-1">{{ datacenters.length }}</p>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {{ t('totalDatacenters') }}
+            </p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+              {{ datacenters.length }}
+            </p>
           </div>
-          <div class="w-12 h-12 bg-indigo-50 rounded-lg flex items-center justify-center">
-            <Globe :size="24" class="text-indigo-500" />
+          <div
+            class="w-12 h-12 bg-blue-50 dark:bg-blue-950/30 rounded-lg flex items-center justify-center"
+          >
+            <Globe :size="24" class="text-blue-500" />
           </div>
         </div>
       </div>
 
-      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <div
+        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm"
+      >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-slate-500">{{ t('healthyDatacenters') }}</p>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {{ t('healthyDatacenters') }}
+            </p>
             <p class="text-2xl font-bold text-emerald-600 mt-1">{{ healthyCount }}</p>
           </div>
-          <div class="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center">
+          <div
+            class="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg flex items-center justify-center"
+          >
             <CheckCircle :size="24" class="text-emerald-500" />
           </div>
         </div>
       </div>
 
-      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <div
+        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm"
+      >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-slate-500">{{ t('syncPending') }}</p>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {{ t('syncPending') }}
+            </p>
             <p class="text-2xl font-bold text-amber-600 mt-1">{{ pendingSyncCount }}</p>
           </div>
-          <div class="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center">
+          <div
+            class="w-12 h-12 bg-amber-50 dark:bg-amber-950/30 rounded-lg flex items-center justify-center"
+          >
             <RefreshCw :size="24" class="text-amber-500" />
           </div>
         </div>
       </div>
 
-      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <div
+        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm"
+      >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-slate-500">{{ t('syncErrors') }}</p>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {{ t('syncErrors') }}
+            </p>
             <p class="text-2xl font-bold text-red-600 mt-1">{{ errorCount }}</p>
           </div>
-          <div class="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center">
+          <div
+            class="w-12 h-12 bg-red-50 dark:bg-red-950/30 rounded-lg flex items-center justify-center"
+          >
             <AlertTriangle :size="24" class="text-red-500" />
           </div>
         </div>
@@ -96,10 +122,10 @@
               <div
                 class="w-10 h-10 rounded-lg flex items-center justify-center"
                 :class="{
-                  'bg-emerald-50': dc.status === 'healthy',
-                  'bg-amber-50': dc.status === 'syncing',
-                  'bg-red-50': dc.status === 'error',
-                  'bg-slate-100': dc.status === 'offline',
+                  'bg-emerald-50 dark:bg-emerald-950/30': dc.status === 'healthy',
+                  'bg-amber-50 dark:bg-amber-950/30': dc.status === 'syncing',
+                  'bg-red-50 dark:bg-red-950/30': dc.status === 'error',
+                  'bg-gray-100 dark:bg-gray-800': dc.status === 'offline',
                 }"
               >
                 <CheckCircle v-if="dc.status === 'healthy'" class="w-5 h-5 text-emerald-500" />
@@ -108,7 +134,7 @@
                   class="w-5 h-5 text-amber-500 animate-spin"
                 />
                 <AlertTriangle v-else-if="dc.status === 'error'" class="w-5 h-5 text-red-500" />
-                <XCircle v-else class="w-5 h-5 text-slate-400" />
+                <XCircle v-else class="w-5 h-5 text-gray-400 dark:text-gray-500" />
               </div>
 
               <!-- Datacenter Info -->
@@ -117,17 +143,21 @@
                   <h4 class="text-sm font-semibold text-text-primary">{{ dc.name }}</h4>
                   <span
                     v-if="dc.isPrimary"
-                    class="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-medium rounded"
+                    class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 text-[10px] font-medium rounded"
                   >
                     {{ t('primary') }}
                   </span>
                   <span
                     class="px-1.5 py-0.5 rounded text-[10px] font-medium"
                     :class="{
-                      'bg-emerald-100 text-emerald-700': dc.status === 'healthy',
-                      'bg-amber-100 text-amber-700': dc.status === 'syncing',
-                      'bg-red-100 text-red-700': dc.status === 'error',
-                      'bg-slate-100 text-slate-600': dc.status === 'offline',
+                      'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400':
+                        dc.status === 'healthy',
+                      'bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400':
+                        dc.status === 'syncing',
+                      'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400':
+                        dc.status === 'error',
+                      'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400':
+                        dc.status === 'offline',
                     }"
                   >
                     {{ getStatusLabel(dc.status) }}
@@ -188,7 +218,7 @@
               <span class="text-text-secondary">{{ t('syncProgress') }}</span>
               <span class="text-text-primary font-medium">{{ dc.syncProgress }}%</span>
             </div>
-            <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div class="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
               <div
                 class="h-full bg-amber-500 rounded-full transition-all duration-300"
                 :style="{ width: `${dc.syncProgress}%` }"
@@ -199,9 +229,9 @@
           <!-- Error Message -->
           <div
             v-if="dc.status === 'error' && dc.errorMessage"
-            class="mt-3 ml-14 p-2 bg-red-50 rounded-lg"
+            class="mt-3 ml-14 p-2 bg-red-50 dark:bg-red-950/30 rounded-lg"
           >
-            <p class="text-xs text-red-700">{{ dc.errorMessage }}</p>
+            <p class="text-xs text-red-700 dark:text-red-400">{{ dc.errorMessage }}</p>
           </div>
         </div>
       </div>
@@ -217,9 +247,9 @@
           <!-- Primary Datacenter -->
           <div class="text-center">
             <div
-              class="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center mx-auto border-4 border-indigo-500"
+              class="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center mx-auto border-4 border-blue-500"
             >
-              <Globe class="w-8 h-8 text-indigo-600" />
+              <Globe class="w-8 h-8 text-blue-600 dark:text-blue-400" />
             </div>
             <p class="text-sm font-semibold text-text-primary mt-2">
               {{ primaryDatacenter?.name || 'Primary' }}
@@ -231,11 +261,15 @@
           <div class="flex flex-col gap-2">
             <div class="flex items-center gap-2">
               <ArrowRight class="w-8 h-8 text-emerald-500" />
-              <span class="text-xs text-emerald-600 font-medium">{{ t('replicating') }}</span>
+              <span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{{
+                t('replicating')
+              }}</span>
             </div>
             <div class="flex items-center gap-2">
               <ArrowLeft class="w-8 h-8 text-blue-500" />
-              <span class="text-xs text-blue-600 font-medium">{{ t('receiving') }}</span>
+              <span class="text-xs text-blue-600 dark:text-blue-400 font-medium">{{
+                t('receiving')
+              }}</span>
             </div>
           </div>
 
@@ -245,19 +279,22 @@
               <div
                 class="w-12 h-12 rounded-full flex items-center justify-center"
                 :class="{
-                  'bg-emerald-100 border-2 border-emerald-400': dc.status === 'healthy',
-                  'bg-amber-100 border-2 border-amber-400': dc.status === 'syncing',
-                  'bg-red-100 border-2 border-red-400': dc.status === 'error',
-                  'bg-slate-100 border-2 border-slate-300': dc.status === 'offline',
+                  'bg-emerald-100 dark:bg-emerald-950/30 border-2 border-emerald-400':
+                    dc.status === 'healthy',
+                  'bg-amber-100 dark:bg-amber-950/30 border-2 border-amber-400':
+                    dc.status === 'syncing',
+                  'bg-red-100 dark:bg-red-950/30 border-2 border-red-400': dc.status === 'error',
+                  'bg-gray-100 dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600':
+                    dc.status === 'offline',
                 }"
               >
                 <MapPin
                   class="w-5 h-5"
                   :class="{
-                    'text-emerald-600': dc.status === 'healthy',
-                    'text-amber-600': dc.status === 'syncing',
-                    'text-red-600': dc.status === 'error',
-                    'text-slate-500': dc.status === 'offline',
+                    'text-emerald-600 dark:text-emerald-400': dc.status === 'healthy',
+                    'text-amber-600 dark:text-amber-400': dc.status === 'syncing',
+                    'text-red-600 dark:text-red-400': dc.status === 'error',
+                    'text-gray-500 dark:text-gray-400': dc.status === 'offline',
                   }"
                 />
               </div>

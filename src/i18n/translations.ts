@@ -62,6 +62,10 @@ export const translations = {
     // Login
     welcomeBack: 'Welcome Back',
     loginSubtitle: 'Batata Management Console',
+    loginSlogan: 'Empowering Distributed Systems Control',
+    loginUserPlaceholder: 'Enter your username',
+    loginPassPlaceholder: 'Enter your password',
+    confirmPasswordPlaceholder: 'Re-enter your password',
     username: 'Username',
     password: 'Password',
     signIn: 'Sign In',
@@ -558,6 +562,14 @@ export const translations = {
     regionCnNorth1: 'China (Beijing)',
     regionCnEast1: 'China (Shanghai)',
 
+    // Theme & Provider
+    themeLight: 'Light',
+    themeDark: 'Dark',
+    themeToggle: 'Toggle Theme',
+    providerSwitch: 'Provider',
+    batata: 'Batata',
+    consul: 'Consul',
+
     // Legacy - keep for compatibility
     nodeAddress: 'Node Address',
     state: 'State',
@@ -651,6 +663,10 @@ export const translations = {
     // Login
     welcomeBack: '欢迎回来',
     loginSubtitle: 'Batata 管理控制台',
+    loginSlogan: '赋能分布式系统管控',
+    loginUserPlaceholder: '请输入用户名',
+    loginPassPlaceholder: '请输入密码',
+    confirmPasswordPlaceholder: '请再次输入密码',
     username: '用户名',
     password: '密码',
     signIn: '登录',
@@ -1145,6 +1161,14 @@ export const translations = {
     regionApSoutheast1: '亚太地区 (新加坡)',
     regionCnNorth1: '中国 (北京)',
     regionCnEast1: '中国 (上海)',
+
+    // Theme & Provider
+    themeLight: '浅色模式',
+    themeDark: '深色模式',
+    themeToggle: '切换主题',
+    providerSwitch: '提供者',
+    batata: 'Batata',
+    consul: 'Consul',
 
     // Legacy - keep for compatibility
     nodeAddress: '节点地址',

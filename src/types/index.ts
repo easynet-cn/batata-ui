@@ -237,7 +237,13 @@ export interface AgentInfo {
 }
 
 // ============================================
-// 设置类型
+// Provider Type
+// ============================================
+
+export type ProviderType = 'batata' | 'consul'
+
+// ============================================
+// Settings Types
 // ============================================
 
 export type ThemeMode = 'light' | 'dark' | 'system'

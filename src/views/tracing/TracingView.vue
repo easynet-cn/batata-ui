@@ -185,7 +185,9 @@
                 <span
                   class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
                   :class="
-                    trace.hasError ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'
+                    trace.hasError
+                      ? 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400'
+                      : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
                   "
                 >
                   <XCircle v-if="trace.hasError" class="w-3 h-3" />
@@ -249,7 +251,7 @@
 
         <div v-if="selectedTrace" class="modal-body p-0">
           <!-- Trace Summary -->
-          <div class="p-4 bg-slate-50 border-b border-border">
+          <div class="p-4 bg-gray-50 dark:bg-gray-800 border-b border-border">
             <div class="grid grid-cols-4 gap-4">
               <div>
                 <p class="text-xs text-text-secondary">{{ t('duration') }}</p>
@@ -273,8 +275,8 @@
                   class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
                   :class="
                     selectedTrace.hasError
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-emerald-100 text-emerald-700'
+                      ? 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400'
+                      : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
                   "
                 >
                   {{ selectedTrace.hasError ? t('error') : t('success') }}
@@ -289,7 +291,7 @@
             <div class="space-y-1">
               <div v-for="(span, index) in selectedTrace.spans" :key="span.spanId" class="relative">
                 <div
-                  class="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 transition-colors"
+                  class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   :style="{ paddingLeft: `${span.depth * 20 + 8}px` }"
                 >
                   <!-- Timeline dot -->
@@ -315,10 +317,12 @@
                   </span>
 
                   <!-- Duration bar -->
-                  <div class="w-32 h-4 bg-slate-100 rounded overflow-hidden shrink-0">
+                  <div
+                    class="w-32 h-4 bg-gray-100 dark:bg-gray-800 rounded overflow-hidden shrink-0"
+                  >
                     <div
                       class="h-full rounded"
-                      :class="span.hasError ? 'bg-red-400' : 'bg-indigo-400'"
+                      :class="span.hasError ? 'bg-red-400' : 'bg-blue-400'"
                       :style="{ width: `${(span.duration / selectedTrace.duration) * 100}%` }"
                     ></div>
                   </div>
@@ -332,7 +336,7 @@
                 <!-- Vertical connector line -->
                 <div
                   v-if="index < selectedTrace.spans.length - 1"
-                  class="absolute left-0 top-full h-1 w-px bg-slate-200"
+                  class="absolute left-0 top-full h-1 w-px bg-gray-200 dark:bg-gray-800"
                   :style="{ left: `${span.depth * 20 + 12}px` }"
                 ></div>
               </div>
@@ -361,7 +365,7 @@
                 </div>
                 <ArrowRight
                   v-if="index < getUniqueServices(selectedTrace.spans).length - 1"
-                  class="w-4 h-4 text-slate-400"
+                  class="w-4 h-4 text-gray-400 dark:text-gray-500"
                 />
               </template>
             </div>
@@ -603,9 +607,10 @@ const formatDuration = (ms: number) => {
 }
 
 const getDurationClass = (duration: number) => {
-  if (duration < 100) return 'bg-emerald-50 text-emerald-700'
-  if (duration < 500) return 'bg-amber-50 text-amber-700'
-  return 'bg-red-50 text-red-700'
+  if (duration < 100)
+    return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
+  if (duration < 500) return 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
+  return 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400'
 }
 
 const getUniqueServices = (spans: Span[]) => {

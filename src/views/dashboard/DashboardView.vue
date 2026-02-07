@@ -3,13 +3,13 @@
     <!-- Page Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-xl font-bold text-slate-900">{{ t('dashboard') }}</h1>
-        <p class="text-sm text-slate-500 mt-1">{{ t('systemOverview') }}</p>
+        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('dashboard') }}</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('systemOverview') }}</p>
       </div>
       <button
         @click="refreshData"
         :disabled="loading"
-        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
       >
         <RefreshCw :size="14" :class="{ 'animate-spin': loading }" />
         {{ t('refresh') }}
@@ -19,64 +19,98 @@
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- Services Card -->
-      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <div
+        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm"
+      >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-slate-500">{{ t('totalServices') }}</p>
-            <p class="text-2xl font-bold text-slate-900 mt-1">{{ stats.totalServices }}</p>
-            <p class="text-xs text-emerald-600 mt-1 flex items-center gap-1">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {{ t('totalServices') }}
+            </p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+              {{ stats.totalServices }}
+            </p>
+            <p class="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
               <CheckCircle :size="12" />
               {{ stats.healthyServices }} {{ t('healthy') }}
             </p>
           </div>
-          <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+          <div
+            class="w-12 h-12 bg-blue-50 dark:bg-blue-950/30 rounded-lg flex items-center justify-center"
+          >
             <Server :size="24" class="text-blue-500" />
           </div>
         </div>
       </div>
 
       <!-- Configurations Card -->
-      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <div
+        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm"
+      >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-slate-500">{{ t('totalConfigs') }}</p>
-            <p class="text-2xl font-bold text-slate-900 mt-1">{{ stats.totalConfigs }}</p>
-            <p class="text-xs text-slate-500 mt-1">{{ stats.configGroups }} {{ t('groups') }}</p>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {{ t('totalConfigs') }}
+            </p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+              {{ stats.totalConfigs }}
+            </p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {{ stats.configGroups }} {{ t('groups') }}
+            </p>
           </div>
-          <div class="w-12 h-12 bg-indigo-50 rounded-lg flex items-center justify-center">
-            <FileCode :size="24" class="text-indigo-500" />
+          <div
+            class="w-12 h-12 bg-blue-50 dark:bg-blue-950/30 rounded-lg flex items-center justify-center"
+          >
+            <FileCode :size="24" class="text-blue-500" />
           </div>
         </div>
       </div>
 
       <!-- Namespaces Card -->
-      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <div
+        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm"
+      >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-slate-500">{{ t('totalNamespaces') }}</p>
-            <p class="text-2xl font-bold text-slate-900 mt-1">{{ stats.totalNamespaces }}</p>
-            <p class="text-xs text-slate-500 mt-1">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {{ t('totalNamespaces') }}
+            </p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+              {{ stats.totalNamespaces }}
+            </p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {{ stats.customNamespaces }} {{ t('custom') }}
             </p>
           </div>
-          <div class="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
+          <div
+            class="w-12 h-12 bg-purple-50 dark:bg-purple-950/30 rounded-lg flex items-center justify-center"
+          >
             <Layers :size="24" class="text-purple-500" />
           </div>
         </div>
       </div>
 
       <!-- Cluster Nodes Card -->
-      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <div
+        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm"
+      >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-slate-500">{{ t('clusterNodes') }}</p>
-            <p class="text-2xl font-bold text-slate-900 mt-1">{{ stats.totalNodes }}</p>
-            <p class="text-xs text-emerald-600 mt-1 flex items-center gap-1">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {{ t('clusterNodes') }}
+            </p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+              {{ stats.totalNodes }}
+            </p>
+            <p class="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
               <Activity :size="12" />
               {{ stats.healthyNodes }} {{ t('online') }}
             </p>
           </div>
-          <div class="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center">
+          <div
+            class="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg flex items-center justify-center"
+          >
             <Network :size="24" class="text-emerald-500" />
           </div>
         </div>
@@ -86,70 +120,103 @@
     <!-- Charts Section -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <!-- Service Health Distribution -->
-      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-        <h3 class="text-sm font-semibold text-slate-900 mb-4">
+      <div
+        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm"
+      >
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
           {{ t('serviceHealthDistribution') }}
         </h3>
         <div ref="healthChartRef" class="h-64"></div>
       </div>
 
       <!-- Config Types Distribution -->
-      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-        <h3 class="text-sm font-semibold text-slate-900 mb-4">{{ t('configTypeDistribution') }}</h3>
+      <div
+        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm"
+      >
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          {{ t('configTypeDistribution') }}
+        </h3>
         <div ref="configChartRef" class="h-64"></div>
       </div>
     </div>
 
     <!-- Quick Actions -->
-    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-      <h3 class="text-sm font-semibold text-slate-900 mb-4">{{ t('quickActions') }}</h3>
+    <div
+      class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm"
+    >
+      <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        {{ t('quickActions') }}
+      </h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
         <RouterLink
           to="/config/new"
-          class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+          class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 transition-all"
         >
-          <div class="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
-            <Plus :size="16" class="text-indigo-500" />
+          <div
+            class="w-8 h-8 bg-blue-50 dark:bg-blue-950/30 rounded-lg flex items-center justify-center"
+          >
+            <Plus :size="16" class="text-blue-500" />
           </div>
-          <span class="text-sm font-medium text-slate-700">{{ t('createConfig') }}</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{
+            t('createConfig')
+          }}</span>
         </RouterLink>
 
         <RouterLink
           to="/services"
-          class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+          class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 transition-all"
         >
-          <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+          <div
+            class="w-8 h-8 bg-blue-50 dark:bg-blue-950/30 rounded-lg flex items-center justify-center"
+          >
             <Server :size="16" class="text-blue-500" />
           </div>
-          <span class="text-sm font-medium text-slate-700">{{ t('manageServices') }}</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{
+            t('manageServices')
+          }}</span>
         </RouterLink>
 
         <RouterLink
           to="/namespaces"
-          class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+          class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 transition-all"
         >
-          <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+          <div
+            class="w-8 h-8 bg-purple-50 dark:bg-purple-950/30 rounded-lg flex items-center justify-center"
+          >
             <Layers :size="16" class="text-purple-500" />
           </div>
-          <span class="text-sm font-medium text-slate-700">{{ t('manageNamespaces') }}</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{
+            t('manageNamespaces')
+          }}</span>
         </RouterLink>
 
         <RouterLink
           to="/cluster"
-          class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+          class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 transition-all"
         >
-          <div class="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+          <div
+            class="w-8 h-8 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg flex items-center justify-center"
+          >
             <Network :size="16" class="text-emerald-500" />
           </div>
-          <span class="text-sm font-medium text-slate-700">{{ t('viewCluster') }}</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{
+            t('viewCluster')
+          }}</span>
         </RouterLink>
       </div>
     </div>
 
     <!-- Cluster Nodes Status -->
-    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-      <h3 class="text-sm font-semibold text-slate-900 mb-4">{{ t('clusterNodesStatus') }}</h3>
-      <div v-if="clusterNodes.length === 0" class="text-center py-8 text-slate-400">
+    <div
+      class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm"
+    >
+      <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        {{ t('clusterNodesStatus') }}
+      </h3>
+      <div
+        v-if="clusterNodes.length === 0"
+        class="text-center py-8 text-gray-400 dark:text-gray-500"
+      >
         <Network :size="32" class="mx-auto mb-2 opacity-50" />
         <p class="text-sm">{{ t('noClusterNodes') }}</p>
       </div>
@@ -157,7 +224,7 @@
         <div
           v-for="node in clusterNodes"
           :key="node.address"
-          class="flex items-center gap-3 p-3 rounded-lg border border-slate-200"
+          class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-800"
         >
           <div
             :class="[
@@ -170,8 +237,10 @@
             ]"
           ></div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-slate-900 truncate">{{ node.address }}</p>
-            <p class="text-xs text-slate-500">{{ node.state }}</p>
+            <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+              {{ node.address }}
+            </p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">{{ node.state }}</p>
           </div>
         </div>
       </div>
