@@ -262,70 +262,55 @@
     </div>
 
     <!-- Sync Modal -->
-    <div v-if="showSyncModal" class="modal-backdrop" @click="showSyncModal = false">
-      <div class="modal max-w-lg" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('syncConfigs') }}</h3>
-          <button @click="showSyncModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body space-y-4">
-          <div class="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-            <RefreshCw class="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-            <div>
-              <p class="text-sm font-medium text-blue-900 dark:text-blue-100">
-                {{ t('syncConfirmTitle') }}
-              </p>
-              <p class="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                {{ t('syncConfirmDesc') }}
-              </p>
-            </div>
-          </div>
-
-          <div class="space-y-2">
-            <div class="flex items-center justify-between text-sm">
-              <span class="text-text-secondary">{{ t('selectedConfigs') }}:</span>
-              <span class="font-medium text-text-primary">{{ selectedConfigs.length }}</span>
-            </div>
-            <div class="flex items-center justify-between text-sm">
-              <span class="text-text-secondary">{{ t('targetEnvironments') }}:</span>
-              <span class="font-medium text-text-primary">{{ selectedEnvs.length }}</span>
-            </div>
-          </div>
-
+    <FormModal
+      v-model="showSyncModal"
+      :title="t('syncConfigs')"
+      :submit-text="t('startSync')"
+      :loading="syncing"
+      :submit-disabled="selectedConfigs.length === 0 || selectedEnvs.length === 0"
+      @submit="executeSync"
+    >
+      <div class="space-y-4">
+        <div class="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+          <RefreshCw class="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
           <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('conflictPolicy') }}
-            </label>
-            <select v-model="syncPolicy" class="input">
-              <option value="SKIP">{{ t('policySkip') }}</option>
-              <option value="OVERWRITE">{{ t('policyOverwrite') }}</option>
-              <option value="ABORT">{{ t('policyAbort') }}</option>
-            </select>
+            <p class="text-sm font-medium text-blue-900 dark:text-blue-100">
+              {{ t('syncConfirmTitle') }}
+            </p>
+            <p class="text-xs text-blue-700 dark:text-blue-300 mt-1">
+              {{ t('syncConfirmDesc') }}
+            </p>
           </div>
         </div>
-        <div class="modal-footer">
-          <button @click="showSyncModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button
-            @click="executeSync"
-            class="btn btn-primary"
-            :disabled="syncing || selectedConfigs.length === 0 || selectedEnvs.length === 0"
-          >
-            <Loader2 v-if="syncing" class="w-3.5 h-3.5 animate-spin" />
-            <RefreshCw v-else class="w-3.5 h-3.5" />
-            {{ t('startSync') }}
-          </button>
+
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-text-secondary">{{ t('selectedConfigs') }}:</span>
+            <span class="font-medium text-text-primary">{{ selectedConfigs.length }}</span>
+          </div>
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-text-secondary">{{ t('targetEnvironments') }}:</span>
+            <span class="font-medium text-text-primary">{{ selectedEnvs.length }}</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('conflictPolicy') }}
+          </label>
+          <select v-model="syncPolicy" class="input">
+            <option value="SKIP">{{ t('policySkip') }}</option>
+            <option value="OVERWRITE">{{ t('policyOverwrite') }}</option>
+            <option value="ABORT">{{ t('policyAbort') }}</option>
+          </select>
         </div>
       </div>
-    </div>
+    </FormModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import {
   RotateCcw,
   RefreshCw,
@@ -334,11 +319,12 @@ import {
   AlertTriangle,
   XCircle,
   Loader2,
-  X,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import FormModal from '@/components/common/FormModal.vue'
 import type { ConfigInfo, Namespace } from '@/types'
 
 interface SyncEnvironment {
@@ -381,6 +367,9 @@ const configSearch = ref('')
 const syncPolicy = ref<'SKIP' | 'OVERWRITE' | 'ABORT'>('SKIP')
 const showSyncModal = ref(false)
 
+// Track active timeouts for cleanup
+let syncRefreshTimer: ReturnType<typeof setTimeout> | null = null
+
 // Computed
 const syncStats = computed(() => {
   return {
@@ -411,7 +400,7 @@ const fetchEnvironments = async () => {
     const response = await batataApi.getSyncEnvironments()
     environments.value = response.data.data || []
   } catch (error) {
-    console.error('Failed to fetch environments:', error)
+    logger.error('Failed to fetch environments:', error)
     // Fallback to empty array
     environments.value = []
   }
@@ -430,7 +419,8 @@ const fetchConfigs = async () => {
       syncStatus: 'notSynced' as const,
     }))
   } catch (error) {
-    console.error('Failed to fetch configs:', error)
+    logger.error('Failed to fetch configs:', error)
+    toast.error(t('operationFailed'))
   } finally {
     loading.value = false
   }
@@ -441,7 +431,7 @@ const fetchSyncHistory = async () => {
     const response = await batataApi.getSyncHistory(props.namespace.namespace)
     syncHistory.value = response.data.data || []
   } catch (error) {
-    console.error('Failed to fetch sync history:', error)
+    logger.error('Failed to fetch sync history:', error)
     syncHistory.value = []
   }
 }
@@ -503,12 +493,13 @@ const executeSync = async () => {
     toast.success(t('syncStarted'))
     showSyncModal.value = false
     // Refresh after sync
-    setTimeout(() => {
+    syncRefreshTimer = setTimeout(() => {
+      syncRefreshTimer = null
       fetchSyncHistory()
       fetchConfigs()
     }, 1000)
   } catch (error) {
-    console.error('Failed to sync configs:', error)
+    logger.error('Failed to sync configs:', error)
     toast.error(t('syncFailed'))
   } finally {
     syncing.value = false
@@ -546,5 +537,13 @@ onMounted(() => {
   fetchEnvironments()
   fetchConfigs()
   fetchSyncHistory()
+})
+
+onUnmounted(() => {
+  // Clear pending sync refresh timer to prevent memory leaks
+  if (syncRefreshTimer !== null) {
+    clearTimeout(syncRefreshTimer)
+    syncRefreshTimer = null
+  }
 })
 </script>

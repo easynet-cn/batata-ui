@@ -199,129 +199,110 @@
     </div>
 
     <!-- Plugin Detail Modal -->
-    <div v-if="showDetailModal" class="modal-backdrop" @click="showDetailModal = false">
-      <div class="modal max-w-2xl" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('pluginDetail') }}</h3>
-          <button @click="showDetailModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body space-y-4" v-if="selectedPlugin">
-          <div class="flex items-center gap-4">
-            <div
-              class="w-16 h-16 rounded-xl flex items-center justify-center"
-              :class="getPluginIconClass(selectedPlugin.type)"
-            >
-              <component :is="getPluginIcon(selectedPlugin.type)" class="w-8 h-8" />
-            </div>
-            <div>
-              <h4 class="text-lg font-semibold text-text-primary">{{ selectedPlugin.name }}</h4>
-              <p class="text-sm text-text-secondary">
-                {{ selectedPlugin.author || 'Batata Team' }}
-              </p>
-            </div>
+    <ConfirmModal
+      v-model="showDetailModal"
+      :title="t('pluginDetail')"
+      :confirm-text="t('close')"
+      @confirm="showDetailModal = false"
+    >
+      <div class="space-y-4" v-if="selectedPlugin">
+        <div class="flex items-center gap-4">
+          <div
+            class="w-16 h-16 rounded-xl flex items-center justify-center"
+            :class="getPluginIconClass(selectedPlugin.type)"
+          >
+            <component :is="getPluginIcon(selectedPlugin.type)" class="w-8 h-8" />
           </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs text-text-tertiary mb-1">{{ t('version') }}</label>
-              <p class="font-mono text-text-primary">{{ selectedPlugin.version }}</p>
-            </div>
-            <div>
-              <label class="block text-xs text-text-tertiary mb-1">{{ t('pluginType') }}</label>
-              <span class="badge" :class="getTypeClass(selectedPlugin.type)">
-                {{ getPluginTypeLabel(selectedPlugin.type) }}
-              </span>
-            </div>
-            <div>
-              <label class="block text-xs text-text-tertiary mb-1">{{ t('status') }}</label>
-              <span :class="getStatusClass(selectedPlugin.status)">
-                {{ t(selectedPlugin.status) }}
-              </span>
-            </div>
-            <div>
-              <label class="block text-xs text-text-tertiary mb-1">{{ t('loadOrder') }}</label>
-              <p class="text-text-primary">{{ selectedPlugin.order || 0 }}</p>
-            </div>
-          </div>
-
           <div>
-            <label class="block text-xs text-text-tertiary mb-1">{{ t('description') }}</label>
-            <p class="text-text-secondary">
-              {{ selectedPlugin.description || t('noDescription') }}
+            <h4 class="text-lg font-semibold text-text-primary">{{ selectedPlugin.name }}</h4>
+            <p class="text-sm text-text-secondary">
+              {{ selectedPlugin.author || 'Batata Team' }}
             </p>
           </div>
+        </div>
 
-          <div v-if="selectedPlugin.dependencies?.length">
-            <label class="block text-xs text-text-tertiary mb-1">{{ t('dependencies') }}</label>
-            <div class="flex flex-wrap gap-1">
-              <span
-                v-for="dep in selectedPlugin.dependencies"
-                :key="dep"
-                class="badge badge-secondary"
-              >
-                {{ dep }}
-              </span>
-            </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-text-tertiary mb-1">{{ t('version') }}</label>
+            <p class="font-mono text-text-primary">{{ selectedPlugin.version }}</p>
           </div>
-
-          <div v-if="selectedPlugin.config">
-            <label class="block text-xs text-text-tertiary mb-1">{{ t('pluginConfig') }}</label>
-            <pre class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono">{{
-              JSON.stringify(selectedPlugin.config, null, 2)
-            }}</pre>
+          <div>
+            <label class="block text-xs text-text-tertiary mb-1">{{ t('pluginType') }}</label>
+            <span class="badge" :class="getTypeClass(selectedPlugin.type)">
+              {{ getPluginTypeLabel(selectedPlugin.type) }}
+            </span>
+          </div>
+          <div>
+            <label class="block text-xs text-text-tertiary mb-1">{{ t('status') }}</label>
+            <span :class="getStatusClass(selectedPlugin.status)">
+              {{ t(selectedPlugin.status) }}
+            </span>
+          </div>
+          <div>
+            <label class="block text-xs text-text-tertiary mb-1">{{ t('loadOrder') }}</label>
+            <p class="text-text-primary">{{ selectedPlugin.order || 0 }}</p>
           </div>
         </div>
-        <div class="modal-footer">
-          <button @click="showDetailModal = false" class="btn btn-secondary">
-            {{ t('close') }}
-          </button>
+
+        <div>
+          <label class="block text-xs text-text-tertiary mb-1">{{ t('description') }}</label>
+          <p class="text-text-secondary">
+            {{ selectedPlugin.description || t('noDescription') }}
+          </p>
+        </div>
+
+        <div v-if="selectedPlugin.dependencies?.length">
+          <label class="block text-xs text-text-tertiary mb-1">{{ t('dependencies') }}</label>
+          <div class="flex flex-wrap gap-1">
+            <span
+              v-for="dep in selectedPlugin.dependencies"
+              :key="dep"
+              class="badge badge-secondary"
+            >
+              {{ dep }}
+            </span>
+          </div>
+        </div>
+
+        <div v-if="selectedPlugin.config">
+          <label class="block text-xs text-text-tertiary mb-1">{{ t('pluginConfig') }}</label>
+          <pre class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono">{{
+            JSON.stringify(selectedPlugin.config, null, 2)
+          }}</pre>
         </div>
       </div>
-    </div>
+    </ConfirmModal>
 
     <!-- Configure Plugin Modal -->
-    <div v-if="showConfigModal" class="modal-backdrop" @click="showConfigModal = false">
-      <div class="modal max-w-2xl" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('configurePlugin') }}</h3>
-          <button @click="showConfigModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body space-y-3" v-if="selectedPlugin">
-          <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <Puzzle class="w-5 h-5 text-gray-500 dark:text-gray-400" />
-            <div>
-              <p class="font-medium text-text-primary">{{ selectedPlugin.name }}</p>
-              <p class="text-xs text-text-tertiary">{{ selectedPlugin.version }}</p>
-            </div>
-          </div>
-
+    <FormModal
+      v-model="showConfigModal"
+      :title="t('configurePlugin')"
+      :submit-text="t('save')"
+      :loading="saving"
+      @submit="savePluginConfig"
+    >
+      <div class="space-y-3" v-if="selectedPlugin">
+        <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <Puzzle class="w-5 h-5 text-gray-500 dark:text-gray-400" />
           <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('pluginConfig') }}
-            </label>
-            <textarea
-              v-model="configJson"
-              class="input font-mono text-sm min-h-[200px]"
-              :placeholder="t('pluginConfigPlaceholder')"
-            />
-            <p class="text-xs text-text-tertiary mt-1">{{ t('pluginConfigHint') }}</p>
+            <p class="font-medium text-text-primary">{{ selectedPlugin.name }}</p>
+            <p class="text-xs text-text-tertiary">{{ selectedPlugin.version }}</p>
           </div>
         </div>
-        <div class="modal-footer">
-          <button @click="showConfigModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="savePluginConfig" class="btn btn-primary" :disabled="saving">
-            <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
-            {{ t('save') }}
-          </button>
+
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('pluginConfig') }}
+          </label>
+          <textarea
+            v-model="configJson"
+            class="input font-mono text-sm min-h-[200px]"
+            :placeholder="t('pluginConfigPlaceholder')"
+          />
+          <p class="text-xs text-text-tertiary mt-1">{{ t('pluginConfigHint') }}</p>
         </div>
       </div>
-    </div>
+    </FormModal>
   </div>
 </template>
 
@@ -335,7 +316,6 @@ import {
   Power,
   PowerOff,
   Settings,
-  X,
   Puzzle,
   CheckCircle,
   Circle,
@@ -349,6 +329,9 @@ import {
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import FormModal from '@/components/common/FormModal.vue'
 import type { PluginInfo, Namespace } from '@/types'
 
 defineProps<{
@@ -395,7 +378,8 @@ const fetchPlugins = async () => {
     const response = await batataApi.getPluginList()
     plugins.value = response.data.data || []
   } catch (error) {
-    console.error('Failed to fetch plugins:', error)
+    logger.error('Failed to fetch plugins:', error)
+    toast.error(t('operationFailed'))
   } finally {
     loading.value = false
   }
@@ -420,7 +404,7 @@ const togglePlugin = async (plugin: PluginInfo, enable: boolean) => {
     plugin.status = enable ? 'enabled' : 'disabled'
     toast.success(enable ? t('pluginEnabled') : t('pluginDisabled'))
   } catch (error) {
-    console.error('Failed to toggle plugin:', error)
+    logger.error('Failed to toggle plugin:', error)
     toast.error(t('operationFailed'))
   }
 }
@@ -448,7 +432,7 @@ const savePluginConfig = async () => {
     showConfigModal.value = false
     toast.success(t('configSaved'))
   } catch (error) {
-    console.error('Failed to save plugin config:', error)
+    logger.error('Failed to save plugin config:', error)
     toast.error(t('operationFailed'))
   } finally {
     saving.value = false

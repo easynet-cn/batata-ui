@@ -169,152 +169,97 @@
         </table>
       </div>
 
-      <!-- Pagination -->
-      <div class="flex items-center justify-between p-4 border-t border-border">
-        <div class="text-sm text-text-secondary">
-          {{ t('total') }}: {{ total }} {{ t('items') }}
-        </div>
-        <div class="flex items-center gap-2">
-          <button
-            @click="handlePageChange(currentPage - 1)"
-            :disabled="currentPage <= 1"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronLeft class="w-3.5 h-3.5" />
-          </button>
-          <span class="text-sm text-text-primary px-3"> {{ currentPage }} / {{ totalPages }} </span>
-          <button
-            @click="handlePageChange(currentPage + 1)"
-            :disabled="currentPage >= totalPages"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronRight class="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      <AppPagination
+        :current-page="currentPage"
+        :page-size="pageSize"
+        :total="total"
+        @change="handlePageChange"
+      />
     </div>
 
     <!-- Create/Edit Service Modal -->
-    <div v-if="showCreateModal || showEditModal" class="modal-backdrop" @click="closeModal">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">
-            {{ showEditModal ? t('editService') : t('createService') }}
-          </h3>
-          <button @click="closeModal" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
+    <FormModal
+      v-model="showFormModal"
+      :title="showEditModal ? t('editService') : t('createService')"
+      :submit-text="showEditModal ? t('save') : t('create')"
+      :loading="saving"
+      @submit="handleSubmit"
+    >
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('serviceName') }} <span class="text-danger">*</span>
+          </label>
+          <input
+            v-model="serviceForm.serviceName"
+            type="text"
+            class="input"
+            :disabled="showEditModal"
+            :placeholder="t('serviceName')"
+          />
         </div>
-        <div class="modal-body space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('serviceName') }} <span class="text-danger">*</span>
-            </label>
-            <input
-              v-model="serviceForm.serviceName"
-              type="text"
-              class="input"
-              :disabled="showEditModal"
-              :placeholder="t('serviceName')"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('groupName') }}
-            </label>
-            <input
-              v-model="serviceForm.groupName"
-              type="text"
-              class="input"
-              :disabled="showEditModal"
-              placeholder="DEFAULT_GROUP"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('protectThreshold') }}
-            </label>
-            <input
-              v-model.number="serviceForm.protectThreshold"
-              type="number"
-              class="input"
-              min="0"
-              max="1"
-              step="0.1"
-              placeholder="0"
-            />
-            <p class="text-xs text-text-tertiary mt-1">{{ t('protectThresholdHint') }}</p>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('metadata') }}
-            </label>
-            <textarea
-              v-model="metadataText"
-              class="input min-h-[80px] font-mono text-sm"
-              placeholder='{"key": "value"}'
-            />
-          </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('groupName') }}
+          </label>
+          <input
+            v-model="serviceForm.groupName"
+            type="text"
+            class="input"
+            :disabled="showEditModal"
+            placeholder="DEFAULT_GROUP"
+          />
         </div>
-        <div class="modal-footer">
-          <button @click="closeModal" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="handleSubmit" class="btn btn-primary" :disabled="saving">
-            <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
-            {{ showEditModal ? t('save') : t('create') }}
-          </button>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('protectThreshold') }}
+          </label>
+          <input
+            v-model.number="serviceForm.protectThreshold"
+            type="number"
+            class="input"
+            min="0"
+            max="1"
+            step="0.1"
+            placeholder="0"
+          />
+          <p class="text-xs text-text-tertiary mt-1">{{ t('protectThresholdHint') }}</p>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('metadata') }}
+          </label>
+          <textarea
+            v-model="metadataText"
+            class="input min-h-[80px] font-mono text-sm"
+            placeholder='{"key": "value"}'
+          />
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Delete Confirm Modal -->
-    <div v-if="showDeleteModal" class="modal-backdrop" @click="showDeleteModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('confirmDelete') }}</h3>
-          <button @click="showDeleteModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <p class="text-text-secondary">
-            {{ t('confirmDeleteService') }}
-            <span class="font-medium text-text-primary">{{ serviceToDelete?.name }}</span
-            >?
-          </p>
-        </div>
-        <div class="modal-footer">
-          <button @click="showDeleteModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="confirmDelete" class="btn btn-danger">
-            {{ t('delete') }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal
+      v-model="showDeleteModal"
+      :title="t('confirmDelete')"
+      :message="`${t('confirmDeleteService')} ${serviceToDelete?.name}?`"
+      :confirm-text="t('delete')"
+      danger
+      @confirm="confirmDelete"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
-import {
-  Search,
-  RotateCcw,
-  Plus,
-  Eye,
-  Pencil,
-  Users,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  X,
-} from 'lucide-vue-next'
+import { Search, RotateCcw, Plus, Eye, Pencil, Users, Trash2, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
+import { logger } from '@/utils/logger'
 import { toast } from '@/utils/error'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import FormModal from '@/components/common/FormModal.vue'
+import AppPagination from '@/components/common/AppPagination.vue'
 import type { ServiceInfo, Namespace } from '@/types'
 
 const props = defineProps<{
@@ -339,6 +284,12 @@ const searchParams = reactive({
 })
 
 // Modals
+const showFormModal = computed({
+  get: () => showCreateModal.value || showEditModal.value,
+  set: (val) => {
+    if (!val) closeModal()
+  },
+})
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
@@ -351,9 +302,6 @@ const serviceForm = reactive({
   protectThreshold: 0,
   metadata: {} as Record<string, string>,
 })
-
-// Computed
-const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
 
 // Methods
 const fetchServices = async () => {
@@ -368,7 +316,8 @@ const fetchServices = async () => {
     services.value = response.data.data.pageItems || []
     total.value = response.data.data.totalCount || 0
   } catch (error) {
-    console.error('Failed to fetch services:', error)
+    logger.error('Failed to fetch services', error)
+    toast.error(t('operationFailed'))
   } finally {
     loading.value = false
   }
@@ -450,7 +399,8 @@ const handleSubmit = async () => {
     closeModal()
     fetchServices()
   } catch (error) {
-    console.error('Failed to save service:', error)
+    logger.error('Failed to save service', error)
+    toast.error(t('operationFailed'))
   } finally {
     saving.value = false
   }
@@ -472,7 +422,8 @@ const confirmDelete = async () => {
     showDeleteModal.value = false
     fetchServices()
   } catch (error) {
-    console.error('Failed to delete service:', error)
+    logger.error('Failed to delete service', error)
+    toast.error(t('operationFailed'))
   }
 }
 

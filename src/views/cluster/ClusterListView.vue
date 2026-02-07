@@ -86,34 +86,27 @@
     </div>
 
     <!-- Metadata Modal -->
-    <div v-if="showMetadataModal" class="modal-backdrop" @click="showMetadataModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('metadata') }}</h3>
-          <button @click="showMetadataModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <pre class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono">{{
-            JSON.stringify(selectedMetadata, null, 2)
-          }}</pre>
-        </div>
-        <div class="modal-footer">
-          <button @click="showMetadataModal = false" class="btn btn-secondary">
-            {{ t('close') }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal
+      v-model="showMetadataModal"
+      :title="t('metadata')"
+      :confirm-text="t('close')"
+      @confirm="showMetadataModal = false"
+    >
+      <pre class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono">{{
+        JSON.stringify(selectedMetadata, null, 2)
+      }}</pre>
+    </ConfirmModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { RefreshCw, Server, Loader2, Info, X } from 'lucide-vue-next'
+import { RefreshCw, Server, Loader2, Info } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
+import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import type { NodeInfo, Namespace } from '@/types'
 
 defineProps<{
@@ -135,7 +128,8 @@ const fetchNodes = async () => {
     const response = await batataApi.getClusterNodes()
     nodes.value = response.data.data || []
   } catch (error) {
-    console.error('Failed to fetch nodes:', error)
+    logger.error('Failed to fetch nodes:', error)
+    toast.error(t('operationFailed'))
   } finally {
     loading.value = false
   }

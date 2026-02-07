@@ -309,117 +309,98 @@
     </div>
 
     <!-- Add/Edit Datacenter Modal -->
-    <div v-if="showAddModal || showEditModal" class="modal-backdrop" @click="closeModals">
-      <div class="modal max-w-md" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">
-            {{ showEditModal ? t('editDatacenter') : t('addDatacenter') }}
-          </h3>
-          <button @click="closeModals" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
+    <FormModal
+      v-model="showFormModal"
+      :title="showEditModal ? t('editDatacenter') : t('addDatacenter')"
+      :submit-text="showEditModal ? t('save') : t('create')"
+      @submit="saveDatacenter"
+    >
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('datacenterName') }} <span class="text-danger">*</span>
+          </label>
+          <input
+            v-model="form.name"
+            type="text"
+            class="input"
+            :placeholder="t('datacenterNamePlaceholder')"
+          />
         </div>
-        <div class="modal-body space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('datacenterName') }} <span class="text-danger">*</span>
-            </label>
-            <input
-              v-model="form.name"
-              type="text"
-              class="input"
-              :placeholder="t('datacenterNamePlaceholder')"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('region') }} <span class="text-danger">*</span>
-            </label>
-            <select v-model="form.region" class="input">
-              <option value="">{{ t('selectRegion') }}</option>
-              <option value="us-east-1">{{ t('regionUsEast1') }}</option>
-              <option value="us-west-2">{{ t('regionUsWest2') }}</option>
-              <option value="eu-west-1">{{ t('regionEuWest1') }}</option>
-              <option value="ap-northeast-1">{{ t('regionApNortheast1') }}</option>
-              <option value="ap-southeast-1">{{ t('regionApSoutheast1') }}</option>
-              <option value="cn-north-1">{{ t('regionCnNorth1') }}</option>
-              <option value="cn-east-1">{{ t('regionCnEast1') }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('endpoint') }} <span class="text-danger">*</span>
-            </label>
-            <input
-              v-model="form.endpoint"
-              type="text"
-              class="input"
-              placeholder="https://batata.example.com:8848"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('accessToken') }}
-            </label>
-            <input
-              v-model="form.accessToken"
-              type="password"
-              class="input"
-              :placeholder="t('accessTokenPlaceholder')"
-            />
-          </div>
-          <div class="flex items-center gap-2">
-            <input
-              type="checkbox"
-              v-model="form.isPrimary"
-              id="isPrimary"
-              class="w-4 h-4 rounded"
-              :disabled="showEditModal && selectedDatacenter?.isPrimary"
-            />
-            <label for="isPrimary" class="text-xs text-text-primary">
-              {{ t('setAsPrimary') }}
-            </label>
-          </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('region') }} <span class="text-danger">*</span>
+          </label>
+          <select v-model="form.region" class="input">
+            <option value="">{{ t('selectRegion') }}</option>
+            <option value="us-east-1">{{ t('regionUsEast1') }}</option>
+            <option value="us-west-2">{{ t('regionUsWest2') }}</option>
+            <option value="eu-west-1">{{ t('regionEuWest1') }}</option>
+            <option value="ap-northeast-1">{{ t('regionApNortheast1') }}</option>
+            <option value="ap-southeast-1">{{ t('regionApSoutheast1') }}</option>
+            <option value="cn-north-1">{{ t('regionCnNorth1') }}</option>
+            <option value="cn-east-1">{{ t('regionCnEast1') }}</option>
+          </select>
         </div>
-        <div class="modal-footer">
-          <button @click="closeModals" class="btn btn-secondary">{{ t('cancel') }}</button>
-          <button @click="saveDatacenter" class="btn btn-primary">
-            {{ showEditModal ? t('save') : t('create') }}
-          </button>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('endpoint') }} <span class="text-danger">*</span>
+          </label>
+          <input
+            v-model="form.endpoint"
+            type="text"
+            class="input"
+            placeholder="https://batata.example.com:8848"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('accessToken') }}
+          </label>
+          <input
+            v-model="form.accessToken"
+            type="password"
+            class="input"
+            :placeholder="t('accessTokenPlaceholder')"
+          />
+        </div>
+        <div class="flex items-center gap-2">
+          <input
+            type="checkbox"
+            v-model="form.isPrimary"
+            id="isPrimary"
+            class="w-4 h-4 rounded"
+            :disabled="showEditModal && selectedDatacenter?.isPrimary"
+          />
+          <label for="isPrimary" class="text-xs text-text-primary">
+            {{ t('setAsPrimary') }}
+          </label>
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteModal" class="modal-backdrop" @click="showDeleteModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('confirmDelete') }}</h3>
-          <button @click="showDeleteModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <p class="text-xs text-text-secondary">
-            {{ t('confirmDeleteDatacenter') }}
-            <span class="font-medium text-text-primary">{{ datacenterToDelete?.name }}</span
-            >?
-          </p>
-          <p class="text-xs text-amber-600 mt-2">{{ t('deleteDatacenterWarning') }}</p>
-        </div>
-        <div class="modal-footer">
-          <button @click="showDeleteModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="deleteDatacenter" class="btn btn-danger">{{ t('delete') }}</button>
-        </div>
+    <ConfirmModal
+      v-model="showDeleteModal"
+      :title="t('confirmDelete')"
+      :confirm-text="t('delete')"
+      danger
+      @confirm="deleteDatacenter"
+    >
+      <div>
+        <p class="text-xs text-text-secondary">
+          {{ t('confirmDeleteDatacenter') }}
+          <span class="font-medium text-text-primary">{{ datacenterToDelete?.name }}</span
+          >?
+        </p>
+        <p class="text-xs text-amber-600 mt-2">{{ t('deleteDatacenterWarning') }}</p>
       </div>
-    </div>
+    </ConfirmModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import {
   Globe,
   RefreshCw,
@@ -433,7 +414,6 @@ import {
   Eye,
   Pencil,
   Trash2,
-  X,
   Loader2,
   ArrowRight,
   ArrowLeft,
@@ -441,6 +421,10 @@ import {
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
+import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import FormModal from '@/components/common/FormModal.vue'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import type { Namespace, NodeInfo } from '@/types'
 
 // Types
@@ -471,6 +455,7 @@ const loading = ref(false)
 const datacenters = ref<Datacenter[]>([])
 const showAddModal = ref(false)
 const showEditModal = ref(false)
+const showFormModal = ref(false)
 const showDeleteModal = ref(false)
 const selectedDatacenter = ref<Datacenter | null>(null)
 const datacenterToDelete = ref<Datacenter | null>(null)
@@ -481,6 +466,23 @@ const form = reactive({
   endpoint: '',
   accessToken: '',
   isPrimary: false,
+})
+
+// Track active sync intervals for cleanup
+const activeSyncIntervals = new Set<ReturnType<typeof setInterval>>()
+
+// Sync showFormModal with showAddModal / showEditModal
+watch(showAddModal, (val) => {
+  if (val) showFormModal.value = true
+})
+watch(showEditModal, (val) => {
+  if (val) showFormModal.value = true
+})
+watch(showFormModal, (val) => {
+  if (!val) {
+    showAddModal.value = false
+    showEditModal.value = false
+  }
 })
 
 // Computed
@@ -563,7 +565,8 @@ const fetchDatacenters = async () => {
       datacenters.value = []
     }
   } catch (error) {
-    console.error('Failed to fetch datacenters:', error)
+    logger.error('Failed to fetch datacenters:', error)
+    toast.error(t('operationFailed'))
     datacenters.value = []
   } finally {
     loading.value = false
@@ -598,17 +601,19 @@ const syncDatacenter = async (dc: Datacenter) => {
       dc.syncProgress += 10
     } else {
       clearInterval(interval)
+      activeSyncIntervals.delete(interval)
       dc.status = 'healthy'
       dc.lastSyncTime = Date.now()
       dc.syncProgress = undefined
     }
   }, 500)
+  activeSyncIntervals.add(interval)
 }
 
 const showDatacenterDetail = (dc: Datacenter) => {
   selectedDatacenter.value = dc
   // Could open a detail modal or navigate to detail page
-  console.log('Show detail for:', dc)
+  logger.info('Show detail for:', dc)
 }
 
 const editDatacenter = (dc: Datacenter) => {
@@ -638,6 +643,7 @@ const deleteDatacenter = () => {
 const closeModals = () => {
   showAddModal.value = false
   showEditModal.value = false
+  showFormModal.value = false
   selectedDatacenter.value = null
   Object.assign(form, {
     name: '',
@@ -683,5 +689,11 @@ const saveDatacenter = () => {
 // Lifecycle
 onMounted(() => {
   fetchDatacenters()
+})
+
+onUnmounted(() => {
+  // Clear all active sync intervals to prevent memory leaks
+  activeSyncIntervals.forEach((interval) => clearInterval(interval))
+  activeSyncIntervals.clear()
 })
 </script>

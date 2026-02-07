@@ -4,6 +4,7 @@ import { setupServiceMock } from './modules/service'
 import { setupConfigMock } from './modules/config'
 import { setupNamespaceMock } from './modules/namespace'
 import { setupClusterMock } from './modules/cluster'
+import { logger } from '@/utils/logger'
 
 // Mock 配置
 Mock.setup({
@@ -12,7 +13,7 @@ Mock.setup({
 })
 
 export function setupMock() {
-  console.log('[Mock] 启用 Mock 数据模式')
+  logger.debug('[Mock] 启用 Mock 数据模式')
 
   // 注册各模块的 Mock
   setupAuthMock()
@@ -21,5 +22,5 @@ export function setupMock() {
   setupNamespaceMock()
   setupClusterMock()
 
-  console.log('[Mock] Mock 数据初始化完成')
+  logger.debug('[Mock] Mock 数据初始化完成')
 }

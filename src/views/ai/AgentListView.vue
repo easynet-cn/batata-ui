@@ -104,61 +104,28 @@
 
     <!-- Pagination -->
     <div v-if="!loading && agents.length > 0" class="card">
-      <div class="flex items-center justify-between p-4">
-        <div class="text-sm text-text-secondary">
-          {{ t('total') }}: {{ total }} {{ t('items') }}
-        </div>
-        <div class="flex items-center gap-2">
-          <button
-            @click="handlePageChange(currentPage - 1)"
-            :disabled="currentPage <= 1"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronLeft class="w-3.5 h-3.5" />
-          </button>
-          <span class="text-sm text-text-primary px-3"> {{ currentPage }} / {{ totalPages }} </span>
-          <button
-            @click="handlePageChange(currentPage + 1)"
-            :disabled="currentPage >= totalPages"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronRight class="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      <AppPagination
+        :current-page="currentPage"
+        :page-size="pageSize"
+        :total="total"
+        @change="handlePageChange"
+      />
     </div>
 
     <!-- Delete Confirm Modal -->
-    <div v-if="showDeleteModal" class="modal-backdrop" @click="showDeleteModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('confirmDelete') }}</h3>
-          <button @click="showDeleteModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <p class="text-text-secondary">
-            {{ t('confirmDeleteAgent') }}
-            <span class="font-medium text-text-primary">{{ agentToDelete?.name }}</span
-            >?
-          </p>
-        </div>
-        <div class="modal-footer">
-          <button @click="showDeleteModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="confirmDelete" class="btn btn-danger">
-            {{ t('delete') }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal
+      v-model="showDeleteModal"
+      :title="t('confirmDelete')"
+      :message="`${t('confirmDeleteAgent')} ${agentToDelete?.name}?`"
+      :confirm-text="t('delete')"
+      danger
+      @confirm="confirmDelete"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Plus,
@@ -166,9 +133,6 @@ import {
   Pencil,
   Trash2,
   Loader2,
-  X,
-  ChevronLeft,
-  ChevronRight,
   Power,
   PowerOff,
   Bot,
@@ -177,6 +141,10 @@ import {
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
+import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import AppPagination from '@/components/common/AppPagination.vue'
 import type { AgentInfo, Namespace } from '@/types'
 
 defineProps<{
@@ -198,9 +166,6 @@ const searchKeyword = ref('')
 const showDeleteModal = ref(false)
 const agentToDelete = ref<AgentInfo | null>(null)
 
-// Computed
-const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
-
 // Methods
 const fetchAgents = async () => {
   loading.value = true
@@ -213,7 +178,8 @@ const fetchAgents = async () => {
     agents.value = response.data.data.pageItems || []
     total.value = response.data.data.totalCount || 0
   } catch (error) {
-    console.error('Failed to fetch agents:', error)
+    logger.error('Failed to fetch agents:', error)
+    toast.error(t('operationFailed'))
   } finally {
     loading.value = false
   }
@@ -248,7 +214,8 @@ const handleToggleStatus = async (agent: AgentInfo) => {
     })
     fetchAgents()
   } catch (error) {
-    console.error('Failed to toggle agent status:', error)
+    logger.error('Failed to toggle agent status:', error)
+    toast.error(t('operationFailed'))
   }
 }
 
@@ -265,7 +232,8 @@ const confirmDelete = async () => {
     showDeleteModal.value = false
     fetchAgents()
   } catch (error) {
-    console.error('Failed to delete agent:', error)
+    logger.error('Failed to delete agent:', error)
+    toast.error(t('operationFailed'))
   }
 }
 

@@ -76,107 +76,89 @@
     </div>
 
     <!-- Create Role Modal -->
-    <div v-if="showCreateModal" class="modal-backdrop" @click="showCreateModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('createRole') }}</h3>
-          <button @click="showCreateModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
+    <FormModal
+      v-model="showCreateModal"
+      :title="t('createRole')"
+      :submit-text="t('create')"
+      :loading="saving"
+      @submit="submitCreate"
+    >
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('name') }} <span class="text-danger">*</span>
+          </label>
+          <input v-model="createForm.Name" type="text" class="input" placeholder="my-role" />
         </div>
-        <div class="modal-body space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('name') }} <span class="text-danger">*</span>
-            </label>
-            <input v-model="createForm.Name" type="text" class="input" placeholder="my-role" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('description') }}
-            </label>
-            <input
-              v-model="createForm.Description"
-              type="text"
-              class="input"
-              :placeholder="t('descriptionPlaceholder')"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('selectPolicies') }}
-            </label>
-            <div class="space-y-1.5 max-h-48 overflow-y-auto border border-border rounded-xl p-3">
-              <label
-                v-for="policy in availablePolicies"
-                :key="policy.ID"
-                class="flex items-center gap-2 text-sm text-text-primary cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  :value="policy.ID"
-                  v-model="selectedPolicyIds"
-                  class="rounded"
-                />
-                <span>{{ policy.Name }}</span>
-                <span v-if="policy.Description" class="text-text-tertiary text-xs ml-1">
-                  ({{ policy.Description }})
-                </span>
-              </label>
-              <p v-if="availablePolicies.length === 0" class="text-xs text-text-tertiary">
-                {{ t('noPolicies') }}
-              </p>
-            </div>
-          </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('description') }}
+          </label>
+          <input
+            v-model="createForm.Description"
+            type="text"
+            class="input"
+            :placeholder="t('descriptionPlaceholder')"
+          />
         </div>
-        <div class="modal-footer">
-          <button @click="showCreateModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="submitCreate" class="btn btn-primary" :disabled="saving">
-            <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
-            {{ t('create') }}
-          </button>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('selectPolicies') }}
+          </label>
+          <div class="space-y-1.5 max-h-48 overflow-y-auto border border-border rounded-xl p-3">
+            <label
+              v-for="policy in availablePolicies"
+              :key="policy.ID"
+              class="flex items-center gap-2 text-sm text-text-primary cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                :value="policy.ID"
+                v-model="selectedPolicyIds"
+                class="rounded"
+              />
+              <span>{{ policy.Name }}</span>
+              <span v-if="policy.Description" class="text-text-tertiary text-xs ml-1">
+                ({{ policy.Description }})
+              </span>
+            </label>
+            <p v-if="availablePolicies.length === 0" class="text-xs text-text-tertiary">
+              {{ t('noPolicies') }}
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Delete Confirm Modal -->
-    <div v-if="showDeleteModal" class="modal-backdrop" @click="showDeleteModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('confirmDelete') }}</h3>
-          <button @click="showDeleteModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <p class="text-text-secondary">{{ t('confirmDeleteRole') }}</p>
-          <p class="text-xs text-text-tertiary mt-2">
-            <span class="font-medium text-text-primary">{{ roleToDelete?.Name }}</span>
-            - {{ t('deleteRoleWarning') }}
-          </p>
-        </div>
-        <div class="modal-footer">
-          <button @click="showDeleteModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="confirmDelete" class="btn btn-danger">
-            {{ t('delete') }}
-          </button>
-        </div>
+    <ConfirmModal
+      v-model="showDeleteModal"
+      :title="t('confirmDelete')"
+      :confirm-text="t('delete')"
+      danger
+      @confirm="confirmDelete"
+    >
+      <div>
+        <p class="text-text-secondary">{{ t('confirmDeleteRole') }}</p>
+        <p class="text-xs text-text-tertiary mt-2">
+          <span class="font-medium text-text-primary">{{ roleToDelete?.Name }}</span>
+          - {{ t('deleteRoleWarning') }}
+        </p>
       </div>
-    </div>
+    </ConfirmModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Plus, RefreshCw, Trash2, Loader2, X } from 'lucide-vue-next'
+import { Plus, RefreshCw, Trash2, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
 import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import FormModal from '@/components/common/FormModal.vue'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import type { ConsulACLRole } from '@/types/consul'
 
 const { t } = useI18n()
@@ -200,7 +182,8 @@ async function loadRoles() {
   try {
     await store.fetchACLRoles()
   } catch (error) {
-    console.error('Failed to fetch ACL roles:', error)
+    logger.error('Failed to fetch ACL roles:', error)
+    toast.error(t('operationFailed'))
   }
 }
 
@@ -218,7 +201,7 @@ async function openCreateModal() {
       Description: p.Description,
     }))
   } catch (error) {
-    console.error('Failed to load policies:', error)
+    logger.error('Failed to load policies:', error)
   }
 }
 
@@ -243,7 +226,7 @@ async function submitCreate() {
     toast.success(t('success'))
     await loadRoles()
   } catch (error) {
-    console.error('Failed to create ACL role:', error)
+    logger.error('Failed to create ACL role:', error)
     toast.error(t('operationFailed'))
   } finally {
     saving.value = false
@@ -263,7 +246,7 @@ async function confirmDelete() {
     toast.success(t('success'))
     await loadRoles()
   } catch (error) {
-    console.error('Failed to delete ACL role:', error)
+    logger.error('Failed to delete ACL role:', error)
     toast.error(t('operationFailed'))
   }
 }

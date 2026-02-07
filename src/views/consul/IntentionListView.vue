@@ -87,97 +87,71 @@
     </div>
 
     <!-- Create Intention Modal -->
-    <div v-if="showCreateModal" class="modal-backdrop" @click="showCreateModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('createIntention') }}</h3>
-          <button @click="showCreateModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
+    <FormModal
+      v-model="showCreateModal"
+      :title="t('createIntention')"
+      :submit-text="t('create')"
+      :loading="saving"
+      @submit="submitCreate"
+    >
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('sourceService') }} <span class="text-danger">*</span>
+          </label>
+          <input v-model="createForm.SourceName" type="text" class="input" placeholder="web" />
         </div>
-        <div class="modal-body space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('sourceService') }} <span class="text-danger">*</span>
-            </label>
-            <input v-model="createForm.SourceName" type="text" class="input" placeholder="web" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('destinationService') }} <span class="text-danger">*</span>
-            </label>
-            <input
-              v-model="createForm.DestinationName"
-              type="text"
-              class="input"
-              placeholder="api"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('action') }} <span class="text-danger">*</span>
-            </label>
-            <select v-model="createForm.Action" class="input">
-              <option value="allow">{{ t('allow') }}</option>
-              <option value="deny">{{ t('deny') }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('description') }}
-            </label>
-            <input
-              v-model="createForm.Description"
-              type="text"
-              class="input"
-              :placeholder="t('descriptionPlaceholder')"
-            />
-          </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('destinationService') }} <span class="text-danger">*</span>
+          </label>
+          <input v-model="createForm.DestinationName" type="text" class="input" placeholder="api" />
         </div>
-        <div class="modal-footer">
-          <button @click="showCreateModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="submitCreate" class="btn btn-primary" :disabled="saving">
-            <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
-            {{ t('create') }}
-          </button>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('action') }} <span class="text-danger">*</span>
+          </label>
+          <select v-model="createForm.Action" class="input">
+            <option value="allow">{{ t('allow') }}</option>
+            <option value="deny">{{ t('deny') }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('description') }}
+          </label>
+          <input
+            v-model="createForm.Description"
+            type="text"
+            class="input"
+            :placeholder="t('descriptionPlaceholder')"
+          />
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Delete Confirm Modal -->
-    <div v-if="showDeleteModal" class="modal-backdrop" @click="showDeleteModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('confirmDelete') }}</h3>
-          <button @click="showDeleteModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <p class="text-text-secondary">{{ t('confirmDeleteIntention') }}</p>
-          <p class="text-xs text-text-tertiary mt-2">
-            <span class="font-medium text-text-primary">
-              {{ intentionToDelete?.SourceName }}
-            </span>
-            &rarr;
-            <span class="font-medium text-text-primary">
-              {{ intentionToDelete?.DestinationName }}
-            </span>
-            - {{ t('deleteIntentionWarning') }}
-          </p>
-        </div>
-        <div class="modal-footer">
-          <button @click="showDeleteModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="confirmDelete" class="btn btn-danger">
-            {{ t('delete') }}
-          </button>
-        </div>
+    <ConfirmModal
+      v-model="showDeleteModal"
+      :title="t('confirmDelete')"
+      :confirm-text="t('delete')"
+      danger
+      @confirm="confirmDelete"
+    >
+      <div>
+        <p class="text-text-secondary">{{ t('confirmDeleteIntention') }}</p>
+        <p class="text-xs text-text-tertiary mt-2">
+          <span class="font-medium text-text-primary">
+            {{ intentionToDelete?.SourceName }}
+          </span>
+          &rarr;
+          <span class="font-medium text-text-primary">
+            {{ intentionToDelete?.DestinationName }}
+          </span>
+          - {{ t('deleteIntentionWarning') }}
+        </p>
       </div>
-    </div>
+    </ConfirmModal>
   </div>
 </template>
 
@@ -188,7 +162,6 @@ import {
   RefreshCw,
   Trash2,
   Loader2,
-  X,
   ArrowRightFromLine,
   ArrowRightToLine,
 } from 'lucide-vue-next'
@@ -196,6 +169,9 @@ import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
 import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import FormModal from '@/components/common/FormModal.vue'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import type { ConsulIntention } from '@/types/consul'
 
 const { t } = useI18n()
@@ -219,7 +195,8 @@ async function loadIntentions() {
   try {
     await store.fetchIntentions()
   } catch (error) {
-    console.error('Failed to fetch intentions:', error)
+    logger.error('Failed to fetch intentions:', error)
+    toast.error(t('operationFailed'))
   }
 }
 
@@ -249,7 +226,7 @@ async function submitCreate() {
     toast.success(t('success'))
     await loadIntentions()
   } catch (error) {
-    console.error('Failed to create intention:', error)
+    logger.error('Failed to create intention:', error)
     toast.error(t('operationFailed'))
   } finally {
     saving.value = false
@@ -269,7 +246,7 @@ async function confirmDelete() {
     toast.success(t('success'))
     await loadIntentions()
   } catch (error) {
-    console.error('Failed to delete intention:', error)
+    logger.error('Failed to delete intention:', error)
     toast.error(t('operationFailed'))
   }
 }

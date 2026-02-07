@@ -91,43 +91,35 @@
     </div>
 
     <!-- Destroy Confirm Modal -->
-    <div v-if="showDestroyModal" class="modal-backdrop" @click="showDestroyModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('confirmDelete') }}</h3>
-          <button @click="showDestroyModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <p class="text-text-secondary">{{ t('confirmDestroySession') }}</p>
-          <p class="text-xs text-text-tertiary mt-2">
-            <span class="font-mono text-text-primary">
-              {{ truncateId(sessionToDestroy?.ID || '') }}
-            </span>
-            - {{ t('destroySessionWarning') }}
-          </p>
-        </div>
-        <div class="modal-footer">
-          <button @click="showDestroyModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="confirmDestroy" class="btn btn-danger">
-            {{ t('destroy') }}
-          </button>
-        </div>
+    <ConfirmModal
+      v-model="showDestroyModal"
+      :title="t('confirmDelete')"
+      :confirm-text="t('destroy')"
+      danger
+      @confirm="confirmDestroy"
+    >
+      <div>
+        <p class="text-text-secondary">{{ t('confirmDestroySession') }}</p>
+        <p class="text-xs text-text-tertiary mt-2">
+          <span class="font-mono text-text-primary">
+            {{ truncateId(sessionToDestroy?.ID || '') }}
+          </span>
+          - {{ t('destroySessionWarning') }}
+        </p>
       </div>
-    </div>
+    </ConfirmModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { RefreshCw, Trash2, Loader2, X } from 'lucide-vue-next'
+import { RefreshCw, Trash2, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
 import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import type { ConsulSession } from '@/types/consul'
 
 const { t } = useI18n()
@@ -148,7 +140,8 @@ async function loadSessions() {
   try {
     await store.fetchSessions()
   } catch (error) {
-    console.error('Failed to fetch sessions:', error)
+    logger.error('Failed to fetch sessions:', error)
+    toast.error(t('operationFailed'))
   }
 }
 
@@ -165,7 +158,7 @@ async function confirmDestroy() {
     toast.success(t('success'))
     await loadSessions()
   } catch (error) {
-    console.error('Failed to destroy session:', error)
+    logger.error('Failed to destroy session:', error)
     toast.error(t('operationFailed'))
   }
 }

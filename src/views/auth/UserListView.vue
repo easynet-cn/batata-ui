@@ -89,133 +89,82 @@
       </div>
 
       <!-- Pagination -->
-      <div class="flex items-center justify-between p-4 border-t border-border">
-        <div class="text-sm text-text-secondary">
-          {{ t('total') }}: {{ total }} {{ t('items') }}
-        </div>
-        <div class="flex items-center gap-2">
-          <button
-            @click="handlePageChange(currentPage - 1)"
-            :disabled="currentPage <= 1"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronLeft class="w-3.5 h-3.5" />
-          </button>
-          <span class="text-sm text-text-primary px-3"> {{ currentPage }} / {{ totalPages }} </span>
-          <button
-            @click="handlePageChange(currentPage + 1)"
-            :disabled="currentPage >= totalPages"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronRight class="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      <AppPagination
+        :current-page="currentPage"
+        :page-size="pageSize"
+        :total="total"
+        @change="handlePageChange"
+      />
     </div>
 
     <!-- Create User Modal -->
-    <div v-if="showCreateModal" class="modal-backdrop" @click="showCreateModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('createUser') }}</h3>
-          <button @click="showCreateModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
+    <FormModal
+      v-model="showCreateModal"
+      :title="t('createUser')"
+      :submit-text="t('create')"
+      :loading="saving"
+      @submit="submitCreate"
+    >
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('username') }} <span class="text-danger">*</span>
+          </label>
+          <input v-model="createForm.username" type="text" class="input" />
         </div>
-        <div class="modal-body space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('username') }} <span class="text-danger">*</span>
-            </label>
-            <input v-model="createForm.username" type="text" class="input" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('password') }} <span class="text-danger">*</span>
-            </label>
-            <input v-model="createForm.password" type="password" class="input" />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button @click="showCreateModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="submitCreate" class="btn btn-primary" :disabled="saving">
-            <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
-            {{ t('create') }}
-          </button>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('password') }} <span class="text-danger">*</span>
+          </label>
+          <input v-model="createForm.password" type="password" class="input" />
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Reset Password Modal -->
-    <div v-if="showPasswordModal" class="modal-backdrop" @click="showPasswordModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('resetPassword') }}</h3>
-          <button @click="showPasswordModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body space-y-3">
-          <p class="text-text-secondary">
-            {{ t('resetPasswordFor') }}
-            <span class="font-medium text-text-primary">{{ userToReset?.username }}</span>
-          </p>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('newPassword') }} <span class="text-danger">*</span>
-            </label>
-            <input v-model="newPassword" type="password" class="input" />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button @click="showPasswordModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="submitResetPassword" class="btn btn-primary" :disabled="saving">
-            <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
-            {{ t('confirm') }}
-          </button>
+    <FormModal
+      v-model="showPasswordModal"
+      :title="t('resetPassword')"
+      :submit-text="t('confirm')"
+      :loading="saving"
+      @submit="submitResetPassword"
+    >
+      <div class="space-y-3">
+        <p class="text-text-secondary">
+          {{ t('resetPasswordFor') }}
+          <span class="font-medium text-text-primary">{{ userToReset?.username }}</span>
+        </p>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('newPassword') }} <span class="text-danger">*</span>
+          </label>
+          <input v-model="newPassword" type="password" class="input" />
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Delete Confirm Modal -->
-    <div v-if="showDeleteModal" class="modal-backdrop" @click="showDeleteModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('confirmDelete') }}</h3>
-          <button @click="showDeleteModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <p class="text-text-secondary">
-            {{ t('confirmDeleteUser') }}
-            <span class="font-medium text-text-primary">{{ userToDelete?.username }}</span
-            >?
-          </p>
-        </div>
-        <div class="modal-footer">
-          <button @click="showDeleteModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="confirmDelete" class="btn btn-danger">
-            {{ t('delete') }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal
+      v-model="showDeleteModal"
+      :title="t('confirmDelete')"
+      :message="`${t('confirmDeleteUser')} ${userToDelete?.username}?`"
+      :confirm-text="t('delete')"
+      danger
+      @confirm="confirmDelete"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { Plus, Search, Key, Trash2, Loader2, X, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ref, reactive, onMounted } from 'vue'
+import { Plus, Search, Key, Trash2, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import FormModal from '@/components/common/FormModal.vue'
+import AppPagination from '@/components/common/AppPagination.vue'
 import type { UserInfo, Namespace } from '@/types'
 
 defineProps<{
@@ -246,9 +195,6 @@ const createForm = reactive({
   password: '',
 })
 
-// Computed
-const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
-
 // Methods
 const fetchUsers = async () => {
   loading.value = true
@@ -261,7 +207,8 @@ const fetchUsers = async () => {
     users.value = response.data.data.pageItems || []
     total.value = response.data.data.totalCount || 0
   } catch (error) {
-    console.error('Failed to fetch users:', error)
+    logger.error('Failed to fetch users:', error)
+    toast.error(t('operationFailed'))
   } finally {
     loading.value = false
   }
@@ -290,7 +237,8 @@ const submitCreate = async () => {
     Object.assign(createForm, { username: '', password: '' })
     fetchUsers()
   } catch (error) {
-    console.error('Failed to create user:', error)
+    logger.error('Failed to create user:', error)
+    toast.error(t('operationFailed'))
   } finally {
     saving.value = false
   }
@@ -313,7 +261,8 @@ const submitResetPassword = async () => {
     })
     showPasswordModal.value = false
   } catch (error) {
-    console.error('Failed to reset password:', error)
+    logger.error('Failed to reset password:', error)
+    toast.error(t('operationFailed'))
   } finally {
     saving.value = false
   }
@@ -331,7 +280,8 @@ const confirmDelete = async () => {
     showDeleteModal.value = false
     fetchUsers()
   } catch (error) {
-    console.error('Failed to delete user:', error)
+    logger.error('Failed to delete user:', error)
+    toast.error(t('operationFailed'))
   }
 }
 

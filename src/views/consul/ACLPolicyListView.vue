@@ -72,91 +72,73 @@
     </div>
 
     <!-- Create Policy Modal -->
-    <div v-if="showCreateModal" class="modal-backdrop" @click="showCreateModal = false">
-      <div class="modal max-w-lg" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('createPolicy') }}</h3>
-          <button @click="showCreateModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
+    <FormModal
+      v-model="showCreateModal"
+      :title="t('createPolicy')"
+      :submit-text="t('create')"
+      :loading="saving"
+      @submit="submitCreate"
+    >
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('name') }} <span class="text-danger">*</span>
+          </label>
+          <input v-model="createForm.Name" type="text" class="input" placeholder="my-policy" />
         </div>
-        <div class="modal-body space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('name') }} <span class="text-danger">*</span>
-            </label>
-            <input v-model="createForm.Name" type="text" class="input" placeholder="my-policy" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('description') }}
-            </label>
-            <input
-              v-model="createForm.Description"
-              type="text"
-              class="input"
-              :placeholder="t('descriptionPlaceholder')"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('rules') }} <span class="text-danger">*</span>
-            </label>
-            <textarea
-              v-model="createForm.Rules"
-              class="input min-h-[160px] font-mono text-xs"
-              :placeholder="t('rulesPlaceholder')"
-            ></textarea>
-          </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('description') }}
+          </label>
+          <input
+            v-model="createForm.Description"
+            type="text"
+            class="input"
+            :placeholder="t('descriptionPlaceholder')"
+          />
         </div>
-        <div class="modal-footer">
-          <button @click="showCreateModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="submitCreate" class="btn btn-primary" :disabled="saving">
-            <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
-            {{ t('create') }}
-          </button>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('rules') }} <span class="text-danger">*</span>
+          </label>
+          <textarea
+            v-model="createForm.Rules"
+            class="input min-h-[160px] font-mono text-xs"
+            :placeholder="t('rulesPlaceholder')"
+          ></textarea>
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Delete Confirm Modal -->
-    <div v-if="showDeleteModal" class="modal-backdrop" @click="showDeleteModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('confirmDelete') }}</h3>
-          <button @click="showDeleteModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <p class="text-text-secondary">{{ t('confirmDeletePolicy') }}</p>
-          <p class="text-xs text-text-tertiary mt-2">
-            <span class="font-medium text-text-primary">{{ policyToDelete?.Name }}</span>
-            - {{ t('deletePolicyWarning') }}
-          </p>
-        </div>
-        <div class="modal-footer">
-          <button @click="showDeleteModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="confirmDelete" class="btn btn-danger">
-            {{ t('delete') }}
-          </button>
-        </div>
+    <ConfirmModal
+      v-model="showDeleteModal"
+      :title="t('confirmDelete')"
+      :confirm-text="t('delete')"
+      danger
+      @confirm="confirmDelete"
+    >
+      <div>
+        <p class="text-text-secondary">{{ t('confirmDeletePolicy') }}</p>
+        <p class="text-xs text-text-tertiary mt-2">
+          <span class="font-medium text-text-primary">{{ policyToDelete?.Name }}</span>
+          - {{ t('deletePolicyWarning') }}
+        </p>
       </div>
-    </div>
+    </ConfirmModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Plus, RefreshCw, Trash2, Loader2, X } from 'lucide-vue-next'
+import { Plus, RefreshCw, Trash2, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
 import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import FormModal from '@/components/common/FormModal.vue'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import type { ConsulACLPolicy } from '@/types/consul'
 
 const { t } = useI18n()
@@ -179,7 +161,8 @@ async function loadPolicies() {
   try {
     await store.fetchACLPolicies()
   } catch (error) {
-    console.error('Failed to fetch ACL policies:', error)
+    logger.error('Failed to fetch ACL policies:', error)
+    toast.error(t('operationFailed'))
   }
 }
 
@@ -207,7 +190,7 @@ async function submitCreate() {
     toast.success(t('success'))
     await loadPolicies()
   } catch (error) {
-    console.error('Failed to create ACL policy:', error)
+    logger.error('Failed to create ACL policy:', error)
     toast.error(t('operationFailed'))
   } finally {
     saving.value = false
@@ -227,7 +210,7 @@ async function confirmDelete() {
     toast.success(t('success'))
     await loadPolicies()
   } catch (error) {
-    console.error('Failed to delete ACL policy:', error)
+    logger.error('Failed to delete ACL policy:', error)
     toast.error(t('operationFailed'))
   }
 }

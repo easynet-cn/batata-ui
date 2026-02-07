@@ -72,99 +72,71 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <div v-if="showCreateModal || showEditModal" class="modal-backdrop" @click="closeModal">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">
-            {{ showEditModal ? t('editNamespace') : t('createNamespace') }}
-          </h3>
-          <button @click="closeModal" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
+    <FormModal
+      v-model="showFormModal"
+      :title="showEditModal ? t('editNamespace') : t('createNamespace')"
+      :submit-text="showEditModal ? t('save') : t('create')"
+      :loading="saving"
+      @submit="handleSubmit"
+    >
+      <div class="space-y-3">
+        <div v-if="!showEditModal">
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('namespaceId') }}
+          </label>
+          <input
+            v-model="form.namespaceId"
+            type="text"
+            class="input"
+            :placeholder="t('namespaceIdPlaceholder')"
+          />
+          <p class="text-xs text-text-tertiary mt-1">{{ t('namespaceIdHint') }}</p>
         </div>
-        <div class="modal-body space-y-3">
-          <div v-if="!showEditModal">
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('namespaceId') }}
-            </label>
-            <input
-              v-model="form.namespaceId"
-              type="text"
-              class="input"
-              :placeholder="t('namespaceIdPlaceholder')"
-            />
-            <p class="text-xs text-text-tertiary mt-1">{{ t('namespaceIdHint') }}</p>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('namespaceName') }} <span class="text-danger">*</span>
-            </label>
-            <input
-              v-model="form.namespaceName"
-              type="text"
-              class="input"
-              :placeholder="t('namespaceName')"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('namespaceDesc') }}
-            </label>
-            <textarea
-              v-model="form.namespaceDesc"
-              class="input min-h-[80px]"
-              :placeholder="t('namespaceDesc')"
-            />
-          </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('namespaceName') }} <span class="text-danger">*</span>
+          </label>
+          <input
+            v-model="form.namespaceName"
+            type="text"
+            class="input"
+            :placeholder="t('namespaceName')"
+          />
         </div>
-        <div class="modal-footer">
-          <button @click="closeModal" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="handleSubmit" class="btn btn-primary" :disabled="saving">
-            <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
-            {{ showEditModal ? t('save') : t('create') }}
-          </button>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('namespaceDesc') }}
+          </label>
+          <textarea
+            v-model="form.namespaceDesc"
+            class="input min-h-[80px]"
+            :placeholder="t('namespaceDesc')"
+          />
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Delete Confirm Modal -->
-    <div v-if="showDeleteModal" class="modal-backdrop" @click="showDeleteModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('confirmDelete') }}</h3>
-          <button @click="showDeleteModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <p class="text-text-secondary">
-            {{ t('confirmDeleteNamespace') }}
-            <span class="font-medium text-text-primary">{{ nsToDelete?.namespaceShowName }}</span
-            >?
-          </p>
-          <p class="text-sm text-warning mt-2">{{ t('deleteNamespaceWarning') }}</p>
-        </div>
-        <div class="modal-footer">
-          <button @click="showDeleteModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="confirmDelete" class="btn btn-danger">
-            {{ t('delete') }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal
+      v-model="showDeleteModal"
+      :title="t('confirmDelete')"
+      :message="`${t('confirmDeleteNamespace')} ${nsToDelete?.namespaceShowName}?`"
+      :confirm-text="t('delete')"
+      danger
+      @confirm="confirmDelete"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Plus, Pencil, Trash2, Loader2, X } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import FormModal from '@/components/common/FormModal.vue'
 import type { Namespace } from '@/types'
 
 defineProps<{
@@ -181,6 +153,7 @@ const namespaces = ref<Namespace[]>([])
 // Modals
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
+const showFormModal = ref(false)
 const showDeleteModal = ref(false)
 const nsToDelete = ref<Namespace | null>(null)
 
@@ -197,7 +170,8 @@ const fetchNamespaces = async () => {
     const response = await batataApi.getNamespaceList()
     namespaces.value = response.data.data || []
   } catch (error) {
-    console.error('Failed to fetch namespaces:', error)
+    logger.error('Failed to fetch namespaces:', error)
+    toast.error(t('operationFailed'))
   } finally {
     loading.value = false
   }
@@ -228,11 +202,13 @@ const handleEdit = (ns: Namespace) => {
     namespaceDesc: ns.namespaceDesc || '',
   })
   showEditModal.value = true
+  showFormModal.value = true
 }
 
 const closeModal = () => {
   showCreateModal.value = false
   showEditModal.value = false
+  showFormModal.value = false
   Object.assign(form, {
     namespaceId: '',
     namespaceName: '',
@@ -264,7 +240,8 @@ const handleSubmit = async () => {
     closeModal()
     fetchNamespaces()
   } catch (error) {
-    console.error('Failed to save namespace:', error)
+    logger.error('Failed to save namespace:', error)
+    toast.error(t('operationFailed'))
   } finally {
     saving.value = false
   }
@@ -282,9 +259,19 @@ const confirmDelete = async () => {
     showDeleteModal.value = false
     fetchNamespaces()
   } catch (error) {
-    console.error('Failed to delete namespace:', error)
+    logger.error('Failed to delete namespace:', error)
+    toast.error(t('operationFailed'))
   }
 }
+
+// Watch for create modal open
+import { watch } from 'vue'
+watch(showCreateModal, (val) => {
+  if (val) {
+    showEditModal.value = false
+    showFormModal.value = true
+  }
+})
 
 // Lifecycle
 onMounted(() => {

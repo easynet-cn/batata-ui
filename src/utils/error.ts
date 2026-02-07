@@ -12,14 +12,14 @@ export class ApiError extends Error {
 }
 
 export class NetworkError extends Error {
-  constructor(message = '网络连接失败，请检查网络设置') {
+  constructor(message = 'Network connection failed, please check your network settings') {
     super(message)
     this.name = 'NetworkError'
   }
 }
 
 export class AuthError extends Error {
-  constructor(message = '登录已过期，请重新登录') {
+  constructor(message = 'Session expired, please login again') {
     super(message)
     this.name = 'AuthError'
   }
@@ -39,7 +39,7 @@ export function handleError(error: unknown): string {
   if (error instanceof Error) {
     return error.message
   }
-  return '发生未知错误'
+  return 'An unknown error occurred'
 }
 
 // Toast notification system

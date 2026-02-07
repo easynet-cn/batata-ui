@@ -79,154 +79,92 @@
       </div>
 
       <!-- Pagination -->
-      <div class="flex items-center justify-between p-4 border-t border-border">
-        <div class="text-sm text-text-secondary">
-          {{ t('total') }}: {{ total }} {{ t('items') }}
-        </div>
-        <div class="flex items-center gap-2">
-          <button
-            @click="handlePageChange(currentPage - 1)"
-            :disabled="currentPage <= 1"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronLeft class="w-3.5 h-3.5" />
-          </button>
-          <span class="text-sm text-text-primary px-3"> {{ currentPage }} / {{ totalPages }} </span>
-          <button
-            @click="handlePageChange(currentPage + 1)"
-            :disabled="currentPage >= totalPages"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronRight class="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      <AppPagination
+        :current-page="currentPage"
+        :page-size="pageSize"
+        :total="total"
+        @change="handlePageChange"
+      />
     </div>
 
     <!-- View History Modal -->
-    <div v-if="showViewModal" class="modal-backdrop" @click="showViewModal = false">
-      <div class="modal max-w-4xl" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('historyDetail') }}</h3>
-          <button @click="showViewModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="grid grid-cols-2 gap-3 mb-4">
-            <div>
-              <label class="block text-sm text-text-tertiary">{{ t('opType') }}</label>
-              <p class="font-medium">{{ selectedHistory?.opType }}</p>
-            </div>
-            <div>
-              <label class="block text-sm text-text-tertiary">{{ t('modifyTime') }}</label>
-              <p class="font-medium">{{ selectedHistory?.lastModifiedTime }}</p>
-            </div>
+    <ConfirmModal
+      v-model="showViewModal"
+      :title="t('historyDetail')"
+      :confirm-text="t('close')"
+      @confirm="showViewModal = false"
+    >
+      <div class="space-y-3">
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <label class="block text-sm text-text-tertiary">{{ t('opType') }}</label>
+            <p class="font-medium">{{ selectedHistory?.opType }}</p>
           </div>
           <div>
-            <label class="block text-sm text-text-tertiary mb-1">{{ t('configContent') }}</label>
-            <pre class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono max-h-96">{{
-              selectedHistory?.content
-            }}</pre>
+            <label class="block text-sm text-text-tertiary">{{ t('modifyTime') }}</label>
+            <p class="font-medium">{{ selectedHistory?.lastModifiedTime }}</p>
           </div>
         </div>
-        <div class="modal-footer">
-          <button @click="showViewModal = false" class="btn btn-secondary">
-            {{ t('close') }}
-          </button>
+        <div>
+          <label class="block text-sm text-text-tertiary mb-1">{{ t('configContent') }}</label>
+          <pre class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono max-h-96">{{
+            selectedHistory?.content
+          }}</pre>
         </div>
       </div>
-    </div>
+    </ConfirmModal>
 
     <!-- Compare Modal -->
-    <div v-if="showCompareModal" class="modal-backdrop" @click="showCompareModal = false">
-      <div class="modal max-w-6xl" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('compareVersion') }}</h3>
-          <button @click="showCompareModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <div class="flex items-center justify-between mb-1">
-                <label class="text-xs font-medium text-text-primary">{{
-                  t('historyVersion')
-                }}</label>
-                <span class="text-xs text-text-tertiary">{{
-                  selectedHistory?.lastModifiedTime
-                }}</span>
-              </div>
-              <pre
-                class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono max-h-96"
-                >{{ selectedHistory?.content }}</pre
-              >
-            </div>
-            <div>
-              <div class="flex items-center justify-between mb-1">
-                <label class="text-xs font-medium text-text-primary">{{
-                  t('currentVersion')
-                }}</label>
-                <span class="text-xs text-text-tertiary">{{ t('current') }}</span>
-              </div>
-              <pre
-                class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono max-h-96"
-                >{{ currentContent }}</pre
-              >
-            </div>
+    <ConfirmModal
+      v-model="showCompareModal"
+      :title="t('compareVersion')"
+      :confirm-text="t('close')"
+      @confirm="showCompareModal = false"
+    >
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-medium text-text-primary">{{ t('historyVersion') }}</label>
+            <span class="text-xs text-text-tertiary">{{ selectedHistory?.lastModifiedTime }}</span>
           </div>
+          <pre class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono max-h-96">{{
+            selectedHistory?.content
+          }}</pre>
         </div>
-        <div class="modal-footer">
-          <button @click="showCompareModal = false" class="btn btn-secondary">
-            {{ t('close') }}
-          </button>
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-medium text-text-primary">{{ t('currentVersion') }}</label>
+            <span class="text-xs text-text-tertiary">{{ t('current') }}</span>
+          </div>
+          <pre class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono max-h-96">{{
+            currentContent
+          }}</pre>
         </div>
       </div>
-    </div>
+    </ConfirmModal>
 
     <!-- Rollback Confirm Modal -->
-    <div v-if="showRollbackModal" class="modal-backdrop" @click="showRollbackModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('confirmRollback') }}</h3>
-          <button @click="showRollbackModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <p class="text-text-secondary">
-            {{ t('confirmRollbackDesc') }}
-          </p>
-        </div>
-        <div class="modal-footer">
-          <button @click="showRollbackModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="confirmRollback" class="btn btn-warning">
-            {{ t('rollback') }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal
+      v-model="showRollbackModal"
+      :title="t('confirmRollback')"
+      :message="t('confirmRollbackDesc')"
+      :confirm-text="t('rollback')"
+      danger
+      @confirm="confirmRollback"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  ArrowLeft,
-  Loader2,
-  Eye,
-  GitCompare,
-  RotateCcw,
-  ChevronLeft,
-  ChevronRight,
-  X,
-} from 'lucide-vue-next'
+import { ArrowLeft, Loader2, Eye, GitCompare, RotateCcw } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
+import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import AppPagination from '@/components/common/AppPagination.vue'
 import type { ConfigHistoryInfo, Namespace } from '@/types'
 
 const props = defineProps<{
@@ -251,9 +189,6 @@ const showCompareModal = ref(false)
 const showRollbackModal = ref(false)
 const selectedHistory = ref<ConfigHistoryInfo | null>(null)
 
-// Computed
-const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
-
 // Methods
 const goBack = () => {
   router.back()
@@ -275,7 +210,8 @@ const fetchHistories = async () => {
     histories.value = response.data.data.pageItems || []
     total.value = response.data.data.totalCount || 0
   } catch (error) {
-    console.error('Failed to fetch histories:', error)
+    logger.error('Failed to fetch histories:', error)
+    toast.error(t('operationFailed'))
   } finally {
     loading.value = false
   }
@@ -293,7 +229,8 @@ const fetchCurrentConfig = async () => {
     )
     currentContent.value = response.data.data.content || ''
   } catch (error) {
-    console.error('Failed to fetch current config:', error)
+    logger.error('Failed to fetch current config:', error)
+    toast.error(t('operationFailed'))
   }
 }
 
@@ -324,7 +261,8 @@ const viewHistory = async (item: ConfigHistoryInfo) => {
       )
       selectedHistory.value = response.data.data
     } catch (error) {
-      console.error('Failed to fetch history detail:', error)
+      logger.error('Failed to fetch history detail:', error)
+      toast.error(t('operationFailed'))
     }
   }
   showViewModal.value = true
@@ -343,7 +281,8 @@ const compareHistory = async (item: ConfigHistoryInfo) => {
       )
       selectedHistory.value = response.data.data
     } catch (error) {
-      console.error('Failed to fetch history detail:', error)
+      logger.error('Failed to fetch history detail:', error)
+      toast.error(t('operationFailed'))
     }
   }
   showCompareModal.value = true
@@ -369,7 +308,8 @@ const confirmRollback = async () => {
     fetchHistories()
     fetchCurrentConfig()
   } catch (error) {
-    console.error('Failed to rollback:', error)
+    logger.error('Failed to rollback:', error)
+    toast.error(t('operationFailed'))
   }
 }
 

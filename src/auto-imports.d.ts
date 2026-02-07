@@ -19,10 +19,14 @@ declare global {
   const defineComponent: typeof import('vue').defineComponent
   const defineStore: typeof import('pinia').defineStore
   const effectScope: typeof import('vue').effectScope
+  const formatDateTime: typeof import('./utils/date').formatDateTime
+  const formatTimestamp: typeof import('./utils/date').formatTimestamp
   const getActivePinia: typeof import('pinia').getActivePinia
   const getCurrentInstance: typeof import('vue').getCurrentInstance
   const getCurrentScope: typeof import('vue').getCurrentScope
   const getCurrentWatcher: typeof import('vue').getCurrentWatcher
+  const getRelativeTime: typeof import('./utils/date').getRelativeTime
+  const getTimeRange: typeof import('./utils/date').getTimeRange
   const h: typeof import('vue').h
   const handleError: typeof import('./utils/error').handleError
   const inject: typeof import('vue').inject
@@ -31,7 +35,9 @@ declare global {
   const isReadonly: typeof import('vue').isReadonly
   const isRef: typeof import('vue').isRef
   const isShallow: typeof import('vue').isShallow
+  const logger: typeof import('./utils/logger').logger
   const mapActions: typeof import('pinia').mapActions
+  const mapAuditLogItem: typeof import('./utils/mappers').mapAuditLogItem
   const mapGetters: typeof import('pinia').mapGetters
   const mapState: typeof import('pinia').mapState
   const mapStores: typeof import('pinia').mapStores
@@ -136,10 +142,14 @@ declare module 'vue' {
     readonly defineComponent: UnwrapRef<(typeof import('vue'))['defineComponent']>
     readonly defineStore: UnwrapRef<(typeof import('pinia'))['defineStore']>
     readonly effectScope: UnwrapRef<(typeof import('vue'))['effectScope']>
+    readonly formatDateTime: UnwrapRef<(typeof import('./utils/date'))['formatDateTime']>
+    readonly formatTimestamp: UnwrapRef<(typeof import('./utils/date'))['formatTimestamp']>
     readonly getActivePinia: UnwrapRef<(typeof import('pinia'))['getActivePinia']>
     readonly getCurrentInstance: UnwrapRef<(typeof import('vue'))['getCurrentInstance']>
     readonly getCurrentScope: UnwrapRef<(typeof import('vue'))['getCurrentScope']>
     readonly getCurrentWatcher: UnwrapRef<(typeof import('vue'))['getCurrentWatcher']>
+    readonly getRelativeTime: UnwrapRef<(typeof import('./utils/date'))['getRelativeTime']>
+    readonly getTimeRange: UnwrapRef<(typeof import('./utils/date'))['getTimeRange']>
     readonly h: UnwrapRef<(typeof import('vue'))['h']>
     readonly handleError: UnwrapRef<(typeof import('./utils/error'))['handleError']>
     readonly inject: UnwrapRef<(typeof import('vue'))['inject']>
@@ -148,7 +158,9 @@ declare module 'vue' {
     readonly isReadonly: UnwrapRef<(typeof import('vue'))['isReadonly']>
     readonly isRef: UnwrapRef<(typeof import('vue'))['isRef']>
     readonly isShallow: UnwrapRef<(typeof import('vue'))['isShallow']>
+    readonly logger: UnwrapRef<(typeof import('./utils/logger'))['logger']>
     readonly mapActions: UnwrapRef<(typeof import('pinia'))['mapActions']>
+    readonly mapAuditLogItem: UnwrapRef<(typeof import('./utils/mappers'))['mapAuditLogItem']>
     readonly mapGetters: UnwrapRef<(typeof import('pinia'))['mapGetters']>
     readonly mapState: UnwrapRef<(typeof import('pinia'))['mapState']>
     readonly mapStores: UnwrapRef<(typeof import('pinia'))['mapStores']>

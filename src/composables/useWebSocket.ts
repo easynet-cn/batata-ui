@@ -1,5 +1,6 @@
 import { ref, onUnmounted, readonly } from 'vue'
 import { config } from '@/config'
+import { logger } from '@/utils/logger'
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 
@@ -52,7 +53,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       ws.onopen = () => {
         status.value = 'connected'
         reconnectAttempts.value = 0
-        console.log('[WebSocket] Connected')
+        logger.debug('[WebSocket] Connected')
       }
 
       ws.onmessage = (event) => {
@@ -72,30 +73,30 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
             globalListeners.forEach((callback) => callback(message))
           }
         } catch (error) {
-          console.error('[WebSocket] Failed to parse message:', error)
+          logger.error('[WebSocket] Failed to parse message:', error)
         }
       }
 
       ws.onerror = (error) => {
-        console.error('[WebSocket] Error:', error)
+        logger.error('[WebSocket] Error:', error)
         status.value = 'error'
       }
 
       ws.onclose = () => {
         status.value = 'disconnected'
-        console.log('[WebSocket] Disconnected')
+        logger.debug('[WebSocket] Disconnected')
 
         // Attempt to reconnect
         if (reconnectAttempts.value < (opts.maxReconnectAttempts || 5)) {
           reconnectTimer = setTimeout(() => {
             reconnectAttempts.value++
-            console.log(`[WebSocket] Reconnecting... (attempt ${reconnectAttempts.value})`)
+            logger.debug(`[WebSocket] Reconnecting... (attempt ${reconnectAttempts.value})`)
             connect()
           }, opts.reconnectInterval)
         }
       }
     } catch (error) {
-      console.error('[WebSocket] Connection failed:', error)
+      logger.error('[WebSocket] Connection failed:', error)
       status.value = 'error'
     }
   }
@@ -119,7 +120,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     if (ws?.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message))
     } else {
-      console.warn('[WebSocket] Cannot send message - not connected')
+      logger.warn('[WebSocket] Cannot send message - not connected')
     }
   }
 

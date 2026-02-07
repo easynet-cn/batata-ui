@@ -11,6 +11,11 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AppPagination: typeof import('./components/common/AppPagination.vue')['default']
+    ConfirmModal: typeof import('./components/common/ConfirmModal.vue')['default']
+    DataTable: typeof import('./components/common/DataTable.vue')['default']
+    FilterBar: typeof import('./components/common/FilterBar.vue')['default']
+    FormModal: typeof import('./components/common/FormModal.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ToastMessage: typeof import('./components/feedback/ToastMessage.vue')['default']

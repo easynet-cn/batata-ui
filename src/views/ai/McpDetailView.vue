@@ -116,37 +116,28 @@
     </template>
 
     <!-- Parameters Modal -->
-    <div v-if="showSchemaModal" class="modal-backdrop" @click="showSchemaModal = false">
-      <div class="modal max-w-2xl" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">
-            {{ selectedTool?.name }} - {{ t('inputSchema') }}
-          </h3>
-          <button @click="showSchemaModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <pre class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono">{{
-            JSON.stringify(selectedTool?.inputSchema, null, 2)
-          }}</pre>
-        </div>
-        <div class="modal-footer">
-          <button @click="showSchemaModal = false" class="btn btn-secondary">
-            {{ t('close') }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal
+      v-model="showSchemaModal"
+      :title="`${selectedTool?.name} - ${t('inputSchema')}`"
+      :confirm-text="t('close')"
+      @confirm="showSchemaModal = false"
+    >
+      <pre class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono">{{
+        JSON.stringify(selectedTool?.inputSchema, null, 2)
+      }}</pre>
+    </ConfirmModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, RefreshCw, Pencil, Loader2, Code, X } from 'lucide-vue-next'
+import { ArrowLeft, RefreshCw, Pencil, Loader2, Code } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
+import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import type { McpServerInfo, McpToolInfo, Namespace } from '@/types'
 
 defineProps<{
@@ -180,7 +171,8 @@ const fetchMcpServer = async () => {
     // Tools are included in the server detail response
     tools.value = serverRes.data.data?.tools || []
   } catch (error) {
-    console.error('Failed to fetch MCP server:', error)
+    logger.error('Failed to fetch MCP server:', error)
+    toast.error(t('operationFailed'))
   } finally {
     loading.value = false
   }
@@ -196,7 +188,8 @@ const refreshTools = async () => {
     const response = await batataApi.getMcpServerDetail(namespace, name)
     tools.value = response.data.data?.tools || []
   } catch (error) {
-    console.error('Failed to refresh tools:', error)
+    logger.error('Failed to refresh tools:', error)
+    toast.error(t('operationFailed'))
   } finally {
     refreshing.value = false
   }

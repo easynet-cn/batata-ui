@@ -177,142 +177,118 @@
     </template>
 
     <!-- Edit Instance Modal -->
-    <div v-if="showInstanceModal" class="modal-backdrop" @click="showInstanceModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('editInstance') }}</h3>
-          <button @click="showInstanceModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body space-y-3">
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-medium text-text-primary mb-1">IP</label>
-              <input :value="instanceForm.ip" type="text" class="input" disabled />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-text-primary mb-1">{{
-                t('port')
-              }}</label>
-              <input :value="instanceForm.port" type="text" class="input" disabled />
-            </div>
+    <FormModal
+      v-model="showInstanceModal"
+      :title="t('editInstance')"
+      :submit-text="t('save')"
+      :loading="saving"
+      @submit="submitInstance"
+    >
+      <div class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-text-primary mb-1">IP</label>
+            <input :value="instanceForm.ip" type="text" class="input" disabled />
           </div>
           <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">{{
-              t('weight')
-            }}</label>
+            <label class="block text-xs font-medium text-text-primary mb-1">{{ t('port') }}</label>
+            <input :value="instanceForm.port" type="text" class="input" disabled />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">{{ t('weight') }}</label>
+          <input
+            v-model.number="instanceForm.weight"
+            type="number"
+            class="input"
+            min="0"
+            max="10000"
+          />
+        </div>
+        <div class="flex items-center gap-3">
+          <label class="flex items-center gap-2 cursor-pointer">
             <input
-              v-model.number="instanceForm.weight"
-              type="number"
-              class="input"
-              min="0"
-              max="10000"
+              type="checkbox"
+              v-model="instanceForm.enabled"
+              class="w-3.5 h-3.5 rounded text-primary"
             />
-          </div>
-          <div class="flex items-center gap-3">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                v-model="instanceForm.enabled"
-                class="w-3.5 h-3.5 rounded text-primary"
-              />
-              <span class="text-sm text-text-primary">{{ t('enabled') }}</span>
-            </label>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">{{
-              t('metadata')
-            }}</label>
-            <textarea
-              v-model="instanceMetadataText"
-              class="input min-h-[80px] font-mono text-sm"
-              placeholder='{"key": "value"}'
-            />
-          </div>
+            <span class="text-sm text-text-primary">{{ t('enabled') }}</span>
+          </label>
         </div>
-        <div class="modal-footer">
-          <button @click="showInstanceModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="submitInstance" class="btn btn-primary" :disabled="saving">
-            <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
-            {{ t('save') }}
-          </button>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">{{
+            t('metadata')
+          }}</label>
+          <textarea
+            v-model="instanceMetadataText"
+            class="input min-h-[80px] font-mono text-sm"
+            placeholder='{"key": "value"}'
+          />
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Edit Cluster Modal -->
-    <div v-if="showClusterModal" class="modal-backdrop" @click="showClusterModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('editCluster') }}</h3>
-          <button @click="showClusterModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
+    <FormModal
+      v-model="showClusterModal"
+      :title="t('editCluster')"
+      :submit-text="t('save')"
+      :loading="saving"
+      @submit="submitCluster"
+    >
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">{{
+            t('clusterName')
+          }}</label>
+          <input :value="clusterForm.clusterName" type="text" class="input" disabled />
         </div>
-        <div class="modal-body space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">{{
-              t('clusterName')
-            }}</label>
-            <input :value="clusterForm.clusterName" type="text" class="input" disabled />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">{{
-              t('healthCheckType')
-            }}</label>
-            <select v-model="clusterForm.healthChecker.type" class="input">
-              <option value="TCP">TCP</option>
-              <option value="HTTP">HTTP</option>
-              <option value="MYSQL">MYSQL</option>
-              <option value="NONE">NONE</option>
-            </select>
-          </div>
-          <div v-if="clusterForm.healthChecker.type === 'HTTP'">
-            <label class="block text-xs font-medium text-text-primary mb-1">{{
-              t('healthCheckPath')
-            }}</label>
-            <input
-              v-model="clusterForm.healthChecker.path"
-              type="text"
-              class="input"
-              placeholder="/health"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">{{
-              t('metadata')
-            }}</label>
-            <textarea
-              v-model="clusterMetadataText"
-              class="input min-h-[80px] font-mono text-sm"
-              placeholder='{"key": "value"}'
-            />
-          </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">{{
+            t('healthCheckType')
+          }}</label>
+          <select v-model="clusterForm.healthChecker.type" class="input">
+            <option value="TCP">TCP</option>
+            <option value="HTTP">HTTP</option>
+            <option value="MYSQL">MYSQL</option>
+            <option value="NONE">NONE</option>
+          </select>
         </div>
-        <div class="modal-footer">
-          <button @click="showClusterModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="submitCluster" class="btn btn-primary" :disabled="saving">
-            <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
-            {{ t('save') }}
-          </button>
+        <div v-if="clusterForm.healthChecker.type === 'HTTP'">
+          <label class="block text-xs font-medium text-text-primary mb-1">{{
+            t('healthCheckPath')
+          }}</label>
+          <input
+            v-model="clusterForm.healthChecker.path"
+            type="text"
+            class="input"
+            placeholder="/health"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">{{
+            t('metadata')
+          }}</label>
+          <textarea
+            v-model="clusterMetadataText"
+            class="input min-h-[80px] font-mono text-sm"
+            placeholder='{"key": "value"}'
+          />
         </div>
       </div>
-    </div>
+    </FormModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Pencil, Users, Loader2, Server, Power, X } from 'lucide-vue-next'
+import { ArrowLeft, Pencil, Users, Loader2, Server, Power } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import FormModal from '@/components/common/FormModal.vue'
 import type { ServiceDetail, ClusterInfo, InstanceInfo, Namespace } from '@/types'
 
 const props = defineProps<{
@@ -370,7 +346,8 @@ const fetchService = async () => {
     )
     service.value = response.data.data
   } catch (error) {
-    console.error('Failed to fetch service:', error)
+    logger.error('Failed to fetch service:', error)
+    toast.error(t('operationFailed'))
   } finally {
     loading.value = false
   }
@@ -407,7 +384,8 @@ const toggleInstanceStatus = async (instance: InstanceInfo) => {
     })
     fetchService()
   } catch (error) {
-    console.error('Failed to toggle instance status:', error)
+    logger.error('Failed to toggle instance status:', error)
+    toast.error(t('operationFailed'))
   }
 }
 
@@ -439,7 +417,8 @@ const submitInstance = async () => {
     showInstanceModal.value = false
     fetchService()
   } catch (error) {
-    console.error('Failed to update instance:', error)
+    logger.error('Failed to update instance:', error)
+    toast.error(t('operationFailed'))
   } finally {
     saving.value = false
   }
@@ -483,7 +462,8 @@ const submitCluster = async () => {
     showClusterModal.value = false
     fetchService()
   } catch (error) {
-    console.error('Failed to update cluster:', error)
+    logger.error('Failed to update cluster:', error)
+    toast.error(t('operationFailed'))
   } finally {
     saving.value = false
   }

@@ -148,78 +148,73 @@
     </div>
 
     <!-- Check Detail Modal -->
-    <div v-if="detailCheck" class="modal-backdrop" @click="detailCheck = null">
-      <div class="modal max-w-lg" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('details') }}</h3>
-          <button @click="detailCheck = null" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
+    <ConfirmModal
+      v-model="showDetailModal"
+      :title="t('details')"
+      :confirm-text="t('close')"
+      @confirm="showDetailModal = false"
+    >
+      <div v-if="detailCheck" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">
+            {{ t('checkId') }}
+          </label>
+          <p class="text-sm text-text-primary font-mono">{{ detailCheck.CheckID }}</p>
         </div>
-        <div class="modal-body space-y-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">
-              {{ t('checkId') }}
-            </label>
-            <p class="text-sm text-text-primary font-mono">{{ detailCheck.CheckID }}</p>
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">
-              {{ t('node') }}
-            </label>
-            <p class="text-sm text-text-primary">{{ detailCheck.Node }}</p>
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">
-              {{ t('service') }}
-            </label>
-            <p class="text-sm text-text-primary">{{ detailCheck.ServiceName || '-' }}</p>
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">
-              {{ t('status') }}
-            </label>
-            <span :class="statusBadgeClass(detailCheck.Status)" class="badge">
-              {{ statusLabel(detailCheck.Status) }}
-            </span>
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">
-              {{ t('type') }}
-            </label>
-            <p class="text-sm text-text-primary">{{ detailCheck.Type || '-' }}</p>
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">
-              {{ t('output') }}
-            </label>
-            <pre
-              class="text-xs text-text-secondary bg-bg-secondary rounded-xl p-3 whitespace-pre-wrap break-words max-h-48 overflow-auto"
-              >{{ detailCheck.Output || '-' }}</pre
-            >
-          </div>
-          <div v-if="detailCheck.Notes">
-            <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">
-              Notes
-            </label>
-            <p class="text-sm text-text-secondary">{{ detailCheck.Notes }}</p>
-          </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">
+            {{ t('node') }}
+          </label>
+          <p class="text-sm text-text-primary">{{ detailCheck.Node }}</p>
         </div>
-        <div class="modal-footer">
-          <button @click="detailCheck = null" class="btn btn-secondary">
-            {{ t('close') }}
-          </button>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">
+            {{ t('service') }}
+          </label>
+          <p class="text-sm text-text-primary">{{ detailCheck.ServiceName || '-' }}</p>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">
+            {{ t('status') }}
+          </label>
+          <span :class="statusBadgeClass(detailCheck.Status)" class="badge">
+            {{ statusLabel(detailCheck.Status) }}
+          </span>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">
+            {{ t('type') }}
+          </label>
+          <p class="text-sm text-text-primary">{{ detailCheck.Type || '-' }}</p>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">
+            {{ t('output') }}
+          </label>
+          <pre
+            class="text-xs text-text-secondary bg-bg-secondary rounded-xl p-3 whitespace-pre-wrap break-words max-h-48 overflow-auto"
+            >{{ detailCheck.Output || '-' }}</pre
+          >
+        </div>
+        <div v-if="detailCheck.Notes">
+          <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">
+            Notes
+          </label>
+          <p class="text-sm text-text-secondary">{{ detailCheck.Notes }}</p>
         </div>
       </div>
-    </div>
+    </ConfirmModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, Eye, Loader2, X } from 'lucide-vue-next'
+import { RefreshCw, Eye, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
+import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import type { ConsulHealthCheck, ConsulHealthStatus } from '@/types/consul'
 
 const { t } = useI18n()
@@ -229,6 +224,7 @@ const consulStore = useConsulStore()
 const loading = ref(false)
 const activeFilter = ref<string>('any')
 const expandedOutputs = ref<Set<string>>(new Set())
+const showDetailModal = ref(false)
 const detailCheck = ref<ConsulHealthCheck | null>(null)
 
 // Filter tabs
@@ -293,6 +289,7 @@ const toggleOutput = (key: string) => {
 
 const showCheckDetail = (check: ConsulHealthCheck) => {
   detailCheck.value = check
+  showDetailModal.value = true
 }
 
 const fetchHealthChecks = async () => {
@@ -302,7 +299,8 @@ const fetchHealthChecks = async () => {
     const result = await consulStore.fetchHealthChecks('any')
     allChecks.value = result || []
   } catch (err) {
-    console.error('Failed to fetch health checks:', err)
+    logger.error('Failed to fetch health checks:', err)
+    toast.error(t('operationFailed'))
   } finally {
     loading.value = false
   }

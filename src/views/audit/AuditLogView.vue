@@ -187,144 +187,117 @@
       </div>
 
       <!-- Pagination -->
-      <div class="flex items-center justify-between p-3 border-t border-border">
-        <div class="text-xs text-text-secondary">
-          {{ t('total') }}: {{ total }} {{ t('items') }}
-        </div>
-        <div class="flex items-center gap-1.5">
-          <button
-            @click="handlePageChange(currentPage - 1)"
-            :disabled="currentPage <= 1"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronLeft class="w-3.5 h-3.5" />
-          </button>
-          <span class="text-xs text-text-primary px-2"> {{ currentPage }} / {{ totalPages }} </span>
-          <button
-            @click="handlePageChange(currentPage + 1)"
-            :disabled="currentPage >= totalPages"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronRight class="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      <AppPagination
+        :current-page="currentPage"
+        :page-size="pageSize"
+        :total="total"
+        @change="handlePageChange"
+      />
     </div>
 
     <!-- Detail Modal -->
-    <div v-if="showDetailModal" class="modal-backdrop" @click="showDetailModal = false">
-      <div class="modal max-w-lg" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('auditLogDetail') }}</h3>
-          <button @click="showDetailModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div v-if="selectedLog" class="modal-body space-y-4">
-          <!-- Basic Info -->
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="text-xs text-text-secondary">{{ t('timestamp') }}</label>
-              <p class="text-sm font-medium text-text-primary">
-                {{ formatTime(selectedLog.timestamp) }}
-              </p>
-            </div>
-            <div>
-              <label class="text-xs text-text-secondary">{{ t('username') }}</label>
-              <p class="text-sm font-medium text-text-primary">{{ selectedLog.username }}</p>
-            </div>
-            <div>
-              <label class="text-xs text-text-secondary">{{ t('ipAddress') }}</label>
-              <p class="text-sm font-medium text-text-primary font-mono">{{ selectedLog.ip }}</p>
-            </div>
-            <div>
-              <label class="text-xs text-text-secondary">{{ t('result') }}</label>
-              <span
-                class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
-                :class="
-                  selectedLog.success
-                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
-                    : 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400'
-                "
-              >
-                <CheckCircle v-if="selectedLog.success" class="w-3 h-3" />
-                <XCircle v-else class="w-3 h-3" />
-                {{ selectedLog.success ? t('success') : t('failed') }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Resource Info -->
-          <div class="border-t border-border pt-3">
-            <label class="text-xs text-text-secondary">{{ t('resourceInfo') }}</label>
-            <div class="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-xs text-text-secondary">{{ t('resourceType') }}:</span>
-                <span
-                  class="badge"
-                  :class="{
-                    'badge-info': selectedLog.resourceType === 'config',
-                    'badge-success': selectedLog.resourceType === 'service',
-                    'badge-warning': selectedLog.resourceType === 'namespace',
-                  }"
-                >
-                  {{ getResourceTypeLabel(selectedLog.resourceType) }}
-                </span>
-              </div>
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-xs text-text-secondary">{{ t('action') }}:</span>
-                <span class="text-xs font-medium">{{ getActionLabel(selectedLog.action) }}</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-text-secondary">{{ t('resourceName') }}:</span>
-                <span class="text-xs font-medium font-mono">{{ selectedLog.resourceName }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Details/Changes -->
-          <div v-if="selectedLog.details" class="border-t border-border pt-3">
-            <label class="text-xs text-text-secondary">{{ t('changeDetails') }}</label>
-            <pre
-              class="mt-2 p-3 bg-gray-900 text-gray-100 rounded-lg text-xs font-mono overflow-auto max-h-48"
-              >{{ JSON.stringify(selectedLog.details, null, 2) }}</pre
-            >
-          </div>
-
-          <!-- Error Message -->
-          <div
-            v-if="!selectedLog.success && selectedLog.errorMessage"
-            class="border-t border-border pt-3"
-          >
-            <label class="text-xs text-text-secondary">{{ t('errorMessage') }}</label>
-            <p
-              class="mt-2 p-3 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 rounded-lg text-xs"
-            >
-              {{ selectedLog.errorMessage }}
+    <ConfirmModal
+      v-model="showDetailModal"
+      :title="t('auditLogDetail')"
+      :confirm-text="t('close')"
+      @confirm="showDetailModal = false"
+    >
+      <div v-if="selectedLog" class="space-y-4">
+        <!-- Basic Info -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-text-secondary">{{ t('timestamp') }}</label>
+            <p class="text-sm font-medium text-text-primary">
+              {{ formatTime(selectedLog.timestamp) }}
             </p>
           </div>
+          <div>
+            <label class="text-xs text-text-secondary">{{ t('username') }}</label>
+            <p class="text-sm font-medium text-text-primary">{{ selectedLog.username }}</p>
+          </div>
+          <div>
+            <label class="text-xs text-text-secondary">{{ t('ipAddress') }}</label>
+            <p class="text-sm font-medium text-text-primary font-mono">{{ selectedLog.ip }}</p>
+          </div>
+          <div>
+            <label class="text-xs text-text-secondary">{{ t('result') }}</label>
+            <span
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
+              :class="
+                selectedLog.success
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
+                  : 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400'
+              "
+            >
+              <CheckCircle v-if="selectedLog.success" class="w-3 h-3" />
+              <XCircle v-else class="w-3 h-3" />
+              {{ selectedLog.success ? t('success') : t('failed') }}
+            </span>
+          </div>
         </div>
-        <div class="modal-footer">
-          <button @click="showDetailModal = false" class="btn btn-secondary">
-            {{ t('close') }}
-          </button>
+
+        <!-- Resource Info -->
+        <div class="border-t border-border pt-3">
+          <label class="text-xs text-text-secondary">{{ t('resourceInfo') }}</label>
+          <div class="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs text-text-secondary">{{ t('resourceType') }}:</span>
+              <span
+                class="badge"
+                :class="{
+                  'badge-info': selectedLog.resourceType === 'config',
+                  'badge-success': selectedLog.resourceType === 'service',
+                  'badge-warning': selectedLog.resourceType === 'namespace',
+                }"
+              >
+                {{ getResourceTypeLabel(selectedLog.resourceType) }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs text-text-secondary">{{ t('action') }}:</span>
+              <span class="text-xs font-medium">{{ getActionLabel(selectedLog.action) }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-text-secondary">{{ t('resourceName') }}:</span>
+              <span class="text-xs font-medium font-mono">{{ selectedLog.resourceName }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Details/Changes -->
+        <div v-if="selectedLog.details" class="border-t border-border pt-3">
+          <label class="text-xs text-text-secondary">{{ t('changeDetails') }}</label>
+          <pre
+            class="mt-2 p-3 bg-gray-900 text-gray-100 rounded-lg text-xs font-mono overflow-auto max-h-48"
+            >{{ JSON.stringify(selectedLog.details, null, 2) }}</pre
+          >
+        </div>
+
+        <!-- Error Message -->
+        <div
+          v-if="!selectedLog.success && selectedLog.errorMessage"
+          class="border-t border-border pt-3"
+        >
+          <label class="text-xs text-text-secondary">{{ t('errorMessage') }}</label>
+          <p
+            class="mt-2 p-3 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 rounded-lg text-xs"
+          >
+            {{ selectedLog.errorMessage }}
+          </p>
         </div>
       </div>
-    </div>
+    </ConfirmModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import {
   Search,
   RotateCcw,
   Download,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
-  X,
   Eye,
   Plus,
   Pencil,
@@ -336,6 +309,10 @@ import {
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
+import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import AppPagination from '@/components/common/AppPagination.vue'
 import type { Namespace, AuditLogItem } from '@/types'
 
 // Internal view type that maps from API response
@@ -376,88 +353,20 @@ const filters = reactive({
   timeRange: '24h',
 })
 
-// Computed
-const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
+// Helper to calculate time range (uses shared utility)
+const { getTimeRange: getTimeRangeUtil } = await import('@/utils/date')
+const getTimeRangeForFilters = () => getTimeRangeUtil(filters.timeRange)
 
-// Helper to calculate time range
-const getTimeRange = (): { startTime?: string; endTime?: string } => {
-  const now = new Date()
-  const endTime = now.toISOString().slice(0, 19).replace('T', ' ')
-
-  let startTime: string | undefined
-  switch (filters.timeRange) {
-    case '1h':
-      startTime = new Date(now.getTime() - 3600000).toISOString().slice(0, 19).replace('T', ' ')
-      break
-    case '24h':
-      startTime = new Date(now.getTime() - 86400000).toISOString().slice(0, 19).replace('T', ' ')
-      break
-    case '7d':
-      startTime = new Date(now.getTime() - 7 * 86400000)
-        .toISOString()
-        .slice(0, 19)
-        .replace('T', ' ')
-      break
-    case '30d':
-      startTime = new Date(now.getTime() - 30 * 86400000)
-        .toISOString()
-        .slice(0, 19)
-        .replace('T', ' ')
-      break
-    default:
-      startTime = undefined
-  }
-
-  return { startTime, endTime }
-}
-
-// Map API response to internal type
-const mapApiLogToInternal = (item: AuditLogItem): AuditLog => {
-  const operationMap: Record<string, AuditLog['action']> = {
-    CREATE: 'create',
-    UPDATE: 'update',
-    DELETE: 'delete',
-    LOGIN: 'login',
-    LOGOUT: 'logout',
-    PUBLISH: 'update',
-    ROLLBACK: 'update',
-    IMPORT: 'create',
-    EXPORT: 'create',
-    CLONE: 'create',
-    QUERY: 'create',
-  }
-
-  const resourceTypeMap: Record<string, AuditLog['resourceType']> = {
-    CONFIG: 'config',
-    SERVICE: 'service',
-    INSTANCE: 'service',
-    NAMESPACE: 'namespace',
-    USER: 'user',
-    ROLE: 'role',
-    PERMISSION: 'permission',
-    CAPACITY: 'config',
-    CLUSTER: 'service',
-  }
-
-  return {
-    id: String(item.id),
-    timestamp: new Date(item.gmtCreate).getTime(),
-    username: item.operator,
-    ip: item.sourceIp || 'unknown',
-    resourceType: resourceTypeMap[item.resourceType] || 'config',
-    action: operationMap[item.operation] || 'create',
-    resourceName: item.resourceId || '',
-    success: item.result === 'SUCCESS',
-    details: item.details ? JSON.parse(item.details) : undefined,
-    errorMessage: item.errorMessage,
-  }
-}
+// Map API response to internal type (uses shared mapper)
+const { mapAuditLogItem } = await import('@/utils/mappers')
+const mapApiLogToInternal = (item: AuditLogItem): AuditLog =>
+  mapAuditLogItem(item as Parameters<typeof mapAuditLogItem>[0]) as unknown as AuditLog
 
 // Methods
 const fetchLogs = async () => {
   loading.value = true
   try {
-    const timeRange = getTimeRange()
+    const timeRange = getTimeRangeForFilters()
     const response = await batataApi.getAuditLogList({
       operator: filters.username || undefined,
       resourceType: filters.resourceType?.toUpperCase() || undefined,
@@ -472,7 +381,8 @@ const fetchLogs = async () => {
     logs.value = data.pageItems.map(mapApiLogToInternal)
     total.value = data.totalCount
   } catch (error) {
-    console.error('Failed to fetch audit logs:', error)
+    logger.error('Failed to fetch audit logs:', error)
+    toast.error(t('operationFailed'))
     logs.value = []
     total.value = 0
   } finally {

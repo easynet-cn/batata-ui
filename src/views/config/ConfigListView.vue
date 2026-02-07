@@ -302,189 +302,123 @@
         </table>
       </div>
 
-      <!-- Pagination -->
-      <div class="flex items-center justify-between p-3 border-t border-border">
-        <div class="text-xs text-text-secondary">
-          {{ t('total') }}: {{ total }} {{ t('items') }}
-        </div>
-        <div class="flex items-center gap-1.5">
-          <button
-            @click="handlePageChange(currentPage - 1)"
-            :disabled="currentPage <= 1"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronLeft class="w-3.5 h-3.5" />
-          </button>
-          <span class="text-xs text-text-primary px-2"> {{ currentPage }} / {{ totalPages }} </span>
-          <button
-            @click="handlePageChange(currentPage + 1)"
-            :disabled="currentPage >= totalPages"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronRight class="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      <AppPagination
+        :current-page="currentPage"
+        :page-size="pageSize"
+        :total="total"
+        @change="handlePageChange"
+      />
     </div>
 
     <!-- Delete Confirm Modal -->
-    <div v-if="showDeleteModal" class="modal-backdrop" @click="showDeleteModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('confirmDelete') }}</h3>
-          <button @click="showDeleteModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <p class="text-xs text-text-secondary">
-            {{ t('confirmDeleteConfig') }}
-            <span class="font-medium text-text-primary">{{ configToDelete?.dataId }}</span
-            >?
-          </p>
-        </div>
-        <div class="modal-footer">
-          <button @click="showDeleteModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="confirmDelete" class="btn btn-danger">
-            {{ t('delete') }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal
+      v-model="showDeleteModal"
+      :title="t('confirmDelete')"
+      :message="`${t('confirmDeleteConfig')} ${configToDelete?.dataId}?`"
+      :confirm-text="t('delete')"
+      danger
+      @confirm="confirmDelete"
+    />
 
     <!-- Import Modal -->
-    <div v-if="showImportModal" class="modal-backdrop" @click="showImportModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('importConfig') }}</h3>
-          <button @click="showImportModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
+    <FormModal
+      v-model="showImportModal"
+      :title="t('importConfig')"
+      :submit-text="t('import')"
+      :submit-disabled="!importFile"
+      @submit="confirmImport"
+    >
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-text-secondary mb-1">{{
+            t('selectFile')
+          }}</label>
+          <input
+            ref="fileInput"
+            type="file"
+            accept=".zip"
+            @change="handleFileChange"
+            class="input"
+          />
         </div>
-        <div class="modal-body space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-text-secondary mb-1">{{
-              t('selectFile')
-            }}</label>
-            <input
-              ref="fileInput"
-              type="file"
-              accept=".zip"
-              @change="handleFileChange"
-              class="input"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-secondary mb-1">{{
-              t('conflictPolicy')
-            }}</label>
-            <select v-model="importPolicy" class="input">
-              <option value="ABORT">{{ t('policyAbort') }}</option>
-              <option value="SKIP">{{ t('policySkip') }}</option>
-              <option value="OVERWRITE">{{ t('policyOverwrite') }}</option>
-            </select>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button @click="showImportModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="confirmImport" class="btn btn-primary" :disabled="!importFile">
-            {{ t('import') }}
-          </button>
+        <div>
+          <label class="block text-xs font-medium text-text-secondary mb-1">{{
+            t('conflictPolicy')
+          }}</label>
+          <select v-model="importPolicy" class="input">
+            <option value="ABORT">{{ t('policyAbort') }}</option>
+            <option value="SKIP">{{ t('policySkip') }}</option>
+            <option value="OVERWRITE">{{ t('policyOverwrite') }}</option>
+          </select>
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Clone Modal -->
-    <div v-if="showCloneModal" class="modal-backdrop" @click="showCloneModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('cloneConfig') }}</h3>
-          <button @click="showCloneModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
+    <FormModal
+      v-model="showCloneModal"
+      :title="t('cloneConfig')"
+      :submit-text="t('clone')"
+      @submit="confirmClone"
+    >
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-text-secondary mb-1">{{
+            t('targetNamespace')
+          }}</label>
+          <select v-model="cloneTargetNs" class="input">
+            <option v-for="ns in namespaces" :key="ns.namespace" :value="ns.namespace">
+              {{ ns.namespaceShowName }}
+            </option>
+          </select>
         </div>
-        <div class="modal-body space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-text-secondary mb-1">{{
-              t('targetNamespace')
-            }}</label>
-            <select v-model="cloneTargetNs" class="input">
-              <option v-for="ns in namespaces" :key="ns.namespace" :value="ns.namespace">
-                {{ ns.namespaceShowName }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-secondary mb-1">{{
-              t('conflictPolicy')
-            }}</label>
-            <select v-model="clonePolicy" class="input">
-              <option value="ABORT">{{ t('policyAbort') }}</option>
-              <option value="SKIP">{{ t('policySkip') }}</option>
-              <option value="OVERWRITE">{{ t('policyOverwrite') }}</option>
-            </select>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button @click="showCloneModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="confirmClone" class="btn btn-primary">
-            {{ t('clone') }}
-          </button>
+        <div>
+          <label class="block text-xs font-medium text-text-secondary mb-1">{{
+            t('conflictPolicy')
+          }}</label>
+          <select v-model="clonePolicy" class="input">
+            <option value="ABORT">{{ t('policyAbort') }}</option>
+            <option value="SKIP">{{ t('policySkip') }}</option>
+            <option value="OVERWRITE">{{ t('policyOverwrite') }}</option>
+          </select>
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Promote Modal -->
-    <div v-if="showPromoteModal" class="modal-backdrop" @click="showPromoteModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('promoteToStable') }}</h3>
-          <button @click="showPromoteModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body space-y-3">
-          <div class="flex items-start gap-3 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
-            <FlaskConical class="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
-            <div>
-              <p class="text-xs font-medium text-purple-900 dark:text-purple-100">
-                {{ t('promoteConfirmTitle') }}
-              </p>
-              <p class="text-xs text-purple-700 dark:text-purple-300 mt-1">
-                {{ t('promoteConfirmDesc') }}
-              </p>
-            </div>
-          </div>
-          <div class="space-y-2">
-            <div class="flex items-center justify-between text-xs">
-              <span class="text-text-secondary">{{ t('betaConfig') }}:</span>
-              <span class="font-medium text-text-primary">{{ configToPromote?.dataId }}</span>
-            </div>
-            <div class="flex items-center justify-between text-xs">
-              <span class="text-text-secondary">{{ t('stableConfig') }}:</span>
-              <span class="font-medium text-emerald-600 dark:text-emerald-400">
-                {{ configToPromote?.dataId.replace('-beta', '').replace('.beta', '') }}
-              </span>
-            </div>
+    <ConfirmModal
+      v-model="showPromoteModal"
+      :title="t('promoteToStable')"
+      :confirm-text="t('promote')"
+      :loading="promoting"
+      @confirm="confirmPromote"
+    >
+      <div class="space-y-3">
+        <div class="flex items-start gap-3 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+          <FlaskConical class="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+          <div>
+            <p class="text-xs font-medium text-purple-900 dark:text-purple-100">
+              {{ t('promoteConfirmTitle') }}
+            </p>
+            <p class="text-xs text-purple-700 dark:text-purple-300 mt-1">
+              {{ t('promoteConfirmDesc') }}
+            </p>
           </div>
         </div>
-        <div class="modal-footer">
-          <button @click="showPromoteModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="confirmPromote" class="btn btn-primary bg-purple-600 hover:bg-purple-700">
-            <ArrowUpCircle class="w-3.5 h-3.5" />
-            {{ t('promote') }}
-          </button>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-text-secondary">{{ t('betaConfig') }}:</span>
+            <span class="font-medium text-text-primary">{{ configToPromote?.dataId }}</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-text-secondary">{{ t('stableConfig') }}:</span>
+            <span class="font-medium text-emerald-600 dark:text-emerald-400">
+              {{ configToPromote?.dataId.replace('-beta', '').replace('.beta', '') }}
+            </span>
+          </div>
         </div>
       </div>
-    </div>
+    </ConfirmModal>
   </div>
 </template>
 
@@ -499,10 +433,7 @@ import {
   History,
   Copy,
   Trash2,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
-  X,
   Upload,
   Download,
   SlidersHorizontal,
@@ -512,6 +443,11 @@ import {
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
+import { logger } from '@/utils/logger'
+import { toast } from '@/utils/error'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import FormModal from '@/components/common/FormModal.vue'
+import AppPagination from '@/components/common/AppPagination.vue'
 import type { ConfigInfo, Namespace } from '@/types'
 
 const props = defineProps<{
@@ -553,7 +489,6 @@ const cloneTargetNs = ref('')
 const clonePolicy = ref<'ABORT' | 'SKIP' | 'OVERWRITE'>('ABORT')
 
 // Computed
-const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
 const isAllSelected = computed(
   () => configs.value.length > 0 && selectedIds.value.length === configs.value.length,
 )
@@ -573,7 +508,8 @@ const fetchConfigs = async () => {
     // Check beta status for configs (non-blocking)
     checkAllBetaConfigs()
   } catch (error) {
-    console.error('Failed to fetch configs:', error)
+    logger.error('Failed to fetch configs', error)
+    toast.error(t('operationFailed'))
   } finally {
     loading.value = false
   }
@@ -584,7 +520,7 @@ const fetchNamespaces = async () => {
     const response = await batataApi.getNamespaceList()
     namespaces.value = response.data.data || []
   } catch (error) {
-    console.error('Failed to fetch namespaces:', error)
+    logger.error('Failed to fetch namespaces', error)
   }
 }
 
@@ -644,7 +580,8 @@ const confirmDelete = async () => {
     showDeleteModal.value = false
     fetchConfigs()
   } catch (error) {
-    console.error('Failed to delete config:', error)
+    logger.error('Failed to delete config', error)
+    toast.error(t('operationFailed'))
   }
 }
 
@@ -664,7 +601,8 @@ const confirmImport = async () => {
     showImportModal.value = false
     fetchConfigs()
   } catch (error) {
-    console.error('Failed to import config:', error)
+    logger.error('Failed to import config', error)
+    toast.error(t('operationFailed'))
   }
 }
 
@@ -680,7 +618,8 @@ const handleExport = async () => {
     a.click()
     window.URL.revokeObjectURL(url)
   } catch (error) {
-    console.error('Failed to export config:', error)
+    logger.error('Failed to export config', error)
+    toast.error(t('operationFailed'))
   }
 }
 
@@ -700,7 +639,8 @@ const confirmClone = async () => {
     })
     showCloneModal.value = false
   } catch (error) {
-    console.error('Failed to clone config:', error)
+    logger.error('Failed to clone config', error)
+    toast.error(t('operationFailed'))
   }
 }
 
@@ -734,18 +674,14 @@ const checkBetaConfig = async (config: ConfigInfo) => {
 
 // Check if config is a beta config (by naming convention or has gray config)
 const isBetaConfig = (config: ConfigInfo) => {
-  // Check for beta tag in dataId (naming convention)
   const hasBetaTag = config.dataId.includes('-beta') || config.dataId.includes('.beta')
-  // Also check the beta config map (for configs with gray release)
   const key = `${config.dataId}:${config.groupName}`
   return hasBetaTag || betaConfigMap.value.get(key) === true
 }
 
-// Check beta status for all configs after loading
+// Check beta status for all configs after loading (concurrent)
 const checkAllBetaConfigs = async () => {
-  for (const config of configs.value) {
-    await checkBetaConfig(config)
-  }
+  await Promise.all(configs.value.map((config) => checkBetaConfig(config)))
 }
 
 // Promote modal
@@ -762,7 +698,6 @@ const confirmPromote = async () => {
   if (!configToPromote.value) return
   promoting.value = true
   try {
-    // Try to use the beta config API first
     try {
       await batataApi.promoteBetaConfig(
         configToPromote.value.dataId,
@@ -778,7 +713,6 @@ const confirmPromote = async () => {
       )
       const config = response.data.data
 
-      // Create a new stable config (remove beta suffix if present)
       const stableDataId = config.dataId.replace('-beta', '').replace('.beta', '')
 
       await batataApi.publishConfig({
@@ -793,11 +727,11 @@ const confirmPromote = async () => {
     }
 
     showPromoteModal.value = false
-    // Clear the beta config map and refetch
     betaConfigMap.value.clear()
     fetchConfigs()
   } catch (error) {
-    console.error('Failed to promote config:', error)
+    logger.error('Failed to promote config', error)
+    toast.error(t('operationFailed'))
   } finally {
     promoting.value = false
   }

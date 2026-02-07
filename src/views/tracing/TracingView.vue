@@ -210,199 +210,162 @@
       </div>
 
       <!-- Pagination -->
-      <div class="flex items-center justify-between p-3 border-t border-border">
-        <div class="text-xs text-text-secondary">
-          {{ t('total') }}: {{ total }} {{ t('items') }}
-        </div>
-        <div class="flex items-center gap-1.5">
-          <button
-            @click="handlePageChange(currentPage - 1)"
-            :disabled="currentPage <= 1"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronLeft class="w-3.5 h-3.5" />
-          </button>
-          <span class="text-xs text-text-primary px-2"> {{ currentPage }} / {{ totalPages }} </span>
-          <button
-            @click="handlePageChange(currentPage + 1)"
-            :disabled="currentPage >= totalPages"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronRight class="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      <AppPagination
+        :current-page="currentPage"
+        :page-size="pageSize"
+        :total="total"
+        @change="handlePageChange"
+      />
     </div>
 
     <!-- Trace Detail Modal -->
-    <div v-if="showDetailModal" class="modal-backdrop" @click="showDetailModal = false">
-      <div class="modal max-w-4xl" @click.stop>
-        <div class="modal-header">
-          <div>
-            <h3 class="text-sm font-semibold text-text-primary">{{ t('traceDetail') }}</h3>
-            <p class="text-xs text-text-secondary mt-0.5 font-mono">
-              {{ selectedTrace?.traceId }}
-            </p>
+    <ConfirmModal
+      v-model="showDetailModal"
+      :title="t('traceDetail')"
+      :confirm-text="t('close')"
+      @confirm="showDetailModal = false"
+    >
+      <template v-if="selectedTrace">
+        <p class="text-xs text-text-secondary font-mono mb-3">
+          {{ selectedTrace.traceId }}
+        </p>
+
+        <!-- Trace Summary -->
+        <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mb-4">
+          <div class="grid grid-cols-4 gap-4">
+            <div>
+              <p class="text-xs text-text-secondary">{{ t('duration') }}</p>
+              <p class="text-sm font-semibold text-text-primary">
+                {{ formatDuration(selectedTrace.duration) }}
+              </p>
+            </div>
+            <div>
+              <p class="text-xs text-text-secondary">{{ t('spanCount') }}</p>
+              <p class="text-sm font-semibold text-text-primary">{{ selectedTrace.spanCount }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-text-secondary">{{ t('servicesInvolved') }}</p>
+              <p class="text-sm font-semibold text-text-primary">
+                {{ getUniqueServices(selectedTrace.spans).length }}
+              </p>
+            </div>
+            <div>
+              <p class="text-xs text-text-secondary">{{ t('status') }}</p>
+              <span
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
+                :class="
+                  selectedTrace.hasError
+                    ? 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400'
+                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
+                "
+              >
+                {{ selectedTrace.hasError ? t('error') : t('success') }}
+              </span>
+            </div>
           </div>
-          <button @click="showDetailModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
         </div>
 
-        <div v-if="selectedTrace" class="modal-body p-0">
-          <!-- Trace Summary -->
-          <div class="p-4 bg-gray-50 dark:bg-gray-800 border-b border-border">
-            <div class="grid grid-cols-4 gap-4">
-              <div>
-                <p class="text-xs text-text-secondary">{{ t('duration') }}</p>
-                <p class="text-sm font-semibold text-text-primary">
-                  {{ formatDuration(selectedTrace.duration) }}
-                </p>
-              </div>
-              <div>
-                <p class="text-xs text-text-secondary">{{ t('spanCount') }}</p>
-                <p class="text-sm font-semibold text-text-primary">{{ selectedTrace.spanCount }}</p>
-              </div>
-              <div>
-                <p class="text-xs text-text-secondary">{{ t('servicesInvolved') }}</p>
-                <p class="text-sm font-semibold text-text-primary">
-                  {{ getUniqueServices(selectedTrace.spans).length }}
-                </p>
-              </div>
-              <div>
-                <p class="text-xs text-text-secondary">{{ t('status') }}</p>
-                <span
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
-                  :class="
-                    selectedTrace.hasError
-                      ? 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400'
-                      : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
-                  "
-                >
-                  {{ selectedTrace.hasError ? t('error') : t('success') }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Span Timeline -->
-          <div class="p-4">
-            <h4 class="text-xs font-semibold text-text-primary mb-3">{{ t('spanTimeline') }}</h4>
-            <div class="space-y-1">
-              <div v-for="(span, index) in selectedTrace.spans" :key="span.spanId" class="relative">
-                <div
-                  class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  :style="{ paddingLeft: `${span.depth * 20 + 8}px` }"
-                >
-                  <!-- Timeline dot -->
-                  <div
-                    class="w-2 h-2 rounded-full shrink-0"
-                    :class="span.hasError ? 'bg-red-500' : 'bg-emerald-500'"
-                  ></div>
-
-                  <!-- Service badge -->
-                  <span
-                    class="px-1.5 py-0.5 text-[10px] font-medium rounded shrink-0"
-                    :style="{
-                      backgroundColor: getServiceColor(span.serviceName, 0.1),
-                      color: getServiceColor(span.serviceName, 1),
-                    }"
-                  >
-                    {{ span.serviceName }}
-                  </span>
-
-                  <!-- Operation name -->
-                  <span class="text-xs text-text-primary truncate flex-1">
-                    {{ span.operationName }}
-                  </span>
-
-                  <!-- Duration bar -->
-                  <div
-                    class="w-32 h-4 bg-gray-100 dark:bg-gray-800 rounded overflow-hidden shrink-0"
-                  >
-                    <div
-                      class="h-full rounded"
-                      :class="span.hasError ? 'bg-red-400' : 'bg-blue-400'"
-                      :style="{ width: `${(span.duration / selectedTrace.duration) * 100}%` }"
-                    ></div>
-                  </div>
-
-                  <!-- Duration text -->
-                  <span class="text-xs text-text-secondary font-mono w-16 text-right shrink-0">
-                    {{ formatDuration(span.duration) }}
-                  </span>
-                </div>
-
-                <!-- Vertical connector line -->
-                <div
-                  v-if="index < selectedTrace.spans.length - 1"
-                  class="absolute left-0 top-full h-1 w-px bg-gray-200 dark:bg-gray-800"
-                  :style="{ left: `${span.depth * 20 + 12}px` }"
-                ></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Service Dependency -->
-          <div class="p-4 border-t border-border">
-            <h4 class="text-xs font-semibold text-text-primary mb-3">
-              {{ t('serviceDependency') }}
-            </h4>
-            <div class="flex items-center justify-center gap-3 py-4 flex-wrap">
-              <template
-                v-for="(service, index) in getUniqueServices(selectedTrace.spans)"
-                :key="service"
+        <!-- Span Timeline -->
+        <div class="mb-4">
+          <h4 class="text-xs font-semibold text-text-primary mb-3">{{ t('spanTimeline') }}</h4>
+          <div class="space-y-1">
+            <div v-for="(span, index) in selectedTrace.spans" :key="span.spanId" class="relative">
+              <div
+                class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                :style="{ paddingLeft: `${span.depth * 20 + 8}px` }"
               >
                 <div
-                  class="px-3 py-2 rounded-lg border-2 text-xs font-medium"
+                  class="w-2 h-2 rounded-full shrink-0"
+                  :class="span.hasError ? 'bg-red-500' : 'bg-emerald-500'"
+                ></div>
+                <span
+                  class="px-1.5 py-0.5 text-[10px] font-medium rounded shrink-0"
                   :style="{
-                    borderColor: getServiceColor(service, 0.5),
-                    backgroundColor: getServiceColor(service, 0.1),
-                    color: getServiceColor(service, 1),
+                    backgroundColor: getServiceColor(span.serviceName, 0.1),
+                    color: getServiceColor(span.serviceName, 1),
                   }"
                 >
-                  {{ service }}
+                  {{ span.serviceName }}
+                </span>
+                <span class="text-xs text-text-primary truncate flex-1">
+                  {{ span.operationName }}
+                </span>
+                <div class="w-32 h-4 bg-gray-100 dark:bg-gray-800 rounded overflow-hidden shrink-0">
+                  <div
+                    class="h-full rounded"
+                    :class="span.hasError ? 'bg-red-400' : 'bg-blue-400'"
+                    :style="{ width: `${(span.duration / selectedTrace.duration) * 100}%` }"
+                  ></div>
                 </div>
-                <ArrowRight
-                  v-if="index < getUniqueServices(selectedTrace.spans).length - 1"
-                  class="w-4 h-4 text-gray-400 dark:text-gray-500"
-                />
-              </template>
+                <span class="text-xs text-text-secondary font-mono w-16 text-right shrink-0">
+                  {{ formatDuration(span.duration) }}
+                </span>
+              </div>
+              <div
+                v-if="index < selectedTrace.spans.length - 1"
+                class="absolute left-0 top-full h-1 w-px bg-gray-200 dark:bg-gray-800"
+                :style="{ left: `${span.depth * 20 + 12}px` }"
+              ></div>
             </div>
           </div>
         </div>
 
-        <div class="modal-footer">
-          <button @click="showDetailModal = false" class="btn btn-secondary">
-            {{ t('close') }}
-          </button>
-          <button @click="copyTraceId" class="btn btn-primary">
+        <!-- Service Dependency -->
+        <div class="border-t border-border pt-4">
+          <h4 class="text-xs font-semibold text-text-primary mb-3">
+            {{ t('serviceDependency') }}
+          </h4>
+          <div class="flex items-center justify-center gap-3 py-4 flex-wrap">
+            <template
+              v-for="(service, index) in getUniqueServices(selectedTrace.spans)"
+              :key="service"
+            >
+              <div
+                class="px-3 py-2 rounded-lg border-2 text-xs font-medium"
+                :style="{
+                  borderColor: getServiceColor(service, 0.5),
+                  backgroundColor: getServiceColor(service, 0.1),
+                  color: getServiceColor(service, 1),
+                }"
+              >
+                {{ service }}
+              </div>
+              <ArrowRight
+                v-if="index < getUniqueServices(selectedTrace.spans).length - 1"
+                class="w-4 h-4 text-gray-400 dark:text-gray-500"
+              />
+            </template>
+          </div>
+        </div>
+
+        <div class="flex justify-end mt-3">
+          <button @click="copyTraceId" class="btn btn-primary btn-sm">
             <Copy class="w-3.5 h-3.5" />
             {{ t('copyTraceId') }}
           </button>
         </div>
-      </div>
-    </div>
+      </template>
+    </ConfirmModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import {
   Search,
   RotateCcw,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
   Eye,
-  X,
   CheckCircle,
   XCircle,
   ArrowRight,
   Copy,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
+import { logger } from '@/utils/logger'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import AppPagination from '@/components/common/AppPagination.vue'
 import type { Namespace } from '@/types'
 
 // Types
@@ -445,6 +408,9 @@ const pageSize = ref(20)
 const showDetailModal = ref(false)
 const selectedTrace = ref<Trace | null>(null)
 
+// Track active timeout for cleanup
+let fetchDelayTimer: ReturnType<typeof setTimeout> | null = null
+
 const services = ref([
   'user-service',
   'order-service',
@@ -464,9 +430,6 @@ const filters = reactive({
   errorsOnly: false,
   rootSpansOnly: false,
 })
-
-// Computed
-const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
 
 // Service colors for visualization
 const serviceColors: Record<string, string> = {}
@@ -501,11 +464,16 @@ const getServiceColor = (serviceName: string, alpha: number): string => {
 const fetchTraces = async () => {
   loading.value = true
   try {
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await new Promise<void>((resolve) => {
+      fetchDelayTimer = setTimeout(() => {
+        fetchDelayTimer = null
+        resolve()
+      }, 500)
+    })
     traces.value = generateMockTraces()
     total.value = 156
   } catch (error) {
-    console.error('Failed to fetch traces:', error)
+    logger.error('Failed to fetch traces:', error)
   } finally {
     loading.value = false
   }
@@ -626,5 +594,13 @@ const copyTraceId = () => {
 // Lifecycle
 onMounted(() => {
   fetchTraces()
+})
+
+onUnmounted(() => {
+  // Clear pending fetch delay timer to prevent memory leaks
+  if (fetchDelayTimer !== null) {
+    clearTimeout(fetchDelayTimer)
+    fetchDelayTimer = null
+  }
 })
 </script>

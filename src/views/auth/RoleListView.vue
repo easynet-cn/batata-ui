@@ -73,102 +73,60 @@
       </div>
 
       <!-- Pagination -->
-      <div class="flex items-center justify-between p-4 border-t border-border">
-        <div class="text-sm text-text-secondary">
-          {{ t('total') }}: {{ total }} {{ t('items') }}
-        </div>
-        <div class="flex items-center gap-2">
-          <button
-            @click="handlePageChange(currentPage - 1)"
-            :disabled="currentPage <= 1"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronLeft class="w-3.5 h-3.5" />
-          </button>
-          <span class="text-sm text-text-primary px-3"> {{ currentPage }} / {{ totalPages }} </span>
-          <button
-            @click="handlePageChange(currentPage + 1)"
-            :disabled="currentPage >= totalPages"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronRight class="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      <AppPagination
+        :current-page="currentPage"
+        :page-size="pageSize"
+        :total="total"
+        @change="handlePageChange"
+      />
     </div>
 
     <!-- Create Role Modal -->
-    <div v-if="showCreateModal" class="modal-backdrop" @click="showCreateModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('bindRole') }}</h3>
-          <button @click="showCreateModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
+    <FormModal
+      v-model="showCreateModal"
+      :title="t('bindRole')"
+      :submit-text="t('create')"
+      :loading="saving"
+      @submit="submitCreate"
+    >
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('roleName') }} <span class="text-danger">*</span>
+          </label>
+          <input v-model="createForm.role" type="text" class="input" />
         </div>
-        <div class="modal-body space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('roleName') }} <span class="text-danger">*</span>
-            </label>
-            <input v-model="createForm.role" type="text" class="input" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('username') }} <span class="text-danger">*</span>
-            </label>
-            <input v-model="createForm.username" type="text" class="input" />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button @click="showCreateModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="submitCreate" class="btn btn-primary" :disabled="saving">
-            <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
-            {{ t('create') }}
-          </button>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('username') }} <span class="text-danger">*</span>
+          </label>
+          <input v-model="createForm.username" type="text" class="input" />
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Delete Confirm Modal -->
-    <div v-if="showDeleteModal" class="modal-backdrop" @click="showDeleteModal = false">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ t('confirmDelete') }}</h3>
-          <button @click="showDeleteModal = false" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <p class="text-text-secondary">
-            {{ t('confirmDeleteRoleBinding') }}
-            <span class="font-medium text-text-primary">{{ roleToDelete?.role }}</span>
-            {{ t('and') }}
-            <span class="font-medium text-text-primary">{{ roleToDelete?.username }}</span
-            >?
-          </p>
-        </div>
-        <div class="modal-footer">
-          <button @click="showDeleteModal = false" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="confirmDelete" class="btn btn-danger">
-            {{ t('delete') }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal
+      v-model="showDeleteModal"
+      :title="t('confirmDelete')"
+      :message="`${t('confirmDeleteRoleBinding')} ${roleToDelete?.role} ${t('and')} ${roleToDelete?.username}?`"
+      :confirm-text="t('delete')"
+      danger
+      @confirm="confirmDelete"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { Plus, Search, Trash2, Loader2, X, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ref, reactive, onMounted } from 'vue'
+import { Plus, Search, Trash2, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import FormModal from '@/components/common/FormModal.vue'
+import AppPagination from '@/components/common/AppPagination.vue'
 import type { RoleInfo, Namespace } from '@/types'
 
 defineProps<{
@@ -196,9 +154,6 @@ const createForm = reactive({
   username: '',
 })
 
-// Computed
-const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
-
 // Methods
 const fetchRoles = async () => {
   loading.value = true
@@ -211,7 +166,8 @@ const fetchRoles = async () => {
     roles.value = response.data.data.pageItems || []
     total.value = response.data.data.totalCount || 0
   } catch (error) {
-    console.error('Failed to fetch roles:', error)
+    logger.error('Failed to fetch roles:', error)
+    toast.error(t('operationFailed'))
   } finally {
     loading.value = false
   }
@@ -240,7 +196,8 @@ const submitCreate = async () => {
     Object.assign(createForm, { role: '', username: '' })
     fetchRoles()
   } catch (error) {
-    console.error('Failed to create role:', error)
+    logger.error('Failed to create role:', error)
+    toast.error(t('operationFailed'))
   } finally {
     saving.value = false
   }
@@ -258,7 +215,8 @@ const confirmDelete = async () => {
     showDeleteModal.value = false
     fetchRoles()
   } catch (error) {
-    console.error('Failed to delete role:', error)
+    logger.error('Failed to delete role:', error)
+    toast.error(t('operationFailed'))
   }
 }
 
