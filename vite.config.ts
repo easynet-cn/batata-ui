@@ -12,6 +12,7 @@ import { visualizer } from 'rollup-plugin-visualizer'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:8848'
+  const consulProxyTarget = env.VITE_CONSUL_PROXY_TARGET || 'http://localhost:8500'
 
   const plugins: PluginOption[] = [
     vue(),
@@ -112,6 +113,11 @@ export default defineConfig(({ mode }) => {
         '/v3': {
           target: apiProxyTarget,
           changeOrigin: true,
+        },
+        '/consul-api': {
+          target: consulProxyTarget,
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/consul-api/, ''),
         },
       },
     },

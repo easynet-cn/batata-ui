@@ -21,7 +21,7 @@
               <th>{{ t('nodeAddress') }}</th>
               <th>{{ t('state') }}</th>
               <th>{{ t('abilities') }}</th>
-              <th>{{ t('metadata') }}</th>
+              <th>{{ t('extendInfo') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -35,78 +35,86 @@
                 {{ t('noData') }}
               </td>
             </tr>
-            <tr v-for="node in nodes" :key="node.address" class="hover:bg-bg-secondary">
-              <td>
-                <div class="flex items-center gap-2">
-                  <Server class="w-3.5 h-3.5 text-primary" />
-                  <span class="font-mono">{{ node.address }}</span>
-                </div>
-              </td>
-              <td>
-                <span :class="getStateClass(node.state)">
-                  {{ node.state }}
-                </span>
-              </td>
-              <td>
-                <div class="flex flex-wrap gap-1">
-                  <span
-                    v-if="node.abilities?.remoteAbility?.supportRemoteConnection"
-                    class="badge badge-success text-xs"
-                  >
-                    Remote
+            <template v-for="node in nodes" :key="node.address">
+              <tr class="hover:bg-bg-secondary">
+                <td>
+                  <div class="flex items-center gap-2">
+                    <Server class="w-3.5 h-3.5 text-primary" />
+                    <span class="font-mono">{{ node.address }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span :class="getStateClass(node.state)">
+                    {{ node.state }}
                   </span>
-                  <span
-                    v-if="node.abilities?.configAbility?.supportRemoteMetrics"
-                    class="badge badge-info text-xs"
+                </td>
+                <td>
+                  <div class="flex flex-wrap gap-1">
+                    <span
+                      v-if="node.abilities?.remoteAbility?.supportRemoteConnection"
+                      class="badge badge-success text-xs"
+                    >
+                      Remote
+                    </span>
+                    <span
+                      v-if="node.abilities?.configAbility?.supportRemoteMetrics"
+                      class="badge badge-info text-xs"
+                    >
+                      Metrics
+                    </span>
+                    <span
+                      v-if="node.abilities?.namingAbility?.supportJraft"
+                      class="badge badge-primary text-xs"
+                    >
+                      Raft
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <button
+                    v-if="node.extendInfo && Object.keys(node.extendInfo).length > 0"
+                    @click="toggleNode(node.address)"
+                    class="btn btn-ghost btn-sm"
+                    :title="t('viewDetails')"
                   >
-                    Metrics
-                  </span>
-                  <span
-                    v-if="node.abilities?.namingAbility?.supportJraft"
-                    class="badge badge-primary text-xs"
+                    <ChevronDown
+                      class="w-3.5 h-3.5 transition-transform"
+                      :class="{ 'rotate-180': expandedNodes.has(node.address) }"
+                    />
+                    <span class="text-xs text-text-secondary">
+                      {{ Object.keys(node.extendInfo).length }} keys
+                    </span>
+                  </button>
+                  <span v-else class="text-text-tertiary">-</span>
+                </td>
+              </tr>
+              <!-- Expanded extendInfo row -->
+              <tr v-if="expandedNodes.has(node.address) && node.extendInfo">
+                <td colspan="4" class="!pt-0 !pb-4 !px-6">
+                  <div
+                    class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono border border-border-primary"
                   >
-                    Raft
-                  </span>
-                </div>
-              </td>
-              <td>
-                <button
-                  v-if="node.metadata && Object.keys(node.metadata).length > 0"
-                  @click="showMetadata(node)"
-                  class="btn btn-ghost btn-sm"
-                >
-                  <Info class="w-3.5 h-3.5" />
-                </button>
-                <span v-else class="text-text-tertiary">-</span>
-              </td>
-            </tr>
+                    <pre class="whitespace-pre-wrap break-all">{{
+                      JSON.stringify(node.extendInfo, null, 2)
+                    }}</pre>
+                  </div>
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>
     </div>
-
-    <!-- Metadata Modal -->
-    <ConfirmModal
-      v-model="showMetadataModal"
-      :title="t('metadata')"
-      :confirm-text="t('close')"
-      @confirm="showMetadataModal = false"
-    >
-      <pre class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono">{{
-        JSON.stringify(selectedMetadata, null, 2)
-      }}</pre>
-    </ConfirmModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { RefreshCw, Server, Loader2, Info } from 'lucide-vue-next'
+import { RefreshCw, Server, Loader2, ChevronDown } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
-import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import type { NodeInfo, Namespace } from '@/types'
 
 defineProps<{
@@ -118,8 +126,7 @@ const { t } = useI18n()
 // State
 const loading = ref(false)
 const nodes = ref<NodeInfo[]>([])
-const showMetadataModal = ref(false)
-const selectedMetadata = ref<Record<string, string>>({})
+const expandedNodes = ref<Set<string>>(new Set())
 
 // Methods
 const fetchNodes = async () => {
@@ -144,9 +151,12 @@ const getStateClass = (state: string) => {
   return classes[state] || 'badge'
 }
 
-const showMetadata = (node: NodeInfo) => {
-  selectedMetadata.value = node.metadata || {}
-  showMetadataModal.value = true
+const toggleNode = (address: string) => {
+  if (expandedNodes.value.has(address)) {
+    expandedNodes.value.delete(address)
+  } else {
+    expandedNodes.value.add(address)
+  }
 }
 
 // Lifecycle

@@ -135,6 +135,26 @@ export interface Namespace {
 }
 
 // ============================================
+// Server State
+// ============================================
+
+export interface ServerState {
+  version?: string
+  function_mode?: string | null
+  startup_mode?: string
+  server_port?: string
+  consul_enabled?: string
+  consul_port?: string
+  apollo_enabled?: string
+  apollo_port?: string
+  auth_enabled?: string
+  console_ui_enabled?: string
+  login_page_enabled?: string
+  datasource_platform?: string
+  [key: string]: string | null | undefined
+}
+
+// ============================================
 // 集群管理类型
 // ============================================
 
@@ -144,16 +164,18 @@ export interface NodeInfo {
   state: 'UP' | 'DOWN' | 'SUSPICIOUS'
   address: string
   failAccessCnt?: number
+  grpcReportEnabled?: boolean
   abilities?: {
     remoteAbility?: {
       supportRemoteConnection: boolean
+      grpcReportEnabled?: boolean
     }
     configAbility?: {
       supportRemoteMetrics: boolean
     }
     namingAbility?: {
-      supportDeltaPush: boolean
-      supportJraft: boolean
+      supportDeltaPush?: boolean
+      supportJraft?: boolean
     }
   }
   extendInfo?: Record<string, unknown>

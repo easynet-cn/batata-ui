@@ -5,6 +5,7 @@ import { storage } from './useStorage'
 const STORAGE_KEY = 'batata_provider'
 
 const provider = ref<ProviderType>((storage.get(STORAGE_KEY) as ProviderType) || 'batata')
+const consulEnabled = ref(false)
 
 // Provider change callbacks
 const onChangeCallbacks: Array<(p: ProviderType) => void> = []
@@ -45,6 +46,10 @@ export function useProvider() {
     }
   }
 
+  function setConsulEnabled(enabled: boolean) {
+    consulEnabled.value = enabled
+  }
+
   function onProviderChange(callback: (p: ProviderType) => void) {
     onChangeCallbacks.push(callback)
   }
@@ -53,6 +58,7 @@ export function useProvider() {
     provider,
     isBatata,
     isConsul,
+    consulEnabled,
     providerColor,
     providerBgClass,
     providerHoverBgClass,
@@ -60,6 +66,7 @@ export function useProvider() {
     providerShadowClass,
     providerLetter,
     setProvider,
+    setConsulEnabled,
     onProviderChange,
   }
 }

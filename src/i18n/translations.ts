@@ -23,6 +23,16 @@ export const translations = {
     authorityControl: 'Authority Control',
     aiMcp: 'AI / MCP',
     system: 'System',
+    configManagement: 'Configuration Management',
+    configList: 'Configuration List',
+    listeningToQuery: 'Listener Query',
+    serviceManagement: 'Service Management',
+    serviceList: 'Service List',
+    subscriberList: 'Subscriber List',
+    aiControl: 'AI Control',
+    agentManagement: 'Agent Management',
+    pluginManagement: 'Plugin Management',
+    settingCenter: 'Setting Center',
     configuration: 'Configuration',
     services: 'Services',
     namespaces: 'Namespaces',
@@ -309,6 +319,8 @@ export const translations = {
     // Cluster
     clusterDesc: 'View cluster nodes status',
     abilities: 'Abilities',
+    extendInfo: 'Extend Info',
+    nodeMetadata: 'Node Metadata',
 
     // User
     usersDesc: 'Manage user accounts',
@@ -329,6 +341,10 @@ export const translations = {
     searchByRole: 'Search by role name',
     resourceHint: 'Format: namespace:group:dataId, use * as wildcard',
     confirmDeletePermission: 'Are you sure to delete this permission?',
+    searchUsername: 'Search by username',
+    searchRoleName: 'Search by role name',
+    cannotDeleteAdmin: 'Cannot delete admin role',
+    customResource: 'Custom',
 
     // Confirm
     confirmDelete: 'Confirm Delete',
@@ -807,6 +823,16 @@ export const translations = {
     authorityControl: '权限控制',
     aiMcp: 'AI / MCP',
     system: '系统',
+    configManagement: '配置管理',
+    configList: '配置列表',
+    listeningToQuery: '监听查询',
+    serviceManagement: '服务管理',
+    serviceList: '服务列表',
+    subscriberList: '订阅者列表',
+    aiControl: 'AI 智能',
+    agentManagement: 'Agent 管理',
+    pluginManagement: '插件管理',
+    settingCenter: '设置中心',
     configuration: '配置管理',
     services: '服务管理',
     namespaces: '命名空间',
@@ -1092,6 +1118,8 @@ export const translations = {
     // Cluster
     clusterDesc: '查看集群节点状态',
     abilities: '能力',
+    extendInfo: '扩展信息',
+    nodeMetadata: '节点元数据',
 
     // User
     usersDesc: '管理用户账户',
@@ -1112,6 +1140,10 @@ export const translations = {
     searchByRole: '按角色名搜索',
     resourceHint: '格式：namespace:group:dataId，使用 * 作为通配符',
     confirmDeletePermission: '确定要删除此权限吗？',
+    searchUsername: '按用户名搜索',
+    searchRoleName: '按角色名搜索',
+    cannotDeleteAdmin: '不能删除管理员角色',
+    customResource: '自定义',
 
     // Confirm
     confirmDelete: '确认删除',

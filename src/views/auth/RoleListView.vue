@@ -18,13 +18,28 @@
         <div class="flex items-center gap-3">
           <div class="flex-1">
             <input
-              v-model="searchKeyword"
+              v-model="searchRoleName"
               type="text"
               class="input"
-              :placeholder="t('searchRole')"
+              :placeholder="t('searchRoleName')"
               @keyup.enter="handleSearch"
             />
           </div>
+          <div class="flex-1">
+            <input
+              v-model="searchUsername"
+              type="text"
+              class="input"
+              :placeholder="t('searchUsername')"
+              @keyup.enter="handleSearch"
+            />
+          </div>
+          <label
+            class="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer select-none whitespace-nowrap"
+          >
+            <input type="checkbox" v-model="fuzzySearch" class="accent-primary w-3.5 h-3.5" />
+            {{ t('fuzzySearch') }}
+          </label>
           <button @click="handleSearch" class="btn btn-primary">
             <Search class="w-3.5 h-3.5" />
             {{ t('search') }}
@@ -60,12 +75,16 @@
               <td>{{ role.username }}</td>
               <td>
                 <button
+                  v-if="role.role !== 'ROLE_ADMIN'"
                   @click="handleDelete(role)"
                   class="btn btn-ghost btn-sm text-danger"
                   :title="t('delete')"
                 >
                   <Trash2 class="w-3.5 h-3.5" />
                 </button>
+                <span v-else class="text-xs text-text-tertiary" :title="t('cannotDeleteAdmin')"
+                  >—</span
+                >
               </td>
             </tr>
           </tbody>
@@ -142,7 +161,9 @@ const roles = ref<RoleInfo[]>([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
-const searchKeyword = ref('')
+const searchRoleName = ref('')
+const searchUsername = ref('')
+const fuzzySearch = ref(false)
 
 // Modals
 const showCreateModal = ref(false)
@@ -161,7 +182,9 @@ const fetchRoles = async () => {
     const response = await batataApi.getRoleList({
       pageNo: currentPage.value,
       pageSize: pageSize.value,
-      search: searchKeyword.value || undefined,
+      role: searchRoleName.value || undefined,
+      username: searchUsername.value || undefined,
+      search: fuzzySearch.value ? 'blur' : 'accurate',
     })
     roles.value = response.data.data.pageItems || []
     total.value = response.data.data.totalCount || 0

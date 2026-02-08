@@ -25,6 +25,12 @@
               @keyup.enter="handleSearch"
             />
           </div>
+          <label
+            class="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer select-none whitespace-nowrap"
+          >
+            <input type="checkbox" v-model="fuzzySearch" class="accent-primary w-3.5 h-3.5" />
+            {{ t('fuzzySearch') }}
+          </label>
           <button @click="handleSearch" class="btn btn-primary">
             <Search class="w-3.5 h-3.5" />
             {{ t('search') }}
@@ -58,7 +64,7 @@
             </tr>
             <tr v-for="(perm, index) in permissions" :key="index" class="hover:bg-bg-secondary">
               <td class="font-medium">{{ perm.role }}</td>
-              <td class="font-mono text-sm">{{ perm.resource }}</td>
+              <td class="font-mono text-sm">{{ resolveResourceDisplay(perm.resource) }}</td>
               <td>
                 <span :class="getActionClass(perm.action)">
                   {{ getActionLabel(perm.action) }}
@@ -106,7 +112,24 @@
           <label class="block text-xs font-medium text-text-primary mb-1">
             {{ t('resource') }} <span class="text-danger">*</span>
           </label>
-          <input v-model="createForm.resource" type="text" class="input" placeholder="*:*:*" />
+          <select v-model="resourceSelection" class="input" @change="onResourceSelectionChange">
+            <option value="*:*:*">*:*:*</option>
+            <option
+              v-for="ns in namespaceList"
+              :key="ns.namespaceId || ns.namespace"
+              :value="`${ns.namespaceId || ns.namespace}:*:*`"
+            >
+              {{ ns.namespaceShowName }} ({{ ns.namespaceId || ns.namespace }})
+            </option>
+            <option value="__custom__">{{ t('customResource') }}</option>
+          </select>
+          <input
+            v-if="resourceSelection === '__custom__'"
+            v-model="createForm.resource"
+            type="text"
+            class="input mt-2"
+            placeholder="*:*:*"
+          />
           <p class="text-xs text-text-tertiary mt-1">{{ t('resourceHint') }}</p>
         </div>
         <div>
@@ -160,6 +183,9 @@ const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const searchRole = ref('')
+const fuzzySearch = ref(false)
+const namespaceList = ref<Namespace[]>([])
+const resourceSelection = ref('*:*:*')
 
 // Modals
 const showCreateModal = ref(false)
@@ -168,7 +194,7 @@ const permToDelete = ref<PermissionInfo | null>(null)
 
 const createForm = reactive({
   role: '',
-  resource: '',
+  resource: '*:*:*',
   action: 'r',
 })
 
@@ -180,6 +206,7 @@ const fetchPermissions = async () => {
       pageNo: currentPage.value,
       pageSize: pageSize.value,
       role: searchRole.value || undefined,
+      search: fuzzySearch.value ? 'blur' : 'accurate',
     })
     permissions.value = response.data.data.pageItems || []
     total.value = response.data.data.totalCount || 0
@@ -219,6 +246,35 @@ const getActionLabel = (action: string) => {
   return labels[action] || action
 }
 
+const onResourceSelectionChange = () => {
+  if (resourceSelection.value === '__custom__') {
+    createForm.resource = ''
+  } else {
+    createForm.resource = resourceSelection.value
+  }
+}
+
+const resolveResourceDisplay = (resource: string) => {
+  // Try to resolve namespace ID from resource pattern like "nsId:*:*"
+  const parts = resource.split(':')
+  if (parts.length >= 1 && parts[0] !== '*') {
+    const ns = namespaceList.value.find((n) => (n.namespaceId || n.namespace) === parts[0])
+    if (ns) {
+      return `${ns.namespaceShowName} (${parts[0]}):${parts.slice(1).join(':')}`
+    }
+  }
+  return resource
+}
+
+const fetchNamespaces = async () => {
+  try {
+    const response = await batataApi.getNamespaceList()
+    namespaceList.value = response.data.data || []
+  } catch (error) {
+    logger.error('Failed to fetch namespaces:', error)
+  }
+}
+
 const submitCreate = async () => {
   if (!createForm.role || !createForm.resource || !createForm.action) {
     toast.warning(t('requiredFieldsMissing'))
@@ -229,7 +285,8 @@ const submitCreate = async () => {
   try {
     await batataApi.createPermission(createForm)
     showCreateModal.value = false
-    Object.assign(createForm, { role: '', resource: '', action: 'r' })
+    Object.assign(createForm, { role: '', resource: '*:*:*', action: 'r' })
+    resourceSelection.value = '*:*:*'
     fetchPermissions()
   } catch (error) {
     logger.error('Failed to create permission:', error)
@@ -263,5 +320,6 @@ const confirmDelete = async () => {
 // Lifecycle
 onMounted(() => {
   fetchPermissions()
+  fetchNamespaces()
 })
 </script>

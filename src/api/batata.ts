@@ -12,6 +12,7 @@ import type {
   SubscriberInfo,
   Namespace,
   NodeInfo,
+  ServerState,
   UserInfo,
   RoleInfo,
   PermissionInfo,
@@ -23,7 +24,6 @@ import type {
   PluginConfigPayload,
   AuditLogItem,
   AuditLogSearch,
-  AuditStats,
   PageResult,
   LoginResponse,
   PluginInfo,
@@ -238,7 +238,9 @@ class BatataApi {
   }
 
   async logout() {
-    return this.getAuthInstance().post<BatataResponse>('/user/logout')
+    // Backend has no logout endpoint; clear local tokens only
+    storage.remove(config.storage.tokenKey)
+    storage.remove(config.storage.usernameKey)
   }
 
   // ============================================
@@ -276,7 +278,18 @@ class BatataApi {
     desc?: string
     configTags?: string
   }) {
-    return this.instance.post<BatataResponse>('/cs/config', data)
+    const formData = new URLSearchParams()
+    formData.append('dataId', data.dataId)
+    formData.append('groupName', data.groupName)
+    formData.append('content', data.content)
+    if (data.type) formData.append('type', data.type)
+    if (data.namespaceId) formData.append('namespaceId', data.namespaceId)
+    if (data.appName) formData.append('appName', data.appName)
+    if (data.desc) formData.append('desc', data.desc)
+    if (data.configTags) formData.append('configTags', data.configTags)
+    return this.instance.post<BatataResponse>('/cs/config', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
   }
 
   async deleteConfig(dataId: string, groupName: string, tenant?: string) {
@@ -285,20 +298,18 @@ class BatataApi {
     })
   }
 
-  async batchDeleteConfig(ids: string[], namespaceId?: string) {
-    return this.instance.delete<BatataResponse>('/cs/config/batchDelete', {
-      params: { ids: ids.join(','), namespaceId },
-    })
+  // TODO: Backend does not yet support batch delete - delete one by one
+  async batchDeleteConfig(_ids: string[], _namespaceId?: string): Promise<never> {
+    throw new ApiError(501, 'Batch delete is not supported by the server')
   }
 
-  async cloneConfig(data: {
+  // TODO: Backend does not yet support clone
+  async cloneConfig(_data: {
     ids: string
     targetNamespaceId: string
     policy: 'ABORT' | 'SKIP' | 'OVERWRITE'
-  }) {
-    return this.instance.post<BatataResponse>('/cs/config/clone', null, {
-      params: data,
-    })
+  }): Promise<never> {
+    throw new ApiError(501, 'Clone config is not supported by the server')
   }
 
   async importConfig(file: File, namespaceId: string, policy: 'ABORT' | 'SKIP' | 'OVERWRITE') {
@@ -370,9 +381,26 @@ class BatataApi {
     namespaceId?: string
     hasIpCount?: boolean
   }) {
-    return this.instance.get<BatataResponse<PageResult<ServiceInfo>>>('/ns/service/list', {
-      params,
-    })
+    // Backend returns { count, serviceList } instead of PageResult
+    const response = await this.instance.get<
+      BatataResponse<{ count: number; serviceList: ServiceInfo[] }>
+    >('/ns/service/list', { params })
+
+    // Transform to PageResult format expected by views
+    const raw = response.data.data
+    const pageNo = params.pageNo ?? 1
+    const pageSize = params.pageSize ?? 20
+    const transformed: PageResult<ServiceInfo> = {
+      totalCount: raw.count,
+      pageNumber: pageNo,
+      pagesAvailable: Math.ceil(raw.count / pageSize),
+      pageItems: raw.serviceList || [],
+    }
+    response.data.data = transformed as never
+
+    return response as unknown as import('axios').AxiosResponse<
+      BatataResponse<PageResult<ServiceInfo>>
+    >
   }
 
   async getServiceDetail(serviceName: string, groupName: string, namespaceId?: string) {
@@ -480,7 +508,13 @@ class BatataApi {
     namespaceName: string
     namespaceDesc?: string
   }) {
-    return this.instance.post<BatataResponse>('/core/namespace', data)
+    const formData = new URLSearchParams()
+    if (data.namespaceId) formData.append('customNamespaceId', data.namespaceId)
+    formData.append('namespaceName', data.namespaceName)
+    if (data.namespaceDesc) formData.append('namespaceDesc', data.namespaceDesc)
+    return this.instance.post<BatataResponse>('/core/namespace', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
   }
 
   async updateNamespace(data: {
@@ -488,12 +522,37 @@ class BatataApi {
     namespaceName: string
     namespaceDesc?: string
   }) {
-    return this.instance.put<BatataResponse>('/core/namespace', data)
+    const formData = new URLSearchParams()
+    formData.append('namespaceId', data.namespaceId)
+    formData.append('namespaceName', data.namespaceName)
+    if (data.namespaceDesc) formData.append('namespaceDesc', data.namespaceDesc)
+    return this.instance.put<BatataResponse>('/core/namespace', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
   }
 
   async deleteNamespace(namespaceId: string) {
     return this.instance.delete<BatataResponse>('/core/namespace', {
       params: { namespaceId },
+    })
+  }
+
+  // ============================================
+  // Server State API
+  // ============================================
+
+  // Server state returns a flat object without BatataResponse wrapper,
+  // so we use a raw axios call to bypass the response interceptor.
+  async getServerState() {
+    const headers: Record<string, string> = {}
+    const token = storage.get(config.storage.tokenKey)
+    if (token) headers.accessToken = token
+    const username = storage.get(config.storage.usernameKey)
+    if (username) headers.username = username
+
+    return axios.get<ServerState>(`${config.api.baseUrl}/v3/console/server/state`, {
+      headers,
+      timeout: config.api.timeout,
     })
   }
 
@@ -505,26 +564,51 @@ class BatataApi {
     return this.instance.get<BatataResponse<NodeInfo[]>>('/core/cluster/nodes', { params })
   }
 
-  async updateClusterNode(data: { address: string; metadata?: Record<string, string> }) {
-    return this.instance.put<BatataResponse>('/core/cluster/nodes', data)
+  // TODO: Backend does not yet support updating cluster nodes directly
+  async updateClusterNode(_data: {
+    address: string
+    metadata?: Record<string, string>
+  }): Promise<never> {
+    throw new ApiError(501, 'Update cluster node is not supported by the server')
   }
 
   // ============================================
   // 用户管理 API
   // ============================================
 
-  async getUserList(params?: { pageNo?: number; pageSize?: number; search?: string }) {
+  async getUserList(params?: {
+    pageNo?: number
+    pageSize?: number
+    username?: string
+    search?: 'accurate' | 'blur'
+  }) {
     return this.getAuthInstance().get<BatataResponse<PageResult<UserInfo>>>('/user/list', {
       params,
     })
   }
 
+  async searchUsers(username: string) {
+    return this.getAuthInstance().get<BatataResponse<string[]>>('/user/search', {
+      params: { username },
+    })
+  }
+
   async createUser(data: { username: string; password: string }) {
-    return this.getAuthInstance().post<BatataResponse>('/user', data)
+    const formData = new URLSearchParams()
+    formData.append('username', data.username)
+    formData.append('password', data.password)
+    return this.getAuthInstance().post<BatataResponse>('/user', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
   }
 
   async updateUser(data: { username: string; newPassword: string }) {
-    return this.getAuthInstance().put<BatataResponse>('/user', data)
+    const formData = new URLSearchParams()
+    formData.append('username', data.username)
+    formData.append('newPassword', data.newPassword)
+    return this.getAuthInstance().put<BatataResponse>('/user', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
   }
 
   async deleteUser(username: string) {
@@ -537,14 +621,31 @@ class BatataApi {
   // 角色管理 API
   // ============================================
 
-  async getRoleList(params?: { pageNo?: number; pageSize?: number; search?: string }) {
+  async getRoleList(params?: {
+    pageNo?: number
+    pageSize?: number
+    username?: string
+    role?: string
+    search?: 'accurate' | 'blur'
+  }) {
     return this.getAuthInstance().get<BatataResponse<PageResult<RoleInfo>>>('/role/list', {
       params,
     })
   }
 
+  async searchRoles(role: string) {
+    return this.getAuthInstance().get<BatataResponse<string[]>>('/role/search', {
+      params: { role },
+    })
+  }
+
   async createRole(data: { role: string; username: string }) {
-    return this.getAuthInstance().post<BatataResponse>('/role', data)
+    const formData = new URLSearchParams()
+    formData.append('role', data.role)
+    formData.append('username', data.username)
+    return this.getAuthInstance().post<BatataResponse>('/role', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
   }
 
   async deleteRole(role: string, username: string) {
@@ -557,7 +658,12 @@ class BatataApi {
   // 权限管理 API
   // ============================================
 
-  async getPermissionList(params?: { pageNo?: number; pageSize?: number; role?: string }) {
+  async getPermissionList(params?: {
+    pageNo?: number
+    pageSize?: number
+    role?: string
+    search?: 'accurate' | 'blur'
+  }) {
     return this.getAuthInstance().get<BatataResponse<PageResult<PermissionInfo>>>(
       '/permission/list',
       { params },
@@ -565,7 +671,13 @@ class BatataApi {
   }
 
   async createPermission(data: { role: string; resource: string; action: string }) {
-    return this.getAuthInstance().post<BatataResponse>('/permission', data)
+    const formData = new URLSearchParams()
+    formData.append('role', data.role)
+    formData.append('resource', data.resource)
+    formData.append('action', data.action)
+    return this.getAuthInstance().post<BatataResponse>('/permission', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
   }
 
   async deletePermission(role: string, resource: string, action: string) {
@@ -679,82 +791,26 @@ class BatataApi {
   }
 
   // ============================================
-  // Audit Log API (V2)
+  // Audit Log API
   // ============================================
 
-  private v2Instance: AxiosInstance | null = null
-
-  private getV2Instance(): AxiosInstance {
-    if (!this.v2Instance) {
-      this.v2Instance = axios.create({
-        baseURL: `${config.api.baseUrl}/v3/console`,
-        timeout: config.api.timeout,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      // Request interceptor
-      this.v2Instance.interceptors.request.use(
-        (reqConfig) => {
-          const token = storage.get(config.storage.tokenKey)
-          if (token) {
-            reqConfig.headers.accessToken = token
-          }
-          const username = storage.get(config.storage.usernameKey)
-          if (username) {
-            reqConfig.headers.username = username
-          }
-          return reqConfig
-        },
-        (error) => Promise.reject(error),
-      )
-
-      // Response interceptor
-      this.v2Instance.interceptors.response.use(
-        (response: AxiosResponse<BatataResponse>) => {
-          const { data } = response
-          if (data.code !== 0 && data.code !== 200) {
-            throw new ApiError(data.code, data.message || 'Request failed')
-          }
-          return response
-        },
-        (error) => {
-          if (!error.response) {
-            throw new NetworkError()
-          }
-          if (error.response?.status === 401 || error.response?.status === 403) {
-            storage.remove(config.storage.tokenKey)
-            storage.remove(config.storage.usernameKey)
-            window.location.href = '/login'
-            throw new AuthError()
-          }
-          throw new ApiError(
-            error.response?.status || 500,
-            error.response?.data?.message || error.message,
-          )
-        },
-      )
-    }
-    return this.v2Instance
+  // TODO: Audit endpoints are not available in v3 console yet
+  async getAuditLogList(
+    _params: AuditLogSearch,
+  ): Promise<AxiosResponse<BatataResponse<PageResult<AuditLogItem>>>> {
+    throw new ApiError(501, 'Audit log is not supported by the server')
   }
 
-  async getAuditLogList(params: AuditLogSearch) {
-    return this.getV2Instance().get<BatataResponse<PageResult<AuditLogItem>>>('/audit/list', {
-      params,
-    })
+  async getAuditLog(_id: number): Promise<AxiosResponse<BatataResponse<AuditLogItem>>> {
+    throw new ApiError(501, 'Audit log is not supported by the server')
   }
 
-  async getAuditLog(id: number) {
-    return this.getV2Instance().get<BatataResponse<AuditLogItem>>('/audit', {
-      params: { id },
-    })
-  }
-
-  async getAuditStats(params?: { tenantId?: string; startTime?: string; endTime?: string }) {
-    return this.getV2Instance().get<BatataResponse<AuditStats>>('/audit/stats', {
-      params,
-    })
+  async getAuditStats(_params?: {
+    tenantId?: string
+    startTime?: string
+    endTime?: string
+  }): Promise<AxiosResponse<BatataResponse<unknown>>> {
+    throw new ApiError(501, 'Audit stats is not supported by the server')
   }
 
   // ============================================
@@ -767,49 +823,33 @@ class BatataApi {
     })
   }
 
-  async publishBetaConfig(data: {
+  // TODO: Backend does not yet support publishing beta config
+  async publishBetaConfig(_data: {
     dataId: string
     groupName: string
     content: string
     namespaceId?: string
     betaIps?: string
-  }) {
-    return this.instance.post<BatataResponse>('/cs/config/beta', {
-      dataId: data.dataId,
-      groupName: data.groupName,
-      namespaceId: data.namespaceId || '',
-      content: data.content,
-      grayName: 'beta',
-      grayRule: data.betaIps || '',
-    })
+  }): Promise<never> {
+    throw new ApiError(501, 'Publish beta config is not supported by the server')
   }
 
-  async deleteBetaConfig(dataId: string, groupName: string, namespaceId?: string) {
-    return this.instance.delete<BatataResponse>('/cs/config/beta', {
-      params: { dataId, groupName, namespaceId: namespaceId || '' },
-    })
+  // TODO: Backend does not yet support deleting beta config
+  async deleteBetaConfig(
+    _dataId: string,
+    _groupName: string,
+    _namespaceId?: string,
+  ): Promise<never> {
+    throw new ApiError(501, 'Delete beta config is not supported by the server')
   }
 
-  async promoteBetaConfig(dataId: string, groupName: string, namespaceId?: string) {
-    // Get beta config content first, then publish as stable
-    const betaResponse = await this.getBetaConfig(dataId, groupName, namespaceId)
-    const betaConfig = betaResponse.data.data
-    if (!betaConfig || !betaConfig.content) {
-      throw new ApiError(404, 'Beta config not found')
-    }
-
-    // Publish as stable config
-    await this.publishConfig({
-      dataId,
-      groupName,
-      content: betaConfig.content,
-      namespaceId,
-    })
-
-    // Delete beta config
-    await this.deleteBetaConfig(dataId, groupName, namespaceId)
-
-    return { success: true }
+  // TODO: Backend does not yet support promoting beta config
+  async promoteBetaConfig(
+    _dataId: string,
+    _groupName: string,
+    _namespaceId?: string,
+  ): Promise<never> {
+    throw new ApiError(501, 'Promote beta config is not supported by the server')
   }
 
   // ============================================
@@ -817,7 +857,12 @@ class BatataApi {
   // ============================================
 
   async register(data: { username: string; password: string }) {
-    return this.getAuthInstance().post<BatataResponse>('/user', data)
+    const formData = new URLSearchParams()
+    formData.append('username', data.username)
+    formData.append('password', data.password)
+    return this.getAuthInstance().post<BatataResponse>('/user', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
   }
 
   // ============================================
@@ -834,46 +879,43 @@ class BatataApi {
     })
   }
 
-  async updatePluginStatus(name: string, enabled: boolean) {
-    return this.instance.put<BatataResponse>('/core/plugin/status', {
-      name,
-      enabled,
-    })
+  // TODO: Backend does not yet support updating plugin status
+  async updatePluginStatus(_name: string, _enabled: boolean): Promise<never> {
+    throw new ApiError(501, 'Update plugin status is not supported by the server')
   }
 
-  async updatePluginConfig(name: string, pluginConfig: PluginConfigPayload) {
-    return this.instance.put<BatataResponse>('/core/plugin/config', {
-      name,
-      config: pluginConfig,
-    })
+  // TODO: Backend does not yet support updating plugin config
+  async updatePluginConfig(_name: string, _pluginConfig: PluginConfigPayload): Promise<never> {
+    throw new ApiError(501, 'Update plugin config is not supported by the server')
   }
 
   // ============================================
   // Config Sync API
   // ============================================
 
-  async getSyncEnvironments() {
-    return this.instance.get<BatataResponse<SyncEnvironment[]>>('/cs/config/sync/environments')
+  // TODO: Config sync endpoints are not available in the server yet
+  async getSyncEnvironments(): Promise<AxiosResponse<BatataResponse<SyncEnvironment[]>>> {
+    throw new ApiError(501, 'Config sync is not supported by the server')
   }
 
-  async getSyncHistory(tenant?: string) {
-    return this.instance.get<BatataResponse<SyncHistory[]>>('/cs/config/sync/history', {
-      params: { tenant },
-    })
+  async getSyncHistory(_tenant?: string): Promise<AxiosResponse<BatataResponse<SyncHistory[]>>> {
+    throw new ApiError(501, 'Config sync is not supported by the server')
   }
 
-  async syncConfigs(data: SyncRequest) {
-    return this.instance.post<BatataResponse>('/cs/config/sync', data)
+  async syncConfigs(_data: SyncRequest): Promise<never> {
+    throw new ApiError(501, 'Config sync is not supported by the server')
   }
 
-  async addSyncEnvironment(data: { name: string; endpoint: string; accessToken?: string }) {
-    return this.instance.post<BatataResponse>('/cs/config/sync/environment', data)
+  async addSyncEnvironment(_data: {
+    name: string
+    endpoint: string
+    accessToken?: string
+  }): Promise<never> {
+    throw new ApiError(501, 'Config sync is not supported by the server')
   }
 
-  async deleteSyncEnvironment(id: string) {
-    return this.instance.delete<BatataResponse>('/cs/config/sync/environment', {
-      params: { id },
-    })
+  async deleteSyncEnvironment(_id: string): Promise<never> {
+    throw new ApiError(501, 'Config sync is not supported by the server')
   }
 }
 

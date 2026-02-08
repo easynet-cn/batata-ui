@@ -25,6 +25,12 @@
               @keyup.enter="handleSearch"
             />
           </div>
+          <label
+            class="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer select-none whitespace-nowrap"
+          >
+            <input type="checkbox" v-model="fuzzySearch" class="accent-primary w-3.5 h-3.5" />
+            {{ t('fuzzySearch') }}
+          </label>
           <button @click="handleSearch" class="btn btn-primary">
             <Search class="w-3.5 h-3.5" />
             {{ t('search') }}
@@ -40,23 +46,25 @@
           <thead>
             <tr>
               <th>{{ t('username') }}</th>
+              <th>{{ t('password') }}</th>
               <th>{{ t('status') }}</th>
               <th class="w-48">{{ t('actions') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="3" class="text-center py-6">
+              <td colspan="4" class="text-center py-6">
                 <Loader2 class="w-5 h-5 animate-spin mx-auto text-primary" />
               </td>
             </tr>
             <tr v-else-if="users.length === 0">
-              <td colspan="3" class="text-center py-6 text-text-secondary">
+              <td colspan="4" class="text-center py-6 text-text-secondary">
                 {{ t('noData') }}
               </td>
             </tr>
             <tr v-for="user in users" :key="user.username" class="hover:bg-bg-secondary">
               <td class="font-medium">{{ user.username }}</td>
+              <td class="text-text-secondary">******</td>
               <td>
                 <span
                   :class="user.enabled !== false ? 'badge badge-success' : 'badge badge-danger'"
@@ -181,6 +189,7 @@ const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const searchKeyword = ref('')
+const fuzzySearch = ref(false)
 
 // Modals
 const showCreateModal = ref(false)
@@ -202,7 +211,8 @@ const fetchUsers = async () => {
     const response = await batataApi.getUserList({
       pageNo: currentPage.value,
       pageSize: pageSize.value,
-      search: searchKeyword.value || undefined,
+      username: searchKeyword.value || undefined,
+      search: fuzzySearch.value ? 'blur' : 'accurate',
     })
     users.value = response.data.data.pageItems || []
     total.value = response.data.data.totalCount || 0

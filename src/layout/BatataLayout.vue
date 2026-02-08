@@ -27,7 +27,7 @@
       <nav class="flex-1 py-4 px-3 space-y-6 overflow-y-auto scrollbar-hide">
         <div v-for="(group, groupIdx) in navGroups" :key="groupIdx" class="space-y-1">
           <p
-            v-if="isSidebarOpen"
+            v-if="isSidebarOpen && group.title"
             class="px-3 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2"
           >
             {{ group.title }}
@@ -72,34 +72,36 @@
         class="h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-5 shrink-0 z-10 shadow-sm"
       >
         <div class="flex items-center space-x-4">
-          <!-- Provider Switcher -->
-          <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
-            <button
-              @click="handleSwitchProvider('batata')"
-              :class="[
-                'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
-                provider === 'batata'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
-              ]"
-            >
-              BATATA
-            </button>
-            <button
-              @click="handleSwitchProvider('consul')"
-              :class="[
-                'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
-                provider === 'consul'
-                  ? 'bg-white dark:bg-gray-700 text-fuchsia-600 dark:text-fuchsia-400 shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
-              ]"
-            >
-              CONSUL
-            </button>
-          </div>
+          <!-- Provider Switcher (only shown when consul is enabled on server) -->
+          <template v-if="consulEnabled">
+            <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+              <button
+                @click="handleSwitchProvider('batata')"
+                :class="[
+                  'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
+                  provider === 'batata'
+                    ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
+                ]"
+              >
+                BATATA
+              </button>
+              <button
+                @click="handleSwitchProvider('consul')"
+                :class="[
+                  'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
+                  provider === 'consul'
+                    ? 'bg-white dark:bg-gray-700 text-fuchsia-600 dark:text-fuchsia-400 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
+                ]"
+              >
+                CONSUL
+              </button>
+            </div>
 
-          <!-- Divider -->
-          <div class="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block" />
+            <!-- Divider -->
+            <div class="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block" />
+          </template>
 
           <!-- Namespace Selector (Nacos only) -->
           <div v-if="provider === 'batata'" class="relative hidden sm:block">
@@ -382,7 +384,6 @@ import {
   Key,
   Network,
   Globe,
-  Globe2,
   Languages,
   FileCode,
   Cog,
@@ -392,12 +393,14 @@ import {
   CheckCircle,
   AlertTriangle,
   XCircle,
-  FileText,
   Bot,
   Cpu,
   Activity,
   RefreshCw,
   Puzzle,
+  Radio,
+  UserCheck,
+  Globe2,
   Moon,
   Sun,
   Database,
@@ -427,11 +430,13 @@ const batataStore = useBatataStore()
 const { isDark, toggleTheme } = useTheme()
 const {
   provider,
+  consulEnabled,
   providerBgClass,
   providerShadowClass,
   providerTextClass,
   providerLetter,
   setProvider,
+  setConsulEnabled,
 } = useProvider()
 
 const isSidebarOpen = ref(true)
@@ -517,6 +522,29 @@ const fetchNamespaces = async () => {
   }
 }
 
+const fetchServerState = async () => {
+  try {
+    const response = await batataApi.getServerState()
+    const state = response.data
+    const enabled = state?.consul_enabled === 'true'
+    setConsulEnabled(enabled)
+    // If consul is not enabled but user was on consul provider, switch back to batata
+    if (!enabled && provider.value === 'consul') {
+      setProvider('batata')
+      switchProviderRoutes('batata')
+      router.push('/')
+    }
+  } catch {
+    // Default to consul disabled on error
+    setConsulEnabled(false)
+    if (provider.value === 'consul') {
+      setProvider('batata')
+      switchProviderRoutes('batata')
+      router.push('/')
+    }
+  }
+}
+
 onMounted(() => {
   const savedUser = storage.getJSON<{ name: string }>('batata_user')
   const savedToken = storage.get('batata-token')
@@ -528,6 +556,7 @@ onMounted(() => {
     }
   }
 
+  fetchServerState()
   fetchNamespaces()
 })
 
@@ -568,43 +597,48 @@ const nacosNavGroups = computed(() => [
     items: [{ path: '/', label: t('dashboard'), icon: LayoutDashboard }],
   },
   {
-    title: t('coreFeatures'),
+    title: t('configManagement'),
     items: [
-      { path: '/configs', label: t('configuration'), icon: FileCode },
+      { path: '/configs', label: t('configList'), icon: FileCode },
+      { path: '/config/listeners', label: t('listeningToQuery'), icon: Radio },
       { path: '/config/sync', label: t('configSync'), icon: RefreshCw },
-      { path: '/services', label: t('services'), icon: Server },
-      { path: '/namespaces', label: t('namespaces'), icon: Layers },
-      { path: '/cluster', label: t('cluster'), icon: Network },
-      { path: '/datacenters', label: t('multiDatacenter'), icon: Globe2 },
     ],
+  },
+  {
+    title: t('serviceManagement'),
+    items: [
+      { path: '/services', label: t('serviceList'), icon: Server },
+      { path: '/subscribers', label: t('subscriberList'), icon: Users },
+    ],
+  },
+  {
+    title: t('aiControl'),
+    items: [{ path: '/mcp', label: t('mcpServers'), icon: Cpu }],
+  },
+  {
+    title: t('agentManagement'),
+    items: [{ path: '/agents', label: t('agents'), icon: Bot }],
+  },
+  {
+    title: t('pluginManagement'),
+    items: [{ path: '/plugins', label: t('plugins'), icon: Puzzle }],
   },
   {
     title: t('authorityControl'),
     items: [
-      { path: '/users', label: t('users'), icon: Users },
+      { path: '/users', label: t('users'), icon: UserCheck },
       { path: '/roles', label: t('roles'), icon: ShieldAlert },
       { path: '/permissions', label: t('permissions'), icon: Key },
     ],
   },
   {
-    title: t('aiMcp'),
+    title: '',
     items: [
-      { path: '/mcp', label: t('mcpServers'), icon: Cpu },
-      { path: '/agents', label: t('agents'), icon: Bot },
-    ],
-  },
-  {
-    title: t('observability'),
-    items: [
+      { path: '/namespaces', label: t('namespaces'), icon: Layers },
+      { path: '/cluster', label: t('cluster'), icon: Network },
+      { path: '/datacenters', label: t('multiDatacenter'), icon: Globe2 },
       { path: '/tracing', label: t('tracing'), icon: Activity },
-      { path: '/audit', label: t('auditLog'), icon: FileText },
-    ],
-  },
-  {
-    title: t('system'),
-    items: [
-      { path: '/plugins', label: t('plugins'), icon: Puzzle },
-      { path: '/settings', label: t('settings'), icon: Cog },
+      { path: '/settings', label: t('settingCenter'), icon: Cog },
     ],
   },
 ])
