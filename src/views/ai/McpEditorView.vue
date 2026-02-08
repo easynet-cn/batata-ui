@@ -202,7 +202,8 @@ import { ArrowLeft, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
-import type { Namespace } from '@/types'
+import { logger } from '@/utils/logger'
+import type { Namespace, McpServerPayload } from '@/types'
 
 defineProps<{
   namespace: Namespace
@@ -263,7 +264,7 @@ const fetchMcpServer = async () => {
       allowedTools: server.allowedTools?.join('\n') || '',
     })
   } catch (error) {
-    console.error('Failed to fetch MCP server:', error)
+    logger.error('Failed to fetch MCP server:', error)
   } finally {
     loading.value = false
   }
@@ -291,9 +292,9 @@ const handleSubmit = async () => {
 
   saving.value = true
   try {
-    const payload: Record<string, unknown> = {
+    const payload: McpServerPayload = {
       name: form.name,
-      type: form.type,
+      type: form.type as McpServerPayload['type'],
       description: form.description,
       enabled: form.enabled,
       autoDiscoverTools: form.autoDiscoverTools,
@@ -333,7 +334,7 @@ const handleSubmit = async () => {
 
     router.push('/mcp')
   } catch (error) {
-    console.error('Failed to save MCP server:', error)
+    logger.error('Failed to save MCP server:', error)
   } finally {
     saving.value = false
   }

@@ -289,6 +289,7 @@ import { RouterLink } from 'vue-router'
 import { Server, Network, HeartPulse, Globe, Database, RefreshCw } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
+import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
 const consulStore = useConsulStore()
@@ -350,7 +351,7 @@ async function fetchData() {
       consulStore.fetchDatacenters(),
     ])
   } catch (err) {
-    console.error('Failed to fetch consul dashboard data:', err)
+    logger.error('Failed to fetch consul dashboard data:', err)
   } finally {
     loading.value = false
   }

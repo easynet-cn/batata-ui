@@ -118,6 +118,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Search, RotateCcw, Loader2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
+import { logger } from '@/utils/logger'
 import type { SubscriberInfo, Namespace } from '@/types'
 
 const props = defineProps<{
@@ -160,7 +161,7 @@ const fetchSubscribers = async () => {
     subscribers.value = response.data.data.subscribers || []
     total.value = response.data.data.count || 0
   } catch (error) {
-    console.error('Failed to fetch subscribers:', error)
+    logger.error('Failed to fetch subscribers:', error)
   } finally {
     loading.value = false
   }

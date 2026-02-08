@@ -1,6 +1,7 @@
 import axios from 'axios'
 import type { AxiosInstance } from 'axios'
 import { config } from '@/config'
+import { storage } from '@/composables/useStorage'
 import type {
   ConsulKVPair,
   ConsulServiceNode,
@@ -32,7 +33,7 @@ class ConsulApi {
     // Request interceptor: attach Consul token
     this.instance.interceptors.request.use(
       (reqConfig) => {
-        const token = localStorage.getItem('consul-token')
+        const token = storage.get('consul-token')
         if (token) {
           reqConfig.headers['X-Consul-Token'] = token
         }

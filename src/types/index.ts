@@ -369,6 +369,49 @@ export interface PluginInfo {
 }
 
 // ============================================
+// API Payload Types
+// ============================================
+
+export interface McpServerPayload {
+  name: string
+  namespace?: string
+  type: 'stdio' | 'sse' | 'http'
+  enabled?: boolean
+  description?: string
+  command?: string
+  args?: string[]
+  env?: Record<string, string>
+  url?: string
+  headers?: Record<string, string>
+  autoDiscoverTools?: boolean
+  allowedTools?: string[]
+  metadata?: Record<string, string>
+}
+
+export interface AgentPayload {
+  name: string
+  namespace?: string
+  enabled?: boolean
+  description?: string
+  model?: string
+  systemPrompt?: string
+  mcpServers?: string[]
+  tools?: string[]
+  temperature?: number
+  maxTokens?: number
+  maxIterations?: number
+  metadata?: Record<string, string>
+}
+
+export interface McpServerImportPayload {
+  servers: McpServerPayload[]
+}
+
+export interface PluginConfigPayload {
+  [key: string]: string | number | boolean | null | undefined
+}
+
+// ============================================
 // Config Sync Types
 // ============================================
 

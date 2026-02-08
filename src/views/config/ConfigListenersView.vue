@@ -128,6 +128,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { Search, RotateCcw, Loader2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
+import { logger } from '@/utils/logger'
 import type { ConfigListenerInfo, Namespace } from '@/types'
 
 const props = defineProps<{
@@ -165,7 +166,7 @@ const fetchListeners = async () => {
     listeners.value = response.data.data.pageItems || []
     total.value = response.data.data.totalCount || 0
   } catch (error) {
-    console.error('Failed to fetch listeners:', error)
+    logger.error('Failed to fetch listeners:', error)
   } finally {
     loading.value = false
   }

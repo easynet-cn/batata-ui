@@ -1,16 +1,17 @@
 import { ref, computed } from 'vue'
 import { translations, type Language, type TranslationKeys } from './translations'
+import { storage } from '@/composables/useStorage'
 
 const STORAGE_KEY = 'batata_lang'
 
-const currentLanguage = ref<Language>((localStorage.getItem(STORAGE_KEY) as Language) || 'zh')
+const currentLanguage = ref<Language>((storage.get(STORAGE_KEY) as Language) || 'zh')
 
 export function useI18n() {
   const language = computed(() => currentLanguage.value)
 
   const setLanguage = (lang: Language) => {
     currentLanguage.value = lang
-    localStorage.setItem(STORAGE_KEY, lang)
+    storage.set(STORAGE_KEY, lang)
   }
 
   const t = (key: TranslationKeys): string => {

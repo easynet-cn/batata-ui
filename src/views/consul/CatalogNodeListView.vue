@@ -135,6 +135,7 @@ import { Search, RefreshCw, Eye, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
+import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
 const consulStore = useConsulStore()
@@ -173,7 +174,7 @@ const fetchNodes = async () => {
     await consulStore.fetchNodes()
     await fetchNodeHealth()
   } catch (err) {
-    console.error('Failed to fetch catalog nodes:', err)
+    logger.error('Failed to fetch catalog nodes:', err)
   } finally {
     loading.value = false
   }

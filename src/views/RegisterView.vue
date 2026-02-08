@@ -5,6 +5,7 @@ import { Moon, Sun, Languages, UserPlus } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
 import { useTheme } from '@/composables/useTheme'
 
 const { t, language, setLanguage } = useI18n()
@@ -41,7 +42,7 @@ const handleSubmit = async () => {
     toast.success(t('registerSuccess'))
     router.push('/login')
   } catch (error) {
-    console.error('Registration failed:', error)
+    logger.error('Registration failed:', error)
     toast.error(t('registerFailed'))
   } finally {
     isLoading.value = false

@@ -254,6 +254,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, RefreshCw, Loader2, Eye } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
+import { logger } from '@/utils/logger'
 import type {
   ConsulNode,
   ConsulServiceNode,
@@ -303,7 +304,7 @@ const fetchNodeDetail = async () => {
     // Fetch health checks for this node
     await fetchNodeHealthChecks()
   } catch (err) {
-    console.error('Failed to fetch node detail:', err)
+    logger.error('Failed to fetch node detail:', err)
   } finally {
     loading.value = false
   }

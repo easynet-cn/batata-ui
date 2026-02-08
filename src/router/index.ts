@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useBatataStore } from '@/stores/batata'
 import BatataLayout from '@/layout/BatataLayout.vue'
+import { storage } from '@/composables/useStorage'
 
 // Nacos/Batata route children
 const nacosChildren: RouteRecordRaw[] = [
@@ -333,7 +334,7 @@ const router = createRouter({
  * Determine initial children based on stored provider preference.
  */
 function getInitialChildren(): RouteRecordRaw[] {
-  const provider = localStorage.getItem('batata_provider') || 'batata'
+  const provider = storage.get('batata_provider') || 'batata'
   return provider === 'consul' ? consulChildren : nacosChildren
 }
 
@@ -363,10 +364,10 @@ router.beforeEach((to, _from, next) => {
 
   // Restore user session from localStorage if not already in store
   if (!batataStore.isAuthenticated) {
-    const savedUser = localStorage.getItem('batata_user')
-    const savedToken = localStorage.getItem('batata-token')
+    const savedUser = storage.getJSON<{ name: string }>('batata_user')
+    const savedToken = storage.get('batata-token')
     if (savedUser && savedToken) {
-      const user = JSON.parse(savedUser)
+      const user = savedUser
       batataStore.currentUser = {
         username: user.name,
         token: savedToken,

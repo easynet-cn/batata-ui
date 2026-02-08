@@ -253,6 +253,8 @@ import {
   Loader2,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
+import { storage } from '@/composables/useStorage'
+import { logger } from '@/utils/logger'
 import type { Namespace } from '@/types'
 
 defineProps<{
@@ -284,24 +286,20 @@ const serverInfo = reactive({
 
 // Methods
 const loadSettings = () => {
-  const saved = localStorage.getItem('batata-settings')
+  const saved = storage.getJSON<typeof settings>('batata-settings')
   if (saved) {
-    try {
-      Object.assign(settings, JSON.parse(saved))
-    } catch {
-      console.error('Failed to load settings')
-    }
+    Object.assign(settings, saved)
   }
 }
 
 const handleSave = async () => {
   saving.value = true
   try {
-    localStorage.setItem('batata-settings', JSON.stringify(settings))
+    storage.setJSON('batata-settings', settings)
     // Apply theme
     document.documentElement.setAttribute('data-theme', settings.theme)
   } catch (error) {
-    console.error('Failed to save settings:', error)
+    logger.error('Failed to save settings:', error)
   } finally {
     saving.value = false
   }
@@ -328,7 +326,7 @@ const fetchServerInfo = async () => {
     serverInfo.version = '2.3.0'
     serverInfo.mode = 'standalone'
   } catch (error) {
-    console.error('Failed to fetch server info:', error)
+    logger.error('Failed to fetch server info:', error)
   } finally {
     loadingServer.value = false
   }

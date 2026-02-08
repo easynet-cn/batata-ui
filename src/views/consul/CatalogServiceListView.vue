@@ -139,6 +139,7 @@ import { Search, RefreshCw, Eye, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
+import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
 const consulStore = useConsulStore()
@@ -181,7 +182,7 @@ const fetchServices = async () => {
     // Fetch health data for each service
     await fetchHealthSummaries()
   } catch (err) {
-    console.error('Failed to fetch catalog services:', err)
+    logger.error('Failed to fetch catalog services:', err)
   } finally {
     loading.value = false
   }

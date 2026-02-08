@@ -258,6 +258,7 @@ import {
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
+import { logger } from '@/utils/logger'
 import type { ConsulKVPair } from '@/types/consul'
 
 const { t } = useI18n()
@@ -421,7 +422,7 @@ async function fetchKeys() {
       }),
     )
   } catch (err) {
-    console.error('Failed to fetch KV keys:', err)
+    logger.error('Failed to fetch KV keys:', err)
     kvKeys.value = []
   } finally {
     loading.value = false
@@ -448,7 +449,7 @@ async function handleDelete() {
     deleteTargetKey.value = ''
     await fetchKeys()
   } catch (err) {
-    console.error('Failed to delete KV:', err)
+    logger.error('Failed to delete KV:', err)
   } finally {
     deleting.value = false
   }

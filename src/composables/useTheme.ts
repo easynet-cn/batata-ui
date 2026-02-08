@@ -1,10 +1,11 @@
 import { ref, computed, watchEffect } from 'vue'
+import { storage } from './useStorage'
 
 export type Theme = 'light' | 'dark'
 
 const STORAGE_KEY = 'batata_theme'
 
-const theme = ref<Theme>((localStorage.getItem(STORAGE_KEY) as Theme) || 'light')
+const theme = ref<Theme>((storage.get(STORAGE_KEY) as Theme) || 'light')
 
 function applyTheme(t: Theme) {
   if (t === 'dark') {
@@ -19,7 +20,7 @@ applyTheme(theme.value)
 
 watchEffect(() => {
   applyTheme(theme.value)
-  localStorage.setItem(STORAGE_KEY, theme.value)
+  storage.set(STORAGE_KEY, theme.value)
 })
 
 export function useTheme() {

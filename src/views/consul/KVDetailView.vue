@@ -212,6 +212,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { Pencil, Trash2, ArrowLeft, RefreshCw, AlertTriangle, Copy } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
+import { logger } from '@/utils/logger'
 import type { ConsulKVPair } from '@/types/consul'
 
 const { t } = useI18n()
@@ -253,7 +254,7 @@ async function loadKVDetail() {
       errorMsg.value = t('consulKVNotFound')
     }
   } catch (err) {
-    console.error('Failed to load KV detail:', err)
+    logger.error('Failed to load KV detail:', err)
     errorMsg.value = t('consulKVLoadError')
   } finally {
     loading.value = false
@@ -265,7 +266,7 @@ async function copyValue() {
   try {
     await navigator.clipboard.writeText(decodedValue.value)
   } catch {
-    console.error('Failed to copy value')
+    logger.error('Failed to copy value')
   }
 }
 
@@ -278,7 +279,7 @@ async function handleDelete() {
     deleteModalVisible.value = false
     router.push('/consul/kv')
   } catch (err) {
-    console.error('Failed to delete KV:', err)
+    logger.error('Failed to delete KV:', err)
   } finally {
     deleting.value = false
   }

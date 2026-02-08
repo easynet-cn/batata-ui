@@ -17,6 +17,10 @@ import type {
   PermissionInfo,
   McpServerInfo,
   AgentInfo,
+  AgentPayload,
+  McpServerPayload,
+  McpServerImportPayload,
+  PluginConfigPayload,
   AuditLogItem,
   AuditLogSearch,
   AuditStats,
@@ -29,6 +33,7 @@ import type {
 } from '@/types'
 import { config } from '@/config'
 import { ApiError, AuthError, NetworkError } from '@/utils/error'
+import { storage } from '@/composables/useStorage'
 
 // Batata API response interface
 export interface BatataResponse<T = unknown> {
@@ -68,11 +73,11 @@ class BatataApi {
     // 请求拦截器
     this.instance.interceptors.request.use(
       (reqConfig) => {
-        const token = localStorage.getItem(config.storage.tokenKey)
+        const token = storage.get(config.storage.tokenKey)
         if (token) {
           reqConfig.headers.accessToken = token
         }
-        const username = localStorage.getItem(config.storage.usernameKey)
+        const username = storage.get(config.storage.usernameKey)
         if (username) {
           reqConfig.headers.username = username
         }
@@ -95,8 +100,8 @@ class BatataApi {
           throw new NetworkError()
         }
         if (error.response?.status === 401 || error.response?.status === 403) {
-          localStorage.removeItem(config.storage.tokenKey)
-          localStorage.removeItem(config.storage.usernameKey)
+          storage.remove(config.storage.tokenKey)
+          storage.remove(config.storage.usernameKey)
           window.location.href = '/login'
           throw new AuthError()
         }
@@ -176,11 +181,11 @@ class BatataApi {
 
       this.authInstance.interceptors.request.use(
         (reqConfig) => {
-          const token = localStorage.getItem(config.storage.tokenKey)
+          const token = storage.get(config.storage.tokenKey)
           if (token) {
             reqConfig.headers.accessToken = token
           }
-          const username = localStorage.getItem(config.storage.usernameKey)
+          const username = storage.get(config.storage.usernameKey)
           if (username) {
             reqConfig.headers.username = username
           }
@@ -203,8 +208,8 @@ class BatataApi {
             throw new NetworkError()
           }
           if (error.response?.status === 401 || error.response?.status === 403) {
-            localStorage.removeItem(config.storage.tokenKey)
-            localStorage.removeItem(config.storage.usernameKey)
+            storage.remove(config.storage.tokenKey)
+            storage.remove(config.storage.usernameKey)
             window.location.href = '/login'
             throw new AuthError()
           }
@@ -595,11 +600,11 @@ class BatataApi {
     )
   }
 
-  async createMcpServer(data: Record<string, unknown>) {
+  async createMcpServer(data: McpServerPayload) {
     return this.instance.post<BatataResponse>('/ai/mcp/servers', data)
   }
 
-  async updateMcpServer(namespace: string, name: string, data: Record<string, unknown>) {
+  async updateMcpServer(namespace: string, name: string, data: Partial<McpServerPayload>) {
     return this.instance.put<BatataResponse>(
       `/ai/mcp/servers/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
       data,
@@ -612,7 +617,7 @@ class BatataApi {
     )
   }
 
-  async importMcpServers(data: unknown) {
+  async importMcpServers(data: McpServerImportPayload) {
     return this.instance.post<BatataResponse>('/ai/mcp/servers/import', data)
   }
 
@@ -646,11 +651,11 @@ class BatataApi {
     )
   }
 
-  async createAgent(data: Partial<AgentInfo>) {
+  async createAgent(data: AgentPayload) {
     return this.instance.post<BatataResponse>('/ai/a2a/agents', data)
   }
 
-  async updateAgent(namespace: string, name: string, data: Partial<AgentInfo>) {
+  async updateAgent(namespace: string, name: string, data: Partial<AgentPayload>) {
     return this.instance.put<BatataResponse>(
       `/ai/a2a/agents/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
       data,
@@ -692,11 +697,11 @@ class BatataApi {
       // Request interceptor
       this.v2Instance.interceptors.request.use(
         (reqConfig) => {
-          const token = localStorage.getItem(config.storage.tokenKey)
+          const token = storage.get(config.storage.tokenKey)
           if (token) {
             reqConfig.headers.accessToken = token
           }
-          const username = localStorage.getItem(config.storage.usernameKey)
+          const username = storage.get(config.storage.usernameKey)
           if (username) {
             reqConfig.headers.username = username
           }
@@ -719,8 +724,8 @@ class BatataApi {
             throw new NetworkError()
           }
           if (error.response?.status === 401 || error.response?.status === 403) {
-            localStorage.removeItem(config.storage.tokenKey)
-            localStorage.removeItem(config.storage.usernameKey)
+            storage.remove(config.storage.tokenKey)
+            storage.remove(config.storage.usernameKey)
             window.location.href = '/login'
             throw new AuthError()
           }
@@ -836,10 +841,10 @@ class BatataApi {
     })
   }
 
-  async updatePluginConfig(name: string, config: Record<string, unknown>) {
+  async updatePluginConfig(name: string, pluginConfig: PluginConfigPayload) {
     return this.instance.put<BatataResponse>('/core/plugin/config', {
       name,
-      config,
+      config: pluginConfig,
     })
   }
 

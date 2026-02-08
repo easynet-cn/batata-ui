@@ -233,7 +233,8 @@ import { ArrowLeft, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
-import type { McpServerInfo, Namespace } from '@/types'
+import { logger } from '@/utils/logger'
+import type { McpServerInfo, Namespace, AgentPayload } from '@/types'
 
 defineProps<{
   namespace: Namespace
@@ -277,7 +278,7 @@ const fetchMcpServers = async () => {
     })
     availableMcpServers.value = response.data.data.pageItems || []
   } catch (error) {
-    console.error('Failed to fetch MCP servers:', error)
+    logger.error('Failed to fetch MCP servers:', error)
   } finally {
     loadingMcp.value = false
   }
@@ -307,7 +308,7 @@ const fetchAgent = async () => {
       maxIterations: agent.maxIterations ?? 10,
     })
   } catch (error) {
-    console.error('Failed to fetch agent:', error)
+    logger.error('Failed to fetch agent:', error)
   } finally {
     loading.value = false
   }
@@ -334,7 +335,7 @@ const handleSubmit = async () => {
 
   saving.value = true
   try {
-    const payload: Record<string, unknown> = {
+    const payload: AgentPayload = {
       name: form.name,
       model: form.model || undefined,
       description: form.description,
@@ -360,7 +361,7 @@ const handleSubmit = async () => {
 
     router.push('/agents')
   } catch (error) {
-    console.error('Failed to save agent:', error)
+    logger.error('Failed to save agent:', error)
   } finally {
     saving.value = false
   }

@@ -2,31 +2,35 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ServiceInfo, ConfigInfo, Namespace, NodeInfo } from '@/types'
 import batataApi from '@/api/batata'
+import { storage } from '@/composables/useStorage'
+import { useI18n } from '@/i18n'
 
 export const useBatataStore = defineStore('batata', () => {
-  // 状态
+  const { t } = useI18n()
+
+  // State
   const loading = ref(false)
   const error = ref<string | null>(null)
   const currentUser = ref<{ username: string; token: string } | null>(null)
 
-  // 服务管理状态
+  // Service state
   const services = ref<ServiceInfo[]>([])
   const serviceTotal = ref(0)
   const currentService = ref<ServiceInfo | null>(null)
 
-  // 配置管理状态
+  // Config state
   const configs = ref<ConfigInfo[]>([])
   const configTotal = ref(0)
   const currentConfig = ref<ConfigInfo | null>(null)
 
-  // 命名空间状态
+  // Namespace state
   const namespaces = ref<Namespace[]>([])
   const currentNamespace = ref<string>('public')
 
-  // 集群状态
+  // Cluster state
   const clusterNodes = ref<NodeInfo[]>([])
 
-  // 计算属性
+  // Computed
   const isAuthenticated = computed(() => !!currentUser.value)
   const healthyServicesCount = computed(
     () => services.value.filter((s) => s.healthyInstanceCount > 0).length,
@@ -43,12 +47,12 @@ export const useBatataStore = defineStore('batata', () => {
       const { accessToken } = response.data
 
       currentUser.value = { username, token: accessToken }
-      localStorage.setItem('batata-token', accessToken)
-      localStorage.setItem('batata-username', username)
+      storage.set('batata-token', accessToken)
+      storage.set('batata-username', username)
 
       return true
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : '登录失败'
+      error.value = err instanceof Error ? err.message : t('loginFailedGeneric')
       return false
     } finally {
       loading.value = false
@@ -57,9 +61,8 @@ export const useBatataStore = defineStore('batata', () => {
 
   function logout() {
     currentUser.value = null
-    localStorage.removeItem('batata-token')
-    localStorage.removeItem('batata-username')
-    // 清空所有数据
+    storage.remove('batata-token')
+    storage.remove('batata-username')
     services.value = []
     configs.value = []
     namespaces.value = []
@@ -89,7 +92,7 @@ export const useBatataStore = defineStore('batata', () => {
 
       return response.data.data
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '获取服务列表失败'
+      const message = err instanceof Error ? err.message : t('fetchServiceListFailed')
       error.value = message
       throw err
     } finally {
@@ -105,7 +108,7 @@ export const useBatataStore = defineStore('batata', () => {
       const response = await batataApi.getServiceDetail(serviceName, groupName, namespaceId)
       return response.data.data
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '获取服务详情失败'
+      const message = err instanceof Error ? err.message : t('fetchServiceDetailFailed')
       error.value = message
       throw err
     } finally {
@@ -136,7 +139,7 @@ export const useBatataStore = defineStore('batata', () => {
 
       return response.data.data
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '获取配置列表失败'
+      const message = err instanceof Error ? err.message : t('fetchConfigListFailed')
       error.value = message
       throw err
     } finally {
@@ -152,7 +155,7 @@ export const useBatataStore = defineStore('batata', () => {
       const response = await batataApi.getConfig(dataId, group, tenant)
       return response.data.data
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '获取配置内容失败'
+      const message = err instanceof Error ? err.message : t('fetchConfigContentFailed')
       error.value = message
       throw err
     } finally {
@@ -170,7 +173,7 @@ export const useBatataStore = defineStore('batata', () => {
 
       return response.data.data
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '获取命名空间失败'
+      const message = err instanceof Error ? err.message : t('fetchNamespacesFailed')
       error.value = message
       throw err
     } finally {
@@ -188,7 +191,7 @@ export const useBatataStore = defineStore('batata', () => {
 
       return response.data.data
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '获取集群节点失败'
+      const message = err instanceof Error ? err.message : t('fetchClusterNodesFailed')
       error.value = message
       throw err
     } finally {
@@ -204,7 +207,7 @@ export const useBatataStore = defineStore('batata', () => {
       await batataApi.deleteService(serviceName, groupName, namespaceId)
       return true
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '删除服务失败'
+      const message = err instanceof Error ? err.message : t('deleteServiceFailed')
       error.value = message
       throw err
     } finally {
@@ -226,7 +229,7 @@ export const useBatataStore = defineStore('batata', () => {
       await batataApi.createService(data)
       return true
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '创建服务失败'
+      const message = err instanceof Error ? err.message : t('createServiceFailed')
       error.value = message
       throw err
     } finally {
@@ -242,7 +245,7 @@ export const useBatataStore = defineStore('batata', () => {
       await batataApi.deleteConfig(dataId, group, tenant)
       return true
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '删除配置失败'
+      const message = err instanceof Error ? err.message : t('deleteConfigFailed')
       error.value = message
       throw err
     } finally {
@@ -266,7 +269,7 @@ export const useBatataStore = defineStore('batata', () => {
       await batataApi.publishConfig(data)
       return true
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '发布配置失败'
+      const message = err instanceof Error ? err.message : t('publishConfigFailed')
       error.value = message
       throw err
     } finally {
@@ -282,7 +285,7 @@ export const useBatataStore = defineStore('batata', () => {
       await batataApi.deleteNamespace(namespaceId)
       return true
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '删除命名空间失败'
+      const message = err instanceof Error ? err.message : t('deleteNamespaceFailed')
       error.value = message
       throw err
     } finally {
@@ -302,7 +305,7 @@ export const useBatataStore = defineStore('batata', () => {
       await batataApi.createNamespace(data)
       return true
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '创建命名空间失败'
+      const message = err instanceof Error ? err.message : t('createNamespaceFailed')
       error.value = message
       throw err
     } finally {
@@ -315,7 +318,7 @@ export const useBatataStore = defineStore('batata', () => {
   }
 
   return {
-    // 状态
+    // State
     loading,
     error,
     currentUser,
@@ -329,12 +332,12 @@ export const useBatataStore = defineStore('batata', () => {
     currentNamespace,
     clusterNodes,
 
-    // 计算属性
+    // Computed
     isAuthenticated,
     healthyServicesCount,
     totalInstancesCount,
 
-    // 方法
+    // Actions
     login,
     logout,
     fetchServices,

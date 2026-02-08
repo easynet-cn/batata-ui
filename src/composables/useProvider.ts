@@ -1,9 +1,10 @@
 import { ref, computed } from 'vue'
 import type { ProviderType } from '@/types'
+import { storage } from './useStorage'
 
 const STORAGE_KEY = 'batata_provider'
 
-const provider = ref<ProviderType>((localStorage.getItem(STORAGE_KEY) as ProviderType) || 'batata')
+const provider = ref<ProviderType>((storage.get(STORAGE_KEY) as ProviderType) || 'batata')
 
 // Provider change callbacks
 const onChangeCallbacks: Array<(p: ProviderType) => void> = []
@@ -36,7 +37,7 @@ export function useProvider() {
   function setProvider(p: ProviderType) {
     const previous = provider.value
     provider.value = p
-    localStorage.setItem(STORAGE_KEY, p)
+    storage.set(STORAGE_KEY, p)
 
     // Notify listeners on change
     if (previous !== p) {

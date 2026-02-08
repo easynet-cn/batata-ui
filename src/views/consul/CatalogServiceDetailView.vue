@@ -184,6 +184,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, RefreshCw, Loader2, ChevronDown } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
+import { logger } from '@/utils/logger'
 import type { ConsulServiceNode, ConsulHealthCheck, ConsulHealthStatus } from '@/types/consul'
 
 const { t } = useI18n()
@@ -263,7 +264,7 @@ const fetchServiceDetail = async () => {
     const response = await consulApi.getHealthService(serviceName.value)
     serviceNodes.value = response.data || []
   } catch (err) {
-    console.error('Failed to fetch service detail:', err)
+    logger.error('Failed to fetch service detail:', err)
   } finally {
     loading.value = false
   }

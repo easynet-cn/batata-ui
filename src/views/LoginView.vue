@@ -5,6 +5,7 @@ import { Moon, Sun, Languages } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useBatataStore } from '@/stores/batata'
 import { useTheme } from '@/composables/useTheme'
+import { storage } from '@/composables/useStorage'
 
 const { t, language, setLanguage } = useI18n()
 const router = useRouter()
@@ -23,7 +24,7 @@ const handleSubmit = async () => {
     const success = await batataStore.login(username.value, password.value)
     if (success) {
       const user = { name: username.value }
-      localStorage.setItem('batata_user', JSON.stringify(user))
+      storage.setJSON('batata_user', user)
       router.push('/')
     } else {
       loginError.value = batataStore.error || t('loginFailed')
@@ -40,11 +41,10 @@ const toggleLanguage = () => {
 }
 
 onMounted(() => {
-  const savedUser = localStorage.getItem('batata_user')
-  const savedToken = localStorage.getItem('batata-token')
+  const savedUser = storage.getJSON<{ name: string }>('batata_user')
+  const savedToken = storage.get('batata-token')
   if (savedUser && savedToken) {
-    const user = JSON.parse(savedUser)
-    batataStore.currentUser = { username: user.name, token: savedToken }
+    batataStore.currentUser = { username: savedUser.name, token: savedToken }
     router.push('/')
   }
 })

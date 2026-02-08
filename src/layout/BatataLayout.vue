@@ -418,6 +418,7 @@ import { config } from '@/config'
 import { useTheme } from '@/composables/useTheme'
 import { useProvider } from '@/composables/useProvider'
 import { switchProviderRoutes } from '@/router'
+import { storage } from '@/composables/useStorage'
 
 const { t, language, setLanguage } = useI18n()
 const route = useRoute()
@@ -499,9 +500,8 @@ const fetchNamespaces = async () => {
     if (list && list.length > 0) {
       namespaces.value = list
       // Restore saved namespace or use the first one
-      const savedNs = localStorage.getItem('batata_current_ns')
-      if (savedNs) {
-        const parsed = JSON.parse(savedNs) as Namespace
+      const parsed = storage.getJSON<Namespace>('batata_current_ns')
+      if (parsed) {
         const found = list.find((ns: Namespace) => ns.namespace === parsed.namespace)
         if (found) {
           currentNamespace.value = found
@@ -518,10 +518,10 @@ const fetchNamespaces = async () => {
 }
 
 onMounted(() => {
-  const savedUser = localStorage.getItem('batata_user')
-  const savedToken = localStorage.getItem('batata-token')
+  const savedUser = storage.getJSON<{ name: string }>('batata_user')
+  const savedToken = storage.get('batata-token')
   if (savedUser) {
-    user.value = JSON.parse(savedUser)
+    user.value = savedUser
     // Also restore store state for router guard
     if (savedToken) {
       batataStore.currentUser = { username: user.value!.name, token: savedToken }
@@ -538,15 +538,15 @@ const handlerChangeLanguage = (lang: Language) => {
 
 const handleLogout = () => {
   user.value = null
-  localStorage.removeItem('batata_user')
-  localStorage.removeItem('batata-token')
+  storage.remove('batata_user')
+  storage.remove('batata-token')
   batataStore.logout()
   router.push('/login')
 }
 
 const switchNamespace = (ns: Namespace) => {
   currentNamespace.value = ns
-  localStorage.setItem('batata_current_ns', JSON.stringify(ns))
+  storage.setJSON('batata_current_ns', ns)
   showNamespaceMenu.value = false
 }
 

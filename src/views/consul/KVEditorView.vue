@@ -115,6 +115,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Save, RefreshCw } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
+import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -156,7 +157,7 @@ async function loadKVData() {
       form.flags = kvPair.Flags
     }
   } catch (err) {
-    console.error('Failed to load KV pair:', err)
+    logger.error('Failed to load KV pair:', err)
     errorMsg.value = t('consulKVLoadError')
   } finally {
     loadingDetail.value = false
@@ -178,7 +179,7 @@ async function handleSave() {
     await consulApi.putKV(form.key, encodedValue, form.flags || undefined)
     router.push('/consul/kv')
   } catch (err) {
-    console.error('Failed to save KV pair:', err)
+    logger.error('Failed to save KV pair:', err)
     errorMsg.value = t('consulKVSaveError')
   } finally {
     saving.value = false

@@ -129,6 +129,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, History, Pencil, Loader2, Copy } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
+import { logger } from '@/utils/logger'
 import type { ConfigInfo, Namespace } from '@/types'
 
 const props = defineProps<{
@@ -161,7 +162,7 @@ const fetchConfig = async () => {
     )
     config.value = response.data.data
   } catch (error) {
-    console.error('Failed to fetch config:', error)
+    logger.error('Failed to fetch config:', error)
   } finally {
     loading.value = false
   }
@@ -172,7 +173,7 @@ const copyContent = async () => {
   try {
     await navigator.clipboard.writeText(config.value.content)
   } catch (error) {
-    console.error('Failed to copy:', error)
+    logger.error('Failed to copy:', error)
   }
 }
 

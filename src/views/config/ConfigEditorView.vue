@@ -203,6 +203,7 @@ import { ArrowLeft, Code, Loader2, Lock, Unlock, FlaskConical } from 'lucide-vue
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
 import type { Namespace, ConfigType } from '@/types'
 
 const props = defineProps<{
@@ -275,7 +276,7 @@ const fetchConfig = async () => {
       // No beta config exists, that's fine
     }
   } catch (error) {
-    console.error('Failed to fetch config:', error)
+    logger.error('Failed to fetch config:', error)
   }
 }
 
@@ -322,7 +323,7 @@ const handleSubmit = async () => {
     }
     router.push({ name: 'configs' })
   } catch (error) {
-    console.error('Failed to publish config:', error)
+    logger.error('Failed to publish config:', error)
   } finally {
     saving.value = false
   }

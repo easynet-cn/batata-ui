@@ -261,9 +261,10 @@ import {
   Activity,
   Plus,
 } from 'lucide-vue-next'
-import * as echarts from 'echarts'
+import type * as echartsType from 'echarts'
 import { useI18n } from '@/i18n'
 import { useBatataStore } from '@/stores/batata'
+import { logger } from '@/utils/logger'
 import type { NodeInfo, Namespace } from '@/types'
 
 // Props
@@ -278,8 +279,16 @@ const batataStore = useBatataStore()
 const loading = ref(false)
 const healthChartRef = ref<HTMLElement | null>(null)
 const configChartRef = ref<HTMLElement | null>(null)
-let healthChart: echarts.ECharts | null = null
-let configChart: echarts.ECharts | null = null
+let healthChart: echartsType.ECharts | null = null
+let configChart: echartsType.ECharts | null = null
+let echartsModule: typeof echartsType | null = null
+
+const loadECharts = async () => {
+  if (!echartsModule) {
+    echartsModule = await import('echarts')
+  }
+  return echartsModule
+}
 
 // Data
 const clusterNodes = ref<NodeInfo[]>([])
@@ -306,11 +315,12 @@ const configTypeData = ref([
 ])
 
 // Initialize health chart
-const initHealthChart = () => {
+const initHealthChart = async () => {
   if (!healthChartRef.value) return
+  const echarts = await loadECharts()
 
   healthChart = echarts.init(healthChartRef.value)
-  const option: echarts.EChartsOption = {
+  const option: echartsType.EChartsOption = {
     tooltip: {
       trigger: 'item',
       formatter: '{b}: {c} ({d}%)',
@@ -365,11 +375,12 @@ const initHealthChart = () => {
 }
 
 // Initialize config chart
-const initConfigChart = () => {
+const initConfigChart = async () => {
   if (!configChartRef.value) return
+  const echarts = await loadECharts()
 
   configChart = echarts.init(configChartRef.value)
-  const option: echarts.EChartsOption = {
+  const option: echartsType.EChartsOption = {
     tooltip: {
       trigger: 'item',
       formatter: '{b}: {c} ({d}%)',
@@ -471,7 +482,7 @@ const fetchData = async () => {
     stats.value.totalServices = servicesData.totalCount
     stats.value.healthyServices = batataStore.healthyServicesCount
   } catch (error) {
-    console.error('Failed to fetch services:', error)
+    logger.error('Failed to fetch services:', error)
   }
 
   // Fetch configs
@@ -493,7 +504,7 @@ const fetchData = async () => {
       value,
     }))
   } catch (error) {
-    console.error('Failed to fetch configs:', error)
+    logger.error('Failed to fetch configs:', error)
   }
 
   // Fetch namespaces
@@ -502,7 +513,7 @@ const fetchData = async () => {
     stats.value.totalNamespaces = namespacesData.length
     stats.value.customNamespaces = namespacesData.filter((n) => n.type === 2).length
   } catch (error) {
-    console.error('Failed to fetch namespaces:', error)
+    logger.error('Failed to fetch namespaces:', error)
   }
 
   // Fetch cluster nodes
@@ -512,7 +523,7 @@ const fetchData = async () => {
     stats.value.totalNodes = nodesData.length
     stats.value.healthyNodes = nodesData.filter((n) => n.state === 'UP').length
   } catch (error) {
-    console.error('Failed to fetch cluster nodes:', error)
+    logger.error('Failed to fetch cluster nodes:', error)
   }
 
   // Update charts
@@ -532,10 +543,10 @@ const handleResize = () => {
   configChart?.resize()
 }
 
-onMounted(() => {
+onMounted(async () => {
   fetchData()
-  initHealthChart()
-  initConfigChart()
+  await initHealthChart()
+  await initConfigChart()
   window.addEventListener('resize', handleResize)
 })
 
