@@ -82,13 +82,22 @@
                 {{ formatTime(token.CreateTime) }}
               </td>
               <td>
-                <button
-                  @click="handleDelete(token)"
-                  class="btn btn-ghost btn-sm text-danger"
-                  :title="t('delete')"
-                >
-                  <Trash2 class="w-3.5 h-3.5" />
-                </button>
+                <div class="flex items-center gap-1">
+                  <button
+                    @click="handleEdit(token)"
+                    class="btn btn-ghost btn-sm text-text-secondary"
+                    :title="t('edit')"
+                  >
+                    <Pencil class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click="handleDelete(token)"
+                    class="btn btn-ghost btn-sm text-danger"
+                    :title="t('delete')"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -96,11 +105,11 @@
       </div>
     </div>
 
-    <!-- Create Token Modal -->
+    <!-- Create/Edit Token Modal -->
     <FormModal
       v-model="showCreateModal"
-      :title="t('createToken')"
-      :submit-text="t('create')"
+      :title="isEditing ? t('editToken') : t('createToken')"
+      :submit-text="isEditing ? t('updateToken') : t('create')"
       :loading="saving"
       @submit="submitCreate"
     >
@@ -178,7 +187,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Plus, RefreshCw, Trash2, Loader2 } from 'lucide-vue-next'
+import { Plus, RefreshCw, Trash2, Pencil, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
@@ -195,6 +204,8 @@ const store = useConsulStore()
 const saving = ref(false)
 const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
+const isEditing = ref(false)
+const editingToken = ref<ConsulACLToken | null>(null)
 const tokenToDelete = ref<ConsulACLToken | null>(null)
 const selectedPolicyIds = ref<string[]>([])
 const selectedRoleIds = ref<string[]>([])
@@ -229,6 +240,8 @@ async function loadTokens() {
 }
 
 async function openCreateModal() {
+  isEditing.value = false
+  editingToken.value = null
   showCreateModal.value = true
   createForm.value.Description = ''
   selectedPolicyIds.value = []
@@ -238,6 +251,25 @@ async function openCreateModal() {
     await Promise.all([store.fetchACLPolicies(), store.fetchACLRoles()])
   } catch (error) {
     logger.error('Failed to load policies/roles:', error)
+  }
+}
+
+async function handleEdit(token: ConsulACLToken) {
+  isEditing.value = true
+  try {
+    // Fetch full token details
+    const response = await consulApi.getACLToken(token.AccessorID)
+    const fullToken = response.data
+    editingToken.value = fullToken
+    createForm.value.Description = fullToken.Description || ''
+    selectedPolicyIds.value = (fullToken.Policies || []).map((p) => p.ID)
+    selectedRoleIds.value = (fullToken.Roles || []).map((r) => r.ID)
+    // Load policies and roles for the selector
+    await Promise.all([store.fetchACLPolicies(), store.fetchACLRoles()])
+    showCreateModal.value = true
+  } catch (error) {
+    logger.error('Failed to fetch token details:', error)
+    toast.error(t('operationFailed'))
   }
 }
 
@@ -252,16 +284,25 @@ async function submitCreate() {
       const found = store.aclRoles.find((r) => r.ID === id)
       return { ID: id, Name: found?.Name || '' }
     })
-    await consulApi.createACLToken({
-      Description: createForm.value.Description,
-      Policies: policies,
-      Roles: roles,
-    })
+
+    if (isEditing.value && editingToken.value) {
+      await consulApi.updateACLToken(editingToken.value.AccessorID, {
+        Description: createForm.value.Description,
+        Policies: policies,
+        Roles: roles,
+      })
+    } else {
+      await consulApi.createACLToken({
+        Description: createForm.value.Description,
+        Policies: policies,
+        Roles: roles,
+      })
+    }
     showCreateModal.value = false
     toast.success(t('success'))
     await loadTokens()
   } catch (error) {
-    logger.error('Failed to create ACL token:', error)
+    logger.error('Failed to save ACL token:', error)
     toast.error(t('operationFailed'))
   } finally {
     saving.value = false

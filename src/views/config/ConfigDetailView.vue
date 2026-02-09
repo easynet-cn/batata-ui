@@ -100,10 +100,12 @@
               {{ t('copy') }}
             </button>
           </div>
-          <pre
-            class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono text-text-primary"
-            >{{ config.content }}</pre
-          >
+          <CodeEditor
+            :model-value="config.content"
+            :language="config.type || 'text'"
+            readonly
+            min-height="200px"
+          />
         </div>
       </div>
 
@@ -130,6 +132,7 @@ import { ArrowLeft, History, Pencil, Loader2, Copy } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { logger } from '@/utils/logger'
+import CodeEditor from '@/components/common/CodeEditor.vue'
 import type { ConfigInfo, Namespace } from '@/types'
 
 const props = defineProps<{

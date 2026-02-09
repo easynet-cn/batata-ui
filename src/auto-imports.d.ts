@@ -19,6 +19,7 @@ declare global {
   const defineComponent: typeof import('vue').defineComponent
   const defineStore: typeof import('pinia').defineStore
   const effectScope: typeof import('vue').effectScope
+  const formatContent: typeof import('./utils/formatters').formatContent
   const formatDateTime: typeof import('./utils/date').formatDateTime
   const formatTimestamp: typeof import('./utils/date').formatTimestamp
   const getActivePinia: typeof import('pinia').getActivePinia
@@ -91,6 +92,7 @@ declare global {
   const useSlots: typeof import('vue').useSlots
   const useTemplateRef: typeof import('vue').useTemplateRef
   const useThrottleFn: typeof import('@vueuse/core').useThrottleFn
+  const validateContent: typeof import('./utils/formatters').validateContent
   const watch: typeof import('vue').watch
   const watchEffect: typeof import('vue').watchEffect
   const watchPostEffect: typeof import('vue').watchPostEffect
@@ -122,6 +124,9 @@ declare global {
   // @ts-ignore
   export type { ApiError, NetworkError, AuthError } from './utils/error'
   import('./utils/error')
+  // @ts-ignore
+  export type { FormatResult, ValidateResult } from './utils/formatters'
+  import('./utils/formatters')
 }
 
 // for vue template auto import
@@ -142,6 +147,7 @@ declare module 'vue' {
     readonly defineComponent: UnwrapRef<(typeof import('vue'))['defineComponent']>
     readonly defineStore: UnwrapRef<(typeof import('pinia'))['defineStore']>
     readonly effectScope: UnwrapRef<(typeof import('vue'))['effectScope']>
+    readonly formatContent: UnwrapRef<(typeof import('./utils/formatters'))['formatContent']>
     readonly formatDateTime: UnwrapRef<(typeof import('./utils/date'))['formatDateTime']>
     readonly formatTimestamp: UnwrapRef<(typeof import('./utils/date'))['formatTimestamp']>
     readonly getActivePinia: UnwrapRef<(typeof import('pinia'))['getActivePinia']>
@@ -214,6 +220,7 @@ declare module 'vue' {
     readonly useSlots: UnwrapRef<(typeof import('vue'))['useSlots']>
     readonly useTemplateRef: UnwrapRef<(typeof import('vue'))['useTemplateRef']>
     readonly useThrottleFn: UnwrapRef<(typeof import('@vueuse/core'))['useThrottleFn']>
+    readonly validateContent: UnwrapRef<(typeof import('./utils/formatters'))['validateContent']>
     readonly watch: UnwrapRef<(typeof import('vue'))['watch']>
     readonly watchEffect: UnwrapRef<(typeof import('vue'))['watchEffect']>
     readonly watchPostEffect: UnwrapRef<(typeof import('vue'))['watchPostEffect']>

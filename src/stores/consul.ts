@@ -7,12 +7,15 @@ import type {
   ConsulACLToken,
   ConsulACLPolicy,
   ConsulACLRole,
+  ConsulACLAuthMethod,
+  ConsulACLBindingRule,
   ConsulIntention,
   ConsulSession,
   ConsulConfigEntry,
   ConsulConfigEntryKind,
   ConsulAgentMember,
   ConsulServiceNode,
+  ConsulPeering,
 } from '@/types/consul'
 import consulApi from '@/api/consul'
 
@@ -44,6 +47,13 @@ export const useConsulStore = defineStore('consul', () => {
   // Mesh
   const intentions = ref<ConsulIntention[]>([])
   const configEntries = ref<ConsulConfigEntry[]>([])
+
+  // Auth Methods
+  const authMethods = ref<ConsulACLAuthMethod[]>([])
+  const bindingRules = ref<ConsulACLBindingRule[]>([])
+
+  // Peerings
+  const peerings = ref<ConsulPeering[]>([])
 
   // Sessions
   const sessions = ref<ConsulSession[]>([])
@@ -313,6 +323,59 @@ export const useConsulStore = defineStore('consul', () => {
   }
 
   // ============================================
+  // Auth Method Actions
+  // ============================================
+
+  async function fetchAuthMethods() {
+    try {
+      loading.value = true
+      error.value = null
+      const response = await consulApi.listACLAuthMethods()
+      authMethods.value = response.data || []
+      return authMethods.value
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch auth methods'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchBindingRules(authMethod?: string) {
+    try {
+      loading.value = true
+      error.value = null
+      const response = await consulApi.listBindingRules(authMethod)
+      bindingRules.value = response.data || []
+      return bindingRules.value
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch binding rules'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ============================================
+  // Peering Actions
+  // ============================================
+
+  async function fetchPeerings() {
+    try {
+      loading.value = true
+      error.value = null
+      const response = await consulApi.listPeerings()
+      peerings.value = response.data || []
+      return peerings.value
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch peerings'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ============================================
   // Datacenter Actions
   // ============================================
 
@@ -353,6 +416,9 @@ export const useConsulStore = defineStore('consul', () => {
     aclTokens.value = []
     aclPolicies.value = []
     aclRoles.value = []
+    authMethods.value = []
+    bindingRules.value = []
+    peerings.value = []
     intentions.value = []
     configEntries.value = []
     sessions.value = []
@@ -375,6 +441,9 @@ export const useConsulStore = defineStore('consul', () => {
     aclTokens,
     aclPolicies,
     aclRoles,
+    authMethods,
+    bindingRules,
+    peerings,
     intentions,
     configEntries,
     sessions,
@@ -394,6 +463,9 @@ export const useConsulStore = defineStore('consul', () => {
     fetchACLTokens,
     fetchACLPolicies,
     fetchACLRoles,
+    fetchAuthMethods,
+    fetchBindingRules,
+    fetchPeerings,
     fetchIntentions,
     fetchConfigEntries,
     fetchSessions,

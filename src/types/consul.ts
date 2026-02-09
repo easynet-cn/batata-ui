@@ -272,3 +272,70 @@ export interface ConsulAgentSelf {
   Member: ConsulAgentMember
   Stats: Record<string, Record<string, string>>
 }
+
+// ============================================
+// Consul ACL Auth Method Types
+// ============================================
+
+export type ConsulAuthMethodType = 'kubernetes' | 'jwt' | 'oidc'
+
+export interface ConsulACLAuthMethod {
+  Name: string
+  DisplayName: string
+  Type: ConsulAuthMethodType
+  Description: string
+  TokenLocality: string
+  MaxTokenTTL: string
+  Config: Record<string, unknown>
+  CreateIndex: number
+  ModifyIndex: number
+}
+
+export type ConsulBindingRuleBindType = 'service' | 'node' | 'role'
+
+export interface ConsulACLBindingRule {
+  ID: string
+  Description: string
+  AuthMethod: string
+  Selector: string
+  BindType: ConsulBindingRuleBindType
+  BindName: string
+  CreateIndex: number
+  ModifyIndex: number
+}
+
+// ============================================
+// Consul Peering Types
+// ============================================
+
+export type ConsulPeeringState =
+  | 'PENDING'
+  | 'ESTABLISHING'
+  | 'ACTIVE'
+  | 'FAILING'
+  | 'TERMINATED'
+  | 'DELETING'
+
+export interface ConsulPeeringStreamStatus {
+  LastHeartbeat?: string
+  LastReceive?: string
+  LastSend?: string
+}
+
+export interface ConsulPeering {
+  Name: string
+  ID: string
+  State: ConsulPeeringState
+  PeerServerAddresses: string[]
+  ServerExternalAddresses?: string[]
+  ImportedServices?: string[]
+  ExportedServices?: string[]
+  StreamStatus: ConsulPeeringStreamStatus
+  Meta?: Record<string, string>
+  CreateIndex: number
+  ModifyIndex: number
+}
+
+export interface ConsulPeeringTokenResponse {
+  PeeringToken: string
+}

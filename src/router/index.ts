@@ -273,6 +273,19 @@ const consulChildren: RouteRecordRaw[] = [
     component: () => import('../views/consul/ACLRoleListView.vue'),
     meta: { titleKey: 'routeConsulRoles' },
   },
+  // ACL Auth Methods
+  {
+    path: 'acl/auth-methods',
+    name: 'consul-auth-methods',
+    component: () => import('../views/consul/AuthMethodListView.vue'),
+    meta: { titleKey: 'routeConsulAuthMethods' },
+  },
+  {
+    path: 'acl/auth-method/:name',
+    name: 'consul-auth-method-detail',
+    component: () => import('../views/consul/AuthMethodDetailView.vue'),
+    meta: { titleKey: 'routeConsulAuthMethodDetail' },
+  },
   // Service Mesh
   {
     path: 'intentions',
@@ -285,6 +298,19 @@ const consulChildren: RouteRecordRaw[] = [
     name: 'consul-config-entries',
     component: () => import('../views/consul/ConfigEntryListView.vue'),
     meta: { titleKey: 'routeConsulConfigEntries' },
+  },
+  // Peerings
+  {
+    path: 'peerings',
+    name: 'consul-peerings',
+    component: () => import('../views/consul/PeeringListView.vue'),
+    meta: { titleKey: 'routeConsulPeerings' },
+  },
+  {
+    path: 'peering/:name',
+    name: 'consul-peering-detail',
+    component: () => import('../views/consul/PeeringDetailView.vue'),
+    meta: { titleKey: 'routeConsulPeeringDetail' },
   },
   // Sessions
   {

@@ -12,10 +12,14 @@ import type {
   ConsulACLToken,
   ConsulACLPolicy,
   ConsulACLRole,
+  ConsulACLAuthMethod,
+  ConsulACLBindingRule,
   ConsulIntention,
   ConsulConfigEntry,
   ConsulConfigEntryKind,
   ConsulSession,
+  ConsulPeering,
+  ConsulPeeringTokenResponse,
 } from '@/types/consul'
 
 class ConsulApi {
@@ -277,6 +281,55 @@ class ConsulApi {
     return this.instance.put<boolean>(`/session/destroy/${id}`, null, {
       params: dc ? { dc } : undefined,
     })
+  }
+
+  // ============================================
+  // ACL Auth Methods API
+  // ============================================
+
+  async listACLAuthMethods() {
+    return this.instance.get<ConsulACLAuthMethod[]>('/acl/auth-methods')
+  }
+
+  async getACLAuthMethod(name: string) {
+    return this.instance.get<ConsulACLAuthMethod>(`/acl/auth-method/${name}`)
+  }
+
+  async listBindingRules(authMethod?: string) {
+    return this.instance.get<ConsulACLBindingRule[]>('/acl/binding-rules', {
+      params: authMethod ? { authmethod: authMethod } : undefined,
+    })
+  }
+
+  // ============================================
+  // Peering API
+  // ============================================
+
+  async listPeerings() {
+    return this.instance.get<ConsulPeering[]>('/peerings')
+  }
+
+  async getPeering(name: string) {
+    return this.instance.get<ConsulPeering>(`/peering/${name}`)
+  }
+
+  async generatePeeringToken(name: string, meta?: Record<string, string>) {
+    return this.instance.post<ConsulPeeringTokenResponse>('/peering/token/generate', {
+      PeerName: name,
+      Meta: meta,
+    })
+  }
+
+  async establishPeering(name: string, token: string, meta?: Record<string, string>) {
+    return this.instance.post('/peering/establish', {
+      PeerName: name,
+      PeeringToken: token,
+      Meta: meta,
+    })
+  }
+
+  async deletePeering(name: string) {
+    return this.instance.delete(`/peering/${name}`)
   }
 }
 

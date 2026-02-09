@@ -410,6 +410,8 @@ import {
   Timer,
   HardDrive,
   Shield,
+  Fingerprint,
+  GitBranch,
 } from 'lucide-vue-next'
 import { useI18n, type Language } from '@/i18n'
 import type { Namespace } from '@/types'
@@ -668,11 +670,16 @@ const consulNavGroups = computed(() => [
     ],
   },
   {
+    title: t('peerings'),
+    items: [{ path: '/peerings', label: t('peerings'), icon: GitBranch }],
+  },
+  {
     title: t('acl'),
     items: [
       { path: '/acl/tokens', label: t('aclTokens'), icon: Key },
       { path: '/acl/policies', label: t('aclPolicies'), icon: Shield },
       { path: '/acl/roles', label: t('roles'), icon: ShieldAlert },
+      { path: '/acl/auth-methods', label: t('authMethods'), icon: Fingerprint },
     ],
   },
   {

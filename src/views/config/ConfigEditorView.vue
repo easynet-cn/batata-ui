@@ -168,15 +168,19 @@
               {{ t('configContent') }} <span class="text-danger">*</span>
             </label>
             <div class="flex items-center gap-2">
-              <button @click="formatContent" class="btn btn-ghost btn-sm">
-                <Code class="w-3.5 h-3.5" />
-                {{ t('format') }}
+              <button @click="handleFormat" class="btn btn-ghost btn-sm">
+                <Braces class="w-3.5 h-3.5" />
+                {{ t('formatContent') }}
+              </button>
+              <button @click="handleValidate" class="btn btn-ghost btn-sm">
+                <CheckCircle class="w-3.5 h-3.5" />
+                {{ t('validateContent') }}
               </button>
             </div>
           </div>
-          <textarea
+          <CodeEditor
             v-model="form.content"
-            class="input font-mono text-sm min-h-[400px]"
+            :language="form.type"
             :placeholder="t('configContentPlaceholder')"
           />
         </div>
@@ -199,10 +203,20 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Code, Loader2, Lock, Unlock, FlaskConical } from 'lucide-vue-next'
+import {
+  ArrowLeft,
+  Braces,
+  CheckCircle,
+  Loader2,
+  Lock,
+  Unlock,
+  FlaskConical,
+} from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
+import { formatContent, validateContent } from '@/utils/formatters'
+import CodeEditor from '@/components/common/CodeEditor.vue'
 import { logger } from '@/utils/logger'
 import type { Namespace, ConfigType } from '@/types'
 
@@ -280,14 +294,26 @@ const fetchConfig = async () => {
   }
 }
 
-const formatContent = () => {
-  if (form.type === 'json') {
-    try {
-      const parsed = JSON.parse(form.content)
-      form.content = JSON.stringify(parsed, null, 2)
-    } catch {
-      // Invalid JSON, do nothing
-    }
+const handleFormat = () => {
+  const result = formatContent(form.content, form.type)
+  if (result.success) {
+    form.content = result.result
+    toast.success(t('formatSuccess'))
+  } else {
+    toast.error(t('formatError').replace('{error}', result.error || ''))
+  }
+}
+
+const handleValidate = () => {
+  const result = validateContent(form.content, form.type)
+  if (result.valid) {
+    toast.success(t('validationSuccess').replace('{type}', form.type.toUpperCase()))
+  } else {
+    toast.error(
+      t('validationError')
+        .replace('{type}', form.type.toUpperCase())
+        .replace('{error}', result.error || ''),
+    )
   }
 }
 

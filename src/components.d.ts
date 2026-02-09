@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppPagination: typeof import('./components/common/AppPagination.vue')['default']
+    CodeEditor: typeof import('./components/common/CodeEditor.vue')['default']
     ConfirmModal: typeof import('./components/common/ConfirmModal.vue')['default']
     DataTable: typeof import('./components/common/DataTable.vue')['default']
     FilterBar: typeof import('./components/common/FilterBar.vue')['default']

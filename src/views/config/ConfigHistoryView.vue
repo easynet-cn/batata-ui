@@ -107,9 +107,12 @@
         </div>
         <div>
           <label class="block text-sm text-text-tertiary mb-1">{{ t('configContent') }}</label>
-          <pre class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono max-h-96">{{
-            selectedHistory?.content
-          }}</pre>
+          <CodeEditor
+            :model-value="selectedHistory?.content || ''"
+            :language="configType"
+            readonly
+            min-height="200px"
+          />
         </div>
       </div>
     </ConfirmModal>
@@ -127,18 +130,24 @@
             <label class="text-xs font-medium text-text-primary">{{ t('historyVersion') }}</label>
             <span class="text-xs text-text-tertiary">{{ selectedHistory?.lastModifiedTime }}</span>
           </div>
-          <pre class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono max-h-96">{{
-            selectedHistory?.content
-          }}</pre>
+          <CodeEditor
+            :model-value="selectedHistory?.content || ''"
+            :language="configType"
+            readonly
+            min-height="200px"
+          />
         </div>
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="text-xs font-medium text-text-primary">{{ t('currentVersion') }}</label>
             <span class="text-xs text-text-tertiary">{{ t('current') }}</span>
           </div>
-          <pre class="bg-bg-tertiary rounded-lg p-4 overflow-x-auto text-sm font-mono max-h-96">{{
-            currentContent
-          }}</pre>
+          <CodeEditor
+            :model-value="currentContent"
+            :language="configType"
+            readonly
+            min-height="200px"
+          />
         </div>
       </div>
     </ConfirmModal>
@@ -165,7 +174,8 @@ import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import AppPagination from '@/components/common/AppPagination.vue'
-import type { ConfigHistoryInfo, Namespace } from '@/types'
+import CodeEditor from '@/components/common/CodeEditor.vue'
+import type { ConfigHistoryInfo, ConfigType, Namespace } from '@/types'
 
 const props = defineProps<{
   namespace: Namespace
@@ -182,6 +192,7 @@ const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const currentContent = ref('')
+const configType = ref<ConfigType>('text')
 
 // Modals
 const showViewModal = ref(false)
@@ -228,6 +239,7 @@ const fetchCurrentConfig = async () => {
       (namespaceId as string) || props.namespace.namespace,
     )
     currentContent.value = response.data.data.content || ''
+    configType.value = response.data.data.type || 'text'
   } catch (error) {
     logger.error('Failed to fetch current config:', error)
     toast.error(t('operationFailed'))

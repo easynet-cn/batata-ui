@@ -57,13 +57,22 @@
                 </div>
               </td>
               <td>
-                <button
-                  @click="handleDelete(policy)"
-                  class="btn btn-ghost btn-sm text-danger"
-                  :title="t('delete')"
-                >
-                  <Trash2 class="w-3.5 h-3.5" />
-                </button>
+                <div class="flex items-center gap-1">
+                  <button
+                    @click="handleEdit(policy)"
+                    class="btn btn-ghost btn-sm text-text-secondary"
+                    :title="t('edit')"
+                  >
+                    <Pencil class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click="handleDelete(policy)"
+                    class="btn btn-ghost btn-sm text-danger"
+                    :title="t('delete')"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -71,11 +80,11 @@
       </div>
     </div>
 
-    <!-- Create Policy Modal -->
+    <!-- Create/Edit Policy Modal -->
     <FormModal
       v-model="showCreateModal"
-      :title="t('createPolicy')"
-      :submit-text="t('create')"
+      :title="isEditing ? t('editPolicy') : t('createPolicy')"
+      :submit-text="isEditing ? t('updatePolicy') : t('create')"
       :loading="saving"
       @submit="submitCreate"
     >
@@ -84,7 +93,13 @@
           <label class="block text-xs font-medium text-text-primary mb-1">
             {{ t('name') }} <span class="text-danger">*</span>
           </label>
-          <input v-model="createForm.Name" type="text" class="input" placeholder="my-policy" />
+          <input
+            v-model="createForm.Name"
+            type="text"
+            class="input"
+            placeholder="my-policy"
+            :disabled="isEditing"
+          />
         </div>
         <div>
           <label class="block text-xs font-medium text-text-primary mb-1">
@@ -131,7 +146,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Plus, RefreshCw, Trash2, Loader2 } from 'lucide-vue-next'
+import { Plus, RefreshCw, Trash2, Pencil, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
@@ -148,6 +163,8 @@ const store = useConsulStore()
 const saving = ref(false)
 const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
+const isEditing = ref(false)
+const editingPolicy = ref<ConsulACLPolicy | null>(null)
 const policyToDelete = ref<ConsulACLPolicy | null>(null)
 
 const createForm = reactive({
@@ -167,10 +184,28 @@ async function loadPolicies() {
 }
 
 function openCreateModal() {
+  isEditing.value = false
+  editingPolicy.value = null
   createForm.Name = ''
   createForm.Description = ''
   createForm.Rules = ''
   showCreateModal.value = true
+}
+
+async function handleEdit(policy: ConsulACLPolicy) {
+  isEditing.value = true
+  try {
+    const response = await consulApi.getACLPolicy(policy.ID)
+    const fullPolicy = response.data
+    editingPolicy.value = fullPolicy
+    createForm.Name = fullPolicy.Name
+    createForm.Description = fullPolicy.Description || ''
+    createForm.Rules = fullPolicy.Rules || ''
+    showCreateModal.value = true
+  } catch (error) {
+    logger.error('Failed to fetch policy details:', error)
+    toast.error(t('operationFailed'))
+  }
 }
 
 async function submitCreate() {
@@ -181,16 +216,24 @@ async function submitCreate() {
 
   saving.value = true
   try {
-    await consulApi.createACLPolicy({
-      Name: createForm.Name,
-      Description: createForm.Description,
-      Rules: createForm.Rules,
-    })
+    if (isEditing.value && editingPolicy.value) {
+      await consulApi.updateACLPolicy(editingPolicy.value.ID, {
+        Name: createForm.Name,
+        Description: createForm.Description,
+        Rules: createForm.Rules,
+      })
+    } else {
+      await consulApi.createACLPolicy({
+        Name: createForm.Name,
+        Description: createForm.Description,
+        Rules: createForm.Rules,
+      })
+    }
     showCreateModal.value = false
     toast.success(t('success'))
     await loadPolicies()
   } catch (error) {
-    logger.error('Failed to create ACL policy:', error)
+    logger.error('Failed to save ACL policy:', error)
     toast.error(t('operationFailed'))
   } finally {
     saving.value = false

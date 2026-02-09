@@ -72,13 +72,22 @@
                 <span class="text-text-secondary">{{ intention.Description || '-' }}</span>
               </td>
               <td>
-                <button
-                  @click="handleDelete(intention)"
-                  class="btn btn-ghost btn-sm text-danger"
-                  :title="t('delete')"
-                >
-                  <Trash2 class="w-3.5 h-3.5" />
-                </button>
+                <div class="flex items-center gap-1">
+                  <button
+                    @click="handleEdit(intention)"
+                    class="btn btn-ghost btn-sm text-text-secondary"
+                    :title="t('edit')"
+                  >
+                    <Pencil class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click="handleDelete(intention)"
+                    class="btn btn-ghost btn-sm text-danger"
+                    :title="t('delete')"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -86,11 +95,11 @@
       </div>
     </div>
 
-    <!-- Create Intention Modal -->
+    <!-- Create/Edit Intention Modal -->
     <FormModal
       v-model="showCreateModal"
-      :title="t('createIntention')"
-      :submit-text="t('create')"
+      :title="isEditing ? t('editIntention') : t('createIntention')"
+      :submit-text="isEditing ? t('updateIntention') : t('create')"
       :loading="saving"
       @submit="submitCreate"
     >
@@ -99,13 +108,25 @@
           <label class="block text-xs font-medium text-text-primary mb-1">
             {{ t('sourceService') }} <span class="text-danger">*</span>
           </label>
-          <input v-model="createForm.SourceName" type="text" class="input" placeholder="web" />
+          <input
+            v-model="createForm.SourceName"
+            type="text"
+            class="input"
+            placeholder="web"
+            :disabled="isEditing"
+          />
         </div>
         <div>
           <label class="block text-xs font-medium text-text-primary mb-1">
             {{ t('destinationService') }} <span class="text-danger">*</span>
           </label>
-          <input v-model="createForm.DestinationName" type="text" class="input" placeholder="api" />
+          <input
+            v-model="createForm.DestinationName"
+            type="text"
+            class="input"
+            placeholder="api"
+            :disabled="isEditing"
+          />
         </div>
         <div>
           <label class="block text-xs font-medium text-text-primary mb-1">
@@ -161,6 +182,7 @@ import {
   Plus,
   RefreshCw,
   Trash2,
+  Pencil,
   Loader2,
   ArrowRightFromLine,
   ArrowRightToLine,
@@ -181,6 +203,8 @@ const store = useConsulStore()
 const saving = ref(false)
 const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
+const isEditing = ref(false)
+const editingIntention = ref<ConsulIntention | null>(null)
 const intentionToDelete = ref<ConsulIntention | null>(null)
 
 const createForm = reactive({
@@ -201,11 +225,30 @@ async function loadIntentions() {
 }
 
 function openCreateModal() {
+  isEditing.value = false
+  editingIntention.value = null
   createForm.SourceName = ''
   createForm.DestinationName = ''
   createForm.Action = 'allow'
   createForm.Description = ''
   showCreateModal.value = true
+}
+
+async function handleEdit(intention: ConsulIntention) {
+  isEditing.value = true
+  try {
+    const response = await consulApi.getIntention(intention.ID)
+    const full = response.data
+    editingIntention.value = full
+    createForm.SourceName = full.SourceName
+    createForm.DestinationName = full.DestinationName
+    createForm.Action = full.Action
+    createForm.Description = full.Description || ''
+    showCreateModal.value = true
+  } catch (error) {
+    logger.error('Failed to fetch intention details:', error)
+    toast.error(t('operationFailed'))
+  }
 }
 
 async function submitCreate() {
@@ -216,17 +259,26 @@ async function submitCreate() {
 
   saving.value = true
   try {
-    await consulApi.createIntention({
-      SourceName: createForm.SourceName,
-      DestinationName: createForm.DestinationName,
-      Action: createForm.Action,
-      Description: createForm.Description || undefined,
-    })
+    if (isEditing.value && editingIntention.value) {
+      await consulApi.updateIntention(editingIntention.value.ID, {
+        SourceName: createForm.SourceName,
+        DestinationName: createForm.DestinationName,
+        Action: createForm.Action,
+        Description: createForm.Description || undefined,
+      })
+    } else {
+      await consulApi.createIntention({
+        SourceName: createForm.SourceName,
+        DestinationName: createForm.DestinationName,
+        Action: createForm.Action,
+        Description: createForm.Description || undefined,
+      })
+    }
     showCreateModal.value = false
     toast.success(t('success'))
     await loadIntentions()
   } catch (error) {
-    logger.error('Failed to create intention:', error)
+    logger.error('Failed to save intention:', error)
     toast.error(t('operationFailed'))
   } finally {
     saving.value = false

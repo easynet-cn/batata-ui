@@ -61,13 +61,22 @@
                 </div>
               </td>
               <td>
-                <button
-                  @click="handleDelete(role)"
-                  class="btn btn-ghost btn-sm text-danger"
-                  :title="t('delete')"
-                >
-                  <Trash2 class="w-3.5 h-3.5" />
-                </button>
+                <div class="flex items-center gap-1">
+                  <button
+                    @click="handleEdit(role)"
+                    class="btn btn-ghost btn-sm text-text-secondary"
+                    :title="t('edit')"
+                  >
+                    <Pencil class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click="handleDelete(role)"
+                    class="btn btn-ghost btn-sm text-danger"
+                    :title="t('delete')"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -75,11 +84,11 @@
       </div>
     </div>
 
-    <!-- Create Role Modal -->
+    <!-- Create/Edit Role Modal -->
     <FormModal
       v-model="showCreateModal"
-      :title="t('createRole')"
-      :submit-text="t('create')"
+      :title="isEditing ? t('editRole') : t('createRole')"
+      :submit-text="isEditing ? t('updateRole') : t('create')"
       :loading="saving"
       @submit="submitCreate"
     >
@@ -88,7 +97,13 @@
           <label class="block text-xs font-medium text-text-primary mb-1">
             {{ t('name') }} <span class="text-danger">*</span>
           </label>
-          <input v-model="createForm.Name" type="text" class="input" placeholder="my-role" />
+          <input
+            v-model="createForm.Name"
+            type="text"
+            class="input"
+            placeholder="my-role"
+            :disabled="isEditing"
+          />
         </div>
         <div>
           <label class="block text-xs font-medium text-text-primary mb-1">
@@ -151,7 +166,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Plus, RefreshCw, Trash2, Loader2 } from 'lucide-vue-next'
+import { Plus, RefreshCw, Trash2, Pencil, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
@@ -168,6 +183,8 @@ const store = useConsulStore()
 const saving = ref(false)
 const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
+const isEditing = ref(false)
+const editingRole = ref<ConsulACLRole | null>(null)
 const roleToDelete = ref<ConsulACLRole | null>(null)
 const selectedPolicyIds = ref<string[]>([])
 const availablePolicies = ref<{ ID: string; Name: string; Description: string }[]>([])
@@ -188,6 +205,8 @@ async function loadRoles() {
 }
 
 async function openCreateModal() {
+  isEditing.value = false
+  editingRole.value = null
   createForm.Name = ''
   createForm.Description = ''
   selectedPolicyIds.value = []
@@ -205,6 +224,29 @@ async function openCreateModal() {
   }
 }
 
+async function handleEdit(role: ConsulACLRole) {
+  isEditing.value = true
+  try {
+    const response = await consulApi.getACLRole(role.ID)
+    const fullRole = response.data
+    editingRole.value = fullRole
+    createForm.Name = fullRole.Name
+    createForm.Description = fullRole.Description || ''
+    selectedPolicyIds.value = (fullRole.Policies || []).map((p) => p.ID)
+    // Load available policies for the selector
+    await store.fetchACLPolicies()
+    availablePolicies.value = store.aclPolicies.map((p) => ({
+      ID: p.ID,
+      Name: p.Name,
+      Description: p.Description,
+    }))
+    showCreateModal.value = true
+  } catch (error) {
+    logger.error('Failed to fetch role details:', error)
+    toast.error(t('operationFailed'))
+  }
+}
+
 async function submitCreate() {
   if (!createForm.Name) {
     toast.warning(t('requiredFieldsMissing'))
@@ -217,16 +259,25 @@ async function submitCreate() {
       const found = availablePolicies.value.find((p) => p.ID === id)
       return { ID: id, Name: found?.Name || '' }
     })
-    await consulApi.createACLRole({
-      Name: createForm.Name,
-      Description: createForm.Description,
-      Policies: policies,
-    })
+
+    if (isEditing.value && editingRole.value) {
+      await consulApi.updateACLRole(editingRole.value.ID, {
+        Name: createForm.Name,
+        Description: createForm.Description,
+        Policies: policies,
+      })
+    } else {
+      await consulApi.createACLRole({
+        Name: createForm.Name,
+        Description: createForm.Description,
+        Policies: policies,
+      })
+    }
     showCreateModal.value = false
     toast.success(t('success'))
     await loadRoles()
   } catch (error) {
-    logger.error('Failed to create ACL role:', error)
+    logger.error('Failed to save ACL role:', error)
     toast.error(t('operationFailed'))
   } finally {
     saving.value = false
