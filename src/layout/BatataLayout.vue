@@ -72,8 +72,8 @@
         class="h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-5 shrink-0 z-10 shadow-sm"
       >
         <div class="flex items-center space-x-4">
-          <!-- Provider Switcher (only shown when consul is enabled on server) -->
-          <template v-if="consulEnabled">
+          <!-- Provider Switcher (shown when consul or apollo is enabled on server) -->
+          <template v-if="consulEnabled || apolloEnabled">
             <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
               <button
                 @click="handleSwitchProvider('batata')"
@@ -87,6 +87,7 @@
                 BATATA
               </button>
               <button
+                v-if="consulEnabled"
                 @click="handleSwitchProvider('consul')"
                 :class="[
                   'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
@@ -96,6 +97,18 @@
                 ]"
               >
                 CONSUL
+              </button>
+              <button
+                v-if="apolloEnabled"
+                @click="handleSwitchProvider('apollo')"
+                :class="[
+                  'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
+                  provider === 'apollo'
+                    ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
+                ]"
+              >
+                APOLLO
               </button>
             </div>
 
@@ -412,6 +425,7 @@ import {
   Shield,
   Fingerprint,
   GitBranch,
+  Box,
 } from 'lucide-vue-next'
 import { useI18n, type Language } from '@/i18n'
 import type { Namespace } from '@/types'
@@ -433,12 +447,14 @@ const { isDark, toggleTheme } = useTheme()
 const {
   provider,
   consulEnabled,
+  apolloEnabled,
   providerBgClass,
   providerShadowClass,
   providerTextClass,
   providerLetter,
   setProvider,
   setConsulEnabled,
+  setApolloEnabled,
 } = useProvider()
 
 const isSidebarOpen = ref(true)
@@ -528,18 +544,27 @@ const fetchServerState = async () => {
   try {
     const response = await batataApi.getServerState()
     const state = response.data
-    const enabled = state?.consul_enabled === 'true'
-    setConsulEnabled(enabled)
+    const consulOn = state?.consul_enabled === 'true'
+    const apolloOn = state?.apollo_enabled === 'true'
+    setConsulEnabled(consulOn)
+    setApolloEnabled(apolloOn)
     // If consul is not enabled but user was on consul provider, switch back to batata
-    if (!enabled && provider.value === 'consul') {
+    if (!consulOn && provider.value === 'consul') {
+      setProvider('batata')
+      switchProviderRoutes('batata')
+      router.push('/')
+    }
+    // If apollo is not enabled but user was on apollo provider, switch back to batata
+    if (!apolloOn && provider.value === 'apollo') {
       setProvider('batata')
       switchProviderRoutes('batata')
       router.push('/')
     }
   } catch {
-    // Default to consul disabled on error
+    // Default to disabled on error
     setConsulEnabled(false)
-    if (provider.value === 'consul') {
+    setApolloEnabled(false)
+    if (provider.value === 'consul' || provider.value === 'apollo') {
       setProvider('batata')
       switchProviderRoutes('batata')
       router.push('/')
@@ -586,7 +611,7 @@ const isActiveRoute = (path: string) => {
   return route.path.startsWith(path)
 }
 
-const handleSwitchProvider = (p: 'batata' | 'consul') => {
+const handleSwitchProvider = (p: 'batata' | 'consul' | 'apollo') => {
   if (provider.value === p) return
   setProvider(p)
   switchProviderRoutes(p)
@@ -692,7 +717,29 @@ const consulNavGroups = computed(() => [
   },
 ])
 
-const navGroups = computed(() =>
-  provider.value === 'consul' ? consulNavGroups.value : nacosNavGroups.value,
-)
+const apolloNavGroups = computed(() => [
+  {
+    title: t('overview'),
+    items: [{ path: '/', label: t('dashboard'), icon: LayoutDashboard }],
+  },
+  {
+    title: t('apolloConfigManagement'),
+    items: [{ path: '/apps', label: t('apolloApps'), icon: Box }],
+  },
+  {
+    title: t('system'),
+    items: [{ path: '/settings', label: t('settings'), icon: Cog }],
+  },
+])
+
+const navGroups = computed(() => {
+  switch (provider.value) {
+    case 'consul':
+      return consulNavGroups.value
+    case 'apollo':
+      return apolloNavGroups.value
+    default:
+      return nacosNavGroups.value
+  }
+})
 </script>

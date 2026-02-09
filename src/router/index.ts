@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useBatataStore } from '@/stores/batata'
 import BatataLayout from '@/layout/BatataLayout.vue'
 import { storage } from '@/composables/useStorage'
+import type { ProviderType } from '@/types'
 
 // Nacos/Batata route children
 const nacosChildren: RouteRecordRaw[] = [
@@ -328,6 +329,66 @@ const consulChildren: RouteRecordRaw[] = [
   },
 ]
 
+// Apollo route children
+const apolloChildren: RouteRecordRaw[] = [
+  // Dashboard
+  {
+    path: '',
+    name: 'apollo-dashboard',
+    component: () => import('../views/apollo/ApolloDashboardView.vue'),
+    meta: { titleKey: 'routeApolloDashboard' },
+  },
+  // Apps
+  {
+    path: 'apps',
+    name: 'apollo-apps',
+    component: () => import('../views/apollo/ApolloAppListView.vue'),
+    meta: { titleKey: 'routeApolloApps' },
+  },
+  // App Detail
+  {
+    path: 'app/:appId',
+    name: 'apollo-app-detail',
+    component: () => import('../views/apollo/ApolloAppDetailView.vue'),
+    meta: { titleKey: 'routeApolloAppDetail' },
+  },
+  // Namespace Detail
+  {
+    path: 'namespace/:appId/:env/:clusterName/:namespaceName',
+    name: 'apollo-namespace-detail',
+    component: () => import('../views/apollo/ApolloNamespaceDetailView.vue'),
+    meta: { titleKey: 'routeApolloNamespaceDetail' },
+  },
+  // Release History
+  {
+    path: 'releases/:appId/:env/:clusterName/:namespaceName',
+    name: 'apollo-release-history',
+    component: () => import('../views/apollo/ApolloReleaseHistoryView.vue'),
+    meta: { titleKey: 'routeApolloReleaseHistory' },
+  },
+  // Gray Release
+  {
+    path: 'gray-release/:appId/:env/:clusterName/:namespaceName',
+    name: 'apollo-gray-release',
+    component: () => import('../views/apollo/ApolloGrayReleaseView.vue'),
+    meta: { titleKey: 'routeApolloGrayRelease' },
+  },
+  // Instances
+  {
+    path: 'instances/:appId/:env/:clusterName/:namespaceName',
+    name: 'apollo-instances',
+    component: () => import('../views/apollo/ApolloInstancesView.vue'),
+    meta: { titleKey: 'routeApolloInstances' },
+  },
+  // Settings (shared)
+  {
+    path: 'settings',
+    name: 'apollo-settings',
+    component: () => import('../views/settings/SettingsView.vue'),
+    meta: { titleKey: 'routeSettings' },
+  },
+]
+
 // Layout route name used for dynamic route swapping
 const LAYOUT_ROUTE_NAME = 'layout'
 
@@ -361,15 +422,32 @@ const router = createRouter({
  */
 function getInitialChildren(): RouteRecordRaw[] {
   const provider = storage.get('batata_provider') || 'batata'
-  return provider === 'consul' ? consulChildren : nacosChildren
+  switch (provider) {
+    case 'consul':
+      return consulChildren
+    case 'apollo':
+      return apolloChildren
+    default:
+      return nacosChildren
+  }
 }
 
 /**
  * Switch route tree when provider changes.
  * Removes the layout route and re-adds it with new children.
  */
-export function switchProviderRoutes(provider: 'batata' | 'consul') {
-  const children = provider === 'consul' ? consulChildren : nacosChildren
+export function switchProviderRoutes(provider: ProviderType) {
+  let children: RouteRecordRaw[]
+  switch (provider) {
+    case 'consul':
+      children = consulChildren
+      break
+    case 'apollo':
+      children = apolloChildren
+      break
+    default:
+      children = nacosChildren
+  }
 
   // Remove existing layout route
   router.removeRoute(LAYOUT_ROUTE_NAME)
