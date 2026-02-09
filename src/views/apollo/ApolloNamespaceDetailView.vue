@@ -58,6 +58,191 @@
       </div>
     </div>
 
+    <!-- Action Buttons Bar -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <button
+        @click="handleExport"
+        class="flex items-center gap-2 px-3 py-2 text-sm font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+      >
+        <Download :size="14" />
+        {{ t('export') }}
+      </button>
+      <label
+        class="flex items-center gap-2 px-3 py-2 text-sm font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+      >
+        <Upload :size="14" />
+        {{ t('import') }}
+        <input type="file" class="hidden" @change="handleImport" />
+      </label>
+      <button
+        @click="showSyncModal = true"
+        class="flex items-center gap-2 px-3 py-2 text-sm font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+      >
+        <RefreshCw :size="14" />
+        {{ t('apolloSync') }}
+      </button>
+      <button
+        @click="handleSyntaxCheck"
+        class="flex items-center gap-2 px-3 py-2 text-sm font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+      >
+        <CheckCircle :size="14" />
+        {{ t('apolloSyntaxCheck') }}
+      </button>
+      <button
+        @click="showRevokeModal = true"
+        class="flex items-center gap-2 px-3 py-2 text-sm font-bold text-red-600 dark:text-red-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+      >
+        <RotateCcw :size="14" />
+        {{ t('apolloRevoke') }}
+      </button>
+    </div>
+
+    <!-- Sync Modal -->
+    <template v-if="showSyncModal">
+      <div class="fixed inset-0 bg-black/50 z-40" @click="showSyncModal = false" />
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        @click.self="showSyncModal = false"
+      >
+        <div
+          class="bg-white rounded-3xl shadow-2xl dark:bg-gray-900 dark:border dark:border-gray-800 w-full max-w-md"
+        >
+          <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-800">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">
+              {{ t('apolloSyncNamespace') }}
+            </h3>
+          </div>
+          <div class="p-6 space-y-4">
+            <div>
+              <label
+                class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5"
+              >
+                {{ t('apolloTargetEnv') }}
+              </label>
+              <input
+                v-model="syncForm.targetEnv"
+                placeholder="DEV"
+                class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+              />
+            </div>
+            <div>
+              <label
+                class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5"
+              >
+                {{ t('apolloTargetCluster') }}
+              </label>
+              <input
+                v-model="syncForm.targetCluster"
+                placeholder="default"
+                class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+              />
+            </div>
+            <div>
+              <label
+                class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5"
+              >
+                {{ t('apolloTargetNamespace') }}
+              </label>
+              <input
+                v-model="syncForm.targetNamespace"
+                placeholder="application"
+                class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+              />
+            </div>
+
+            <!-- Diff results -->
+            <div v-if="portalStore.itemDiffs.length > 0" class="space-y-2">
+              <p
+                class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                {{ t('apolloDiffResults') }}
+              </p>
+              <div
+                v-for="diff in portalStore.itemDiffs"
+                :key="diff.key"
+                class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm"
+              >
+                <span class="text-gray-900 dark:text-gray-100">{{ diff.key }}</span>
+                <span
+                  :class="[
+                    'px-2 py-0.5 text-xs font-bold rounded',
+                    diff.type === 'added'
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
+                      : diff.type === 'modified'
+                        ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
+                        : 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400',
+                  ]"
+                >
+                  {{ diff.type }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800 rounded-b-3xl flex justify-end gap-3">
+            <button
+              @click="showSyncModal = false"
+              class="px-5 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors"
+            >
+              {{ t('cancel') }}
+            </button>
+            <button
+              v-if="portalStore.itemDiffs.length === 0"
+              @click="handleDiff"
+              class="px-5 py-2 text-sm font-bold text-white bg-orange-600 rounded-xl hover:bg-orange-700 transition-colors"
+            >
+              {{ t('apolloCompare') }}
+            </button>
+            <button
+              v-else
+              @click="handleSync"
+              class="px-5 py-2 text-sm font-bold text-white bg-orange-600 rounded-xl hover:bg-orange-700 transition-colors"
+            >
+              {{ t('apolloSync') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Revoke Confirmation Modal -->
+    <template v-if="showRevokeModal">
+      <div class="fixed inset-0 bg-black/50 z-40" @click="showRevokeModal = false" />
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        @click.self="showRevokeModal = false"
+      >
+        <div
+          class="bg-white rounded-3xl shadow-2xl dark:bg-gray-900 dark:border dark:border-gray-800 w-full max-w-md"
+        >
+          <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-800">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">
+              {{ t('apolloRevoke') }}
+            </h3>
+          </div>
+          <div class="p-6">
+            <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('apolloConfirmRevoke') }}</p>
+            <p class="text-xs text-red-500 dark:text-red-400 mt-2">
+              {{ t('apolloRevokeWarning') }}
+            </p>
+          </div>
+          <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800 rounded-b-3xl flex justify-end gap-3">
+            <button
+              @click="showRevokeModal = false"
+              class="px-5 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors"
+            >
+              {{ t('cancel') }}
+            </button>
+            <button
+              @click="handleRevoke"
+              class="px-5 py-2 text-sm font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors"
+            >
+              {{ t('apolloRevoke') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <!-- Namespace Lock & Status Bar -->
     <div class="flex items-center gap-3 flex-wrap">
       <!-- Lock Status -->
@@ -418,15 +603,21 @@ import {
   Unlock,
   GitBranch,
   Monitor,
+  Download,
+  Upload,
+  CheckCircle,
+  RotateCcw,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useApolloStore } from '@/stores/apollo'
+import { useApolloPortalStore } from '@/stores/apollo-portal'
 import type { ApolloItem } from '@/types/apollo'
 import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
 const route = useRoute()
 const apolloStore = useApolloStore()
+const portalStore = useApolloPortalStore()
 
 const appId = route.params.appId as string
 const env = route.params.env as string
@@ -440,7 +631,10 @@ const showCreateItemModal = ref(false)
 const showEditItemModal = ref(false)
 const showPublishModal = ref(false)
 const showDeleteItemModal = ref(false)
+const showSyncModal = ref(false)
+const showRevokeModal = ref(false)
 const deleteTarget = ref<ApolloItem | null>(null)
+const syncForm = ref({ targetEnv: '', targetCluster: '', targetNamespace: '' })
 
 const itemForm = ref({ key: '', value: '', comment: '' })
 const releaseForm = ref({ releaseTitle: '', releaseComment: '', releasedBy: 'admin' })
@@ -532,6 +726,93 @@ async function refreshData() {
     logger.error('Failed to fetch namespace detail:', err)
   } finally {
     loading.value = false
+  }
+}
+
+async function handleExport() {
+  try {
+    const blob = await portalStore.exportConfig(env, appId, clusterName, namespaceName)
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${appId}_${env}_${clusterName}_${namespaceName}.properties`
+    link.click()
+    window.URL.revokeObjectURL(url)
+  } catch (err) {
+    logger.error('Failed to export config:', err)
+  }
+}
+
+async function handleImport(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  try {
+    await portalStore.importConfig(env, appId, clusterName, namespaceName, file)
+    await apolloStore.fetchItems(env, appId, clusterName, namespaceName)
+  } catch (err) {
+    logger.error('Failed to import config:', err)
+  } finally {
+    input.value = ''
+  }
+}
+
+async function handleDiff() {
+  try {
+    await portalStore.diffNamespaceItems(
+      env,
+      appId,
+      clusterName,
+      namespaceName,
+      syncForm.value.targetEnv,
+      syncForm.value.targetCluster,
+      syncForm.value.targetNamespace,
+    )
+  } catch (err) {
+    logger.error('Failed to diff items:', err)
+  }
+}
+
+async function handleSync() {
+  try {
+    const syncKeys = portalStore.itemDiffs.map((d) => d.key)
+    await portalStore.syncNamespaceItems(
+      env,
+      appId,
+      clusterName,
+      namespaceName,
+      syncForm.value.targetEnv,
+      syncForm.value.targetCluster,
+      syncForm.value.targetNamespace,
+      syncKeys,
+    )
+    showSyncModal.value = false
+    syncForm.value = { targetEnv: '', targetCluster: '', targetNamespace: '' }
+  } catch (err) {
+    logger.error('Failed to sync items:', err)
+  }
+}
+
+async function handleSyntaxCheck() {
+  try {
+    const result = await portalStore.checkSyntax(env, appId, clusterName, namespaceName)
+    if (result?.valid) {
+      logger.info('Syntax check passed')
+    } else {
+      logger.error('Syntax check failed:', result?.message)
+    }
+  } catch (err) {
+    logger.error('Failed to check syntax:', err)
+  }
+}
+
+async function handleRevoke() {
+  try {
+    await portalStore.revokeItems(env, appId, clusterName, namespaceName)
+    await apolloStore.fetchItems(env, appId, clusterName, namespaceName)
+    showRevokeModal.value = false
+  } catch (err) {
+    logger.error('Failed to revoke items:', err)
   }
 }
 

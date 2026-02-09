@@ -271,3 +271,170 @@ export interface ApolloGrayReleasePayload {
 export interface ApolloGrayReleaseRulePayload {
   ruleItems: ApolloGrayReleaseRuleItem[]
 }
+
+// ============================================
+// Apollo Portal: Users
+// ============================================
+
+export interface ApolloUser {
+  userId: string
+  name?: string
+  email?: string
+  enabled: boolean
+  dataChangeCreatedBy?: string
+  dataChangeLastModifiedBy?: string
+  dataChangeCreatedTime?: string
+  dataChangeLastModifiedTime?: string
+}
+
+export interface ApolloUserPayload {
+  username: string
+  password: string
+  email?: string
+}
+
+// ============================================
+// Apollo Portal: Roles & Permissions
+// ============================================
+
+export type ApolloRoleType = 'master' | 'modify' | 'release'
+
+export interface ApolloAppRoleUsers {
+  masterUsers: string[]
+  modifyUsers: string[]
+  releaseUsers: string[]
+}
+
+export interface ApolloNamespaceRoleUsers {
+  env: string
+  namespaceName: string
+  masterUsers: string[]
+  modifyUsers: string[]
+  releaseUsers: string[]
+}
+
+export interface ApolloRoleAssignment {
+  userId: string
+  roleType: ApolloRoleType
+}
+
+// ============================================
+// Apollo Portal: Consumers
+// ============================================
+
+export interface ApolloConsumer {
+  id?: number
+  appId: string
+  name: string
+  orgId: string
+  orgName: string
+  ownerName: string
+  ownerEmail: string
+  token?: string
+  dataChangeCreatedBy?: string
+  dataChangeLastModifiedBy?: string
+  dataChangeCreatedTime?: string
+  dataChangeLastModifiedTime?: string
+}
+
+export interface ApolloConsumerPayload {
+  appId: string
+  name: string
+  orgId: string
+  orgName: string
+  ownerName: string
+  ownerEmail: string
+}
+
+export interface ApolloConsumerToken {
+  token: string
+}
+
+export interface ApolloConsumerRole {
+  consumerId: number
+  roleType: ApolloRoleType
+  env?: string
+  namespaceName?: string
+}
+
+// ============================================
+// Apollo Portal: Favorites
+// ============================================
+
+export interface ApolloFavorite {
+  id?: number
+  userId: string
+  appId: string
+  position: number
+  dataChangeCreatedTime?: string
+  dataChangeLastModifiedTime?: string
+}
+
+export interface ApolloFavoritePayload {
+  appId: string
+}
+
+// ============================================
+// Apollo Portal: System Info
+// ============================================
+
+export interface ApolloSystemInfo {
+  version?: string
+  environments?: string[]
+  [key: string]: unknown
+}
+
+export interface ApolloHealthCheck {
+  status: string
+  details?: Record<string, unknown>
+}
+
+// ============================================
+// Apollo Portal: Server Config
+// ============================================
+
+export interface ApolloServerConfig {
+  id?: number
+  key: string
+  value: string
+  comment?: string
+  dataChangeCreatedBy?: string
+  dataChangeLastModifiedBy?: string
+  dataChangeCreatedTime?: string
+  dataChangeLastModifiedTime?: string
+}
+
+export interface ApolloServerConfigPayload {
+  key: string
+  value: string
+  comment?: string
+}
+
+// ============================================
+// Apollo Portal: Namespace Sync & Import/Export
+// ============================================
+
+export interface ApolloNamespaceSyncModel {
+  syncToNamespaces: Array<{
+    env: string
+    clusterName: string
+    namespaceName: string
+  }>
+  syncItems: string[]
+}
+
+export interface ApolloItemDiff {
+  key: string
+  sourceValue?: string
+  targetValue?: string
+  type: 'added' | 'modified' | 'deleted'
+}
+
+// ============================================
+// Apollo Portal: Syntax Check
+// ============================================
+
+export interface ApolloSyntaxCheckResult {
+  valid: boolean
+  message?: string
+}

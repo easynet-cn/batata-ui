@@ -380,6 +380,41 @@ const apolloChildren: RouteRecordRaw[] = [
     component: () => import('../views/apollo/ApolloInstancesView.vue'),
     meta: { titleKey: 'routeApolloInstances' },
   },
+  // Global Search
+  {
+    path: 'search',
+    name: 'apollo-search',
+    component: () => import('../views/apollo/ApolloGlobalSearchView.vue'),
+    meta: { titleKey: 'routeApolloSearch' },
+  },
+  // User Management
+  {
+    path: 'users',
+    name: 'apollo-users',
+    component: () => import('../views/apollo/ApolloUserManagementView.vue'),
+    meta: { titleKey: 'routeApolloUsers' },
+  },
+  // Consumer Management
+  {
+    path: 'consumers',
+    name: 'apollo-consumers',
+    component: () => import('../views/apollo/ApolloConsumerManagementView.vue'),
+    meta: { titleKey: 'routeApolloConsumers' },
+  },
+  // System Info
+  {
+    path: 'system-info',
+    name: 'apollo-system-info',
+    component: () => import('../views/apollo/ApolloSystemInfoView.vue'),
+    meta: { titleKey: 'routeApolloSystemInfo' },
+  },
+  // Server Config
+  {
+    path: 'server-config',
+    name: 'apollo-server-config',
+    component: () => import('../views/apollo/ApolloServerConfigView.vue'),
+    meta: { titleKey: 'routeApolloServerConfig' },
+  },
   // Settings (shared)
   {
     path: 'settings',

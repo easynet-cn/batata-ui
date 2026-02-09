@@ -49,8 +49,308 @@
       </div>
     </div>
 
+    <!-- Tab Bar -->
+    <div
+      class="flex items-center gap-1 p-1 bg-white rounded-2xl shadow-sm border border-gray-200 dark:bg-gray-900 dark:border-gray-800 inline-flex"
+    >
+      <button
+        @click="activeTab = 'environments'"
+        :class="[
+          'px-4 py-2 text-sm font-bold rounded-xl transition-all',
+          activeTab === 'environments'
+            ? 'bg-orange-600 text-white shadow-md'
+            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
+        ]"
+      >
+        {{ t('apolloEnvClusters') }}
+      </button>
+      <button
+        @click="activeTab = 'permissions'"
+        :class="[
+          'px-4 py-2 text-sm font-bold rounded-xl transition-all',
+          activeTab === 'permissions'
+            ? 'bg-orange-600 text-white shadow-md'
+            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
+        ]"
+      >
+        {{ t('apolloPermissions') }}
+      </button>
+      <button
+        @click="activeTab = 'accesskeys'"
+        :class="[
+          'px-4 py-2 text-sm font-bold rounded-xl transition-all',
+          activeTab === 'accesskeys'
+            ? 'bg-orange-600 text-white shadow-md'
+            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
+        ]"
+      >
+        {{ t('apolloAccessKeys') }}
+      </button>
+    </div>
+
+    <!-- Permissions Tab -->
+    <div
+      v-if="activeTab === 'permissions'"
+      class="p-6 bg-white rounded-2xl shadow-sm border border-gray-200 dark:bg-gray-900 dark:border-gray-800"
+    >
+      <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        {{ t('apolloAppPermissions') }}
+      </h3>
+
+      <div
+        v-if="!portalStore.appRoleUsers && !permLoading"
+        class="text-center py-8 text-gray-400 dark:text-gray-500"
+      >
+        <Shield :size="32" class="mx-auto mb-2 opacity-50" />
+        <p class="text-sm">{{ t('noData') }}</p>
+      </div>
+
+      <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Master Users -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            {{ t('apolloMasterUsers') }}
+          </h4>
+          <div class="space-y-2">
+            <div
+              v-for="user in portalStore.appRoleUsers?.masterUsers || []"
+              :key="`master-${user}`"
+              class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
+            >
+              <span class="text-sm text-gray-900 dark:text-gray-100">{{ user }}</span>
+              <button
+                @click="handleRemoveRole(user, 'master')"
+                class="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+              >
+                <X :size="12" />
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <input
+              v-model="addMasterUser"
+              :placeholder="t('apolloAddUserPlaceholder')"
+              class="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+              @keyup.enter="
+                handleAssignRole(addMasterUser, 'master')
+                addMasterUser = ''
+              "
+            />
+            <button
+              @click="
+                handleAssignRole(addMasterUser, 'master')
+                addMasterUser = ''
+              "
+              class="p-1.5 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg transition-colors"
+            >
+              <Plus :size="14" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Modify Users -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            {{ t('apolloModifyUsers') }}
+          </h4>
+          <div class="space-y-2">
+            <div
+              v-for="user in portalStore.appRoleUsers?.modifyUsers || []"
+              :key="`modify-${user}`"
+              class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
+            >
+              <span class="text-sm text-gray-900 dark:text-gray-100">{{ user }}</span>
+              <button
+                @click="handleRemoveRole(user, 'modify')"
+                class="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+              >
+                <X :size="12" />
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <input
+              v-model="addModifyUser"
+              :placeholder="t('apolloAddUserPlaceholder')"
+              class="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+              @keyup.enter="
+                handleAssignRole(addModifyUser, 'modify')
+                addModifyUser = ''
+              "
+            />
+            <button
+              @click="
+                handleAssignRole(addModifyUser, 'modify')
+                addModifyUser = ''
+              "
+              class="p-1.5 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg transition-colors"
+            >
+              <Plus :size="14" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Release Users -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            {{ t('apolloReleaseUsers') }}
+          </h4>
+          <div class="space-y-2">
+            <div
+              v-for="user in portalStore.appRoleUsers?.releaseUsers || []"
+              :key="`release-${user}`"
+              class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
+            >
+              <span class="text-sm text-gray-900 dark:text-gray-100">{{ user }}</span>
+              <button
+                @click="handleRemoveRole(user, 'release')"
+                class="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+              >
+                <X :size="12" />
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <input
+              v-model="addReleaseUser"
+              :placeholder="t('apolloAddUserPlaceholder')"
+              class="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+              @keyup.enter="
+                handleAssignRole(addReleaseUser, 'release')
+                addReleaseUser = ''
+              "
+            />
+            <button
+              @click="
+                handleAssignRole(addReleaseUser, 'release')
+                addReleaseUser = ''
+              "
+              class="p-1.5 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg transition-colors"
+            >
+              <Plus :size="14" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Access Keys Tab -->
+    <div
+      v-if="activeTab === 'accesskeys'"
+      class="p-6 bg-white rounded-2xl shadow-sm border border-gray-200 dark:bg-gray-900 dark:border-gray-800"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          {{ t('apolloAccessKeys') }}
+        </h3>
+        <div class="flex items-center gap-3">
+          <select
+            v-model="akEnv"
+            @change="refreshAccessKeys"
+            class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+          >
+            <option v-for="ec in apolloStore.envClusters" :key="ec.env" :value="ec.env">
+              {{ ec.env }}
+            </option>
+          </select>
+          <button
+            @click="handleCreateAccessKey"
+            class="flex items-center gap-2 px-4 py-1.5 text-xs font-bold text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors"
+          >
+            <Plus :size="12" />
+            {{ t('apolloCreateAccessKey') }}
+          </button>
+        </div>
+      </div>
+
+      <div
+        v-if="portalStore.accessKeys.length === 0 && !akLoading"
+        class="text-center py-8 text-gray-400 dark:text-gray-500"
+      >
+        <KeyRound :size="32" class="mx-auto mb-2 opacity-50" />
+        <p class="text-sm">{{ t('apolloNoAccessKeys') }}</p>
+      </div>
+
+      <div v-else class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr>
+              <th
+                class="px-6 py-4 font-bold text-xs uppercase tracking-wider text-gray-500 bg-gray-50 dark:bg-gray-800 dark:text-gray-400 text-left"
+              >
+                {{ t('apolloKey') }}
+              </th>
+              <th
+                class="px-6 py-4 font-bold text-xs uppercase tracking-wider text-gray-500 bg-gray-50 dark:bg-gray-800 dark:text-gray-400 text-left"
+              >
+                {{ t('apolloAccessKeySecret') }}
+              </th>
+              <th
+                class="px-6 py-4 font-bold text-xs uppercase tracking-wider text-gray-500 bg-gray-50 dark:bg-gray-800 dark:text-gray-400 text-left"
+              >
+                {{ t('status') }}
+              </th>
+              <th
+                class="px-6 py-4 font-bold text-xs uppercase tracking-wider text-gray-500 bg-gray-50 dark:bg-gray-800 dark:text-gray-400 text-left"
+              >
+                {{ t('actions') }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="ak in portalStore.accessKeys" :key="ak.id">
+              <td
+                class="px-6 py-5 border-b border-gray-100 dark:border-gray-800 text-sm font-mono text-gray-900 dark:text-gray-100"
+              >
+                {{ ak.key || '-' }}
+              </td>
+              <td
+                class="px-6 py-5 border-b border-gray-100 dark:border-gray-800 text-sm font-mono text-gray-600 dark:text-gray-400"
+              >
+                {{ ak.secret ? '••••••••' : '-' }}
+              </td>
+              <td class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+                <span
+                  :class="[
+                    'px-2.5 py-1 text-xs font-bold rounded-lg',
+                    ak.enabled
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
+                      : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
+                  ]"
+                >
+                  {{ ak.enabled ? t('enabled') : t('disabled') }}
+                </span>
+              </td>
+              <td class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+                <div class="flex items-center gap-2">
+                  <button
+                    @click="toggleAccessKey(ak)"
+                    class="px-3 py-1.5 text-xs font-bold rounded-lg transition-colors"
+                    :class="
+                      ak.enabled
+                        ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30'
+                        : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30'
+                    "
+                  >
+                    {{ ak.enabled ? t('disable') : t('enable') }}
+                  </button>
+                  <button
+                    @click="handleDeleteAccessKey(ak)"
+                    class="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  >
+                    <Trash2 :size="14" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Environments & Clusters -->
     <div
+      v-if="activeTab === 'environments'"
       class="p-6 bg-white rounded-2xl shadow-sm border border-gray-200 dark:bg-gray-900 dark:border-gray-800"
     >
       <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -142,7 +442,7 @@
 
     <!-- Namespaces (shown when env/cluster is selected) -->
     <div
-      v-if="selectedEnv && selectedCluster"
+      v-if="activeTab === 'environments' && selectedEnv && selectedCluster"
       class="p-6 bg-white rounded-2xl shadow-sm border border-gray-200 dark:bg-gray-900 dark:border-gray-800"
     >
       <div class="flex items-center justify-between mb-4">
@@ -460,22 +760,129 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { ArrowLeft, RefreshCw, Plus, Layers, Server, ChevronRight, Trash2 } from 'lucide-vue-next'
+import {
+  ArrowLeft,
+  RefreshCw,
+  Plus,
+  Layers,
+  Server,
+  ChevronRight,
+  Trash2,
+  X,
+  Shield,
+  KeyRound,
+} from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useApolloStore } from '@/stores/apollo'
-import type { ApolloNamespaceFormat } from '@/types/apollo'
+import { useApolloPortalStore } from '@/stores/apollo-portal'
+import type { ApolloNamespaceFormat, ApolloRoleType, ApolloAccessKey } from '@/types/apollo'
 import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
 const route = useRoute()
 const apolloStore = useApolloStore()
+const portalStore = useApolloPortalStore()
 
 const appId = route.params.appId as string
 const currentApp = ref(apolloStore.currentApp)
 const loading = ref(false)
 const nsLoading = ref(false)
+const permLoading = ref(false)
+const akLoading = ref(false)
+
+const activeTab = ref<'environments' | 'permissions' | 'accesskeys'>('environments')
+const addMasterUser = ref('')
+const addModifyUser = ref('')
+const addReleaseUser = ref('')
+const akEnv = ref('')
+
+watch(activeTab, async (tab) => {
+  if (tab === 'permissions') {
+    permLoading.value = true
+    try {
+      await portalStore.fetchAppRoleUsers(appId)
+    } catch (err) {
+      logger.error('Failed to fetch role users:', err)
+    } finally {
+      permLoading.value = false
+    }
+  } else if (tab === 'accesskeys') {
+    const firstCluster = apolloStore.envClusters[0]
+    if (!akEnv.value && firstCluster) {
+      akEnv.value = firstCluster.env
+    }
+    if (akEnv.value) {
+      await refreshAccessKeys()
+    }
+  }
+})
+
+async function handleAssignRole(userId: string, roleType: ApolloRoleType) {
+  if (!userId.trim()) return
+  try {
+    await portalStore.assignAppRole(appId, userId.trim(), roleType)
+    await portalStore.fetchAppRoleUsers(appId)
+  } catch (err) {
+    logger.error('Failed to assign role:', err)
+  }
+}
+
+async function handleRemoveRole(userId: string, roleType: ApolloRoleType) {
+  try {
+    await portalStore.removeAppRole(appId, userId, roleType)
+    await portalStore.fetchAppRoleUsers(appId)
+  } catch (err) {
+    logger.error('Failed to remove role:', err)
+  }
+}
+
+async function refreshAccessKeys() {
+  if (!akEnv.value) return
+  akLoading.value = true
+  try {
+    await portalStore.fetchAccessKeys(appId, akEnv.value)
+  } catch (err) {
+    logger.error('Failed to fetch access keys:', err)
+  } finally {
+    akLoading.value = false
+  }
+}
+
+async function handleCreateAccessKey() {
+  if (!akEnv.value) return
+  try {
+    await portalStore.createAccessKey(appId, akEnv.value)
+    await refreshAccessKeys()
+  } catch (err) {
+    logger.error('Failed to create access key:', err)
+  }
+}
+
+async function toggleAccessKey(ak: ApolloAccessKey) {
+  if (!ak.id || !akEnv.value) return
+  try {
+    if (ak.enabled) {
+      await portalStore.disableAccessKey(appId, akEnv.value, ak.id)
+    } else {
+      await portalStore.enableAccessKey(appId, akEnv.value, ak.id)
+    }
+    await refreshAccessKeys()
+  } catch (err) {
+    logger.error('Failed to toggle access key:', err)
+  }
+}
+
+async function handleDeleteAccessKey(ak: ApolloAccessKey) {
+  if (!ak.id || !akEnv.value) return
+  try {
+    await portalStore.deleteAccessKey(appId, akEnv.value, ak.id)
+    await refreshAccessKeys()
+  } catch (err) {
+    logger.error('Failed to delete access key:', err)
+  }
+}
 
 const expandedEnvs = ref<Set<string>>(new Set())
 const selectedEnv = ref('')

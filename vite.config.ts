@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:8848'
   const consulProxyTarget = env.VITE_CONSUL_PROXY_TARGET || 'http://localhost:8500'
+  const apolloProxyTarget = env.VITE_APOLLO_PROXY_TARGET || 'http://localhost:8080'
 
   const plugins: PluginOption[] = [
     vue(),
@@ -118,6 +119,11 @@ export default defineConfig(({ mode }) => {
           target: consulProxyTarget,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/consul-api/, ''),
+        },
+        '/apollo-api': {
+          target: apolloProxyTarget,
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/apollo-api/, ''),
         },
       },
     },

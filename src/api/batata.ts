@@ -917,6 +917,25 @@ class BatataApi {
   async deleteSyncEnvironment(_id: string): Promise<never> {
     throw new ApiError(501, 'Config sync is not supported by the server')
   }
+
+  async getTraceList(_params: {
+    serviceName?: string
+    operationName?: string
+    traceId?: string
+    timeRange?: string
+    minDuration?: number
+    maxDuration?: number
+    errorsOnly?: boolean
+    rootSpansOnly?: boolean
+    page?: number
+    pageSize?: number
+  }): Promise<never> {
+    throw new ApiError(501, 'Tracing is not supported by the server')
+  }
+
+  async getTraceServices(): Promise<never> {
+    throw new ApiError(501, 'Tracing is not supported by the server')
+  }
 }
 
 export default new BatataApi()

@@ -4,10 +4,10 @@
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">
-          {{ t('apolloApps') }}
+          {{ t('apolloConsumerManagement') }}
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          {{ t('apolloAppsDesc') }}
+          {{ t('apolloConsumerManagementDesc') }}
         </p>
       </div>
       <div class="flex items-center gap-2">
@@ -24,50 +24,21 @@
           class="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-orange-600 rounded-xl hover:bg-orange-700 transition-colors"
         >
           <Plus :size="14" />
-          {{ t('apolloCreateApp') }}
+          {{ t('apolloCreateConsumer') }}
         </button>
       </div>
     </div>
 
-    <!-- Search -->
-    <div
-      class="p-4 bg-white rounded-2xl shadow-sm border border-gray-200 dark:bg-gray-900 dark:border-gray-800"
-    >
-      <div class="flex items-center gap-3">
-        <div class="relative flex-1">
-          <Search
-            :size="16"
-            class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
-          />
-          <input
-            v-model="searchQuery"
-            :placeholder="t('apolloSearchApp')"
-            class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
-          />
-        </div>
-        <label
-          class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap"
-        >
-          <input
-            type="checkbox"
-            v-model="showFavoritesOnly"
-            class="rounded border-gray-300 dark:border-gray-600 text-orange-600 focus:ring-orange-500"
-          />
-          {{ t('apolloFavoritesOnly') }}
-        </label>
-      </div>
-    </div>
-
-    <!-- Apps Table -->
+    <!-- Consumers Table -->
     <div
       class="bg-white rounded-2xl shadow-sm border border-gray-200 dark:bg-gray-900 dark:border-gray-800 overflow-hidden"
     >
       <div
-        v-if="filteredApps.length === 0 && !loading"
+        v-if="consumerList.length === 0 && !loading"
         class="text-center py-12 text-gray-400 dark:text-gray-500"
       >
-        <Box :size="40" class="mx-auto mb-3 opacity-50" />
-        <p class="text-sm">{{ t('apolloNoApps') }}</p>
+        <Key :size="40" class="mx-auto mb-3 opacity-50" />
+        <p class="text-sm">{{ t('apolloNoConsumers') }}</p>
       </div>
 
       <div v-else class="overflow-x-auto">
@@ -82,7 +53,7 @@
               <th
                 class="px-6 py-4 font-bold text-xs uppercase tracking-wider text-gray-500 bg-gray-50 dark:bg-gray-800 dark:text-gray-400 text-left"
               >
-                {{ t('apolloAppName') }}
+                {{ t('name') }}
               </th>
               <th
                 class="px-6 py-4 font-bold text-xs uppercase tracking-wider text-gray-500 bg-gray-50 dark:bg-gray-800 dark:text-gray-400 text-left"
@@ -97,70 +68,42 @@
               <th
                 class="px-6 py-4 font-bold text-xs uppercase tracking-wider text-gray-500 bg-gray-50 dark:bg-gray-800 dark:text-gray-400 text-left"
               >
-                {{ t('apolloOwnerEmail') }}
-              </th>
-              <th
-                class="px-6 py-4 font-bold text-xs uppercase tracking-wider text-gray-500 bg-gray-50 dark:bg-gray-800 dark:text-gray-400 text-left"
-              >
                 {{ t('actions') }}
               </th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="app in filteredApps" :key="app.appId">
+            <tr v-for="consumer in consumerList" :key="consumer.id">
               <td
                 class="px-6 py-5 border-b border-gray-100 dark:border-gray-800 text-sm font-medium text-gray-900 dark:text-gray-100"
               >
-                <RouterLink
-                  :to="`/app/${app.appId}`"
-                  class="text-orange-600 dark:text-orange-400 hover:underline"
-                >
-                  {{ app.appId }}
-                </RouterLink>
+                {{ consumer.appId }}
               </td>
               <td
                 class="px-6 py-5 border-b border-gray-100 dark:border-gray-800 text-sm text-gray-600 dark:text-gray-400"
               >
-                {{ app.name }}
+                {{ consumer.name }}
               </td>
               <td
                 class="px-6 py-5 border-b border-gray-100 dark:border-gray-800 text-sm text-gray-600 dark:text-gray-400"
               >
-                {{ app.orgName || '-' }}
+                {{ consumer.orgName || '-' }}
               </td>
               <td
                 class="px-6 py-5 border-b border-gray-100 dark:border-gray-800 text-sm text-gray-600 dark:text-gray-400"
               >
-                {{ app.ownerName || '-' }}
-              </td>
-              <td
-                class="px-6 py-5 border-b border-gray-100 dark:border-gray-800 text-sm text-gray-600 dark:text-gray-400"
-              >
-                {{ app.ownerEmail || '-' }}
+                {{ consumer.ownerName || '-' }}
               </td>
               <td class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
                 <div class="flex items-center gap-2">
                   <button
-                    @click="toggleFavorite(app)"
-                    class="p-1.5 rounded-lg transition-colors"
-                    :class="
-                      isFavorite(app.appId)
-                        ? 'text-amber-500'
-                        : 'text-gray-300 dark:text-gray-600 hover:text-amber-400'
-                    "
-                    :title="t('apolloToggleFavorite')"
+                    @click="viewToken(consumer)"
+                    class="px-3 py-1.5 text-xs font-bold text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg transition-colors"
                   >
-                    <Star :size="14" :fill="isFavorite(app.appId) ? 'currentColor' : 'none'" />
+                    {{ t('apolloViewToken') }}
                   </button>
                   <button
-                    @click="editApp(app)"
-                    class="p-1.5 text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                    :title="t('edit')"
-                  >
-                    <Pencil :size="14" />
-                  </button>
-                  <button
-                    @click="confirmDelete(app)"
+                    @click="confirmDeleteConsumer(consumer)"
                     class="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                     :title="t('delete')"
                   >
@@ -173,52 +116,70 @@
         </table>
       </div>
 
-      <!-- Footer -->
+      <!-- Pagination -->
       <div
-        v-if="filteredApps.length > 0"
-        class="px-6 py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400"
+        v-if="consumerList.length > 0"
+        class="px-6 py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400"
       >
-        {{ t('total') }} {{ filteredApps.length }} {{ t('items') }}
+        <span>{{ t('total') }} {{ portalStore.consumers?.total || 0 }} {{ t('items') }}</span>
+        <div class="flex items-center gap-2">
+          <button
+            :disabled="currentPage <= 0"
+            @click="changePage(currentPage - 1)"
+            class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+          >
+            {{ t('previous') }}
+          </button>
+          <button
+            :disabled="!hasNextPage"
+            @click="changePage(currentPage + 1)"
+            class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+          >
+            {{ t('next') }}
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Create/Edit Modal -->
-    <template v-if="showCreateModal || showEditModal">
-      <div class="fixed inset-0 bg-black/50 z-40" @click="closeModal" />
-      <div class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="closeModal">
+    <!-- Create Consumer Modal -->
+    <template v-if="showCreateModal">
+      <div class="fixed inset-0 bg-black/50 z-40" @click="showCreateModal = false" />
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        @click.self="showCreateModal = false"
+      >
         <div
           class="bg-white rounded-3xl shadow-2xl dark:bg-gray-900 dark:border dark:border-gray-800 w-full max-w-lg"
         >
           <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-800">
             <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">
-              {{ showEditModal ? t('apolloEditApp') : t('apolloCreateApp') }}
+              {{ t('apolloCreateConsumer') }}
             </h3>
           </div>
           <div class="p-6 space-y-4">
-            <div>
-              <label
-                class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5"
-              >
-                {{ t('apolloAppId') }}
-              </label>
-              <input
-                v-model="formData.appId"
-                :disabled="showEditModal"
-                :placeholder="t('apolloAppIdPlaceholder')"
-                class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 disabled:opacity-50"
-              />
-            </div>
-            <div>
-              <label
-                class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5"
-              >
-                {{ t('apolloAppName') }}
-              </label>
-              <input
-                v-model="formData.name"
-                :placeholder="t('apolloAppNamePlaceholder')"
-                class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
-              />
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5"
+                >
+                  {{ t('apolloAppId') }}
+                </label>
+                <input
+                  v-model="createForm.appId"
+                  class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                />
+              </div>
+              <div>
+                <label
+                  class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5"
+                >
+                  {{ t('name') }}
+                </label>
+                <input
+                  v-model="createForm.name"
+                  class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                />
+              </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
@@ -228,8 +189,7 @@
                   {{ t('apolloOrgId') }}
                 </label>
                 <input
-                  v-model="formData.orgId"
-                  :placeholder="t('apolloOrgIdPlaceholder')"
+                  v-model="createForm.orgId"
                   class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 />
               </div>
@@ -240,8 +200,7 @@
                   {{ t('apolloOrgName') }}
                 </label>
                 <input
-                  v-model="formData.orgName"
-                  :placeholder="t('apolloOrgNamePlaceholder')"
+                  v-model="createForm.orgName"
                   class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 />
               </div>
@@ -254,8 +213,7 @@
                   {{ t('apolloOwnerName') }}
                 </label>
                 <input
-                  v-model="formData.ownerName"
-                  :placeholder="t('apolloOwnerNamePlaceholder')"
+                  v-model="createForm.ownerName"
                   class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 />
               </div>
@@ -266,8 +224,7 @@
                   {{ t('apolloOwnerEmail') }}
                 </label>
                 <input
-                  v-model="formData.ownerEmail"
-                  :placeholder="t('apolloOwnerEmailPlaceholder')"
+                  v-model="createForm.ownerEmail"
                   class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 />
               </div>
@@ -275,23 +232,57 @@
           </div>
           <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800 rounded-b-3xl flex justify-end gap-3">
             <button
-              @click="closeModal"
+              @click="showCreateModal = false"
               class="px-5 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors"
             >
               {{ t('cancel') }}
             </button>
             <button
-              @click="saveApp"
+              @click="handleCreate"
               class="px-5 py-2 text-sm font-bold text-white bg-orange-600 rounded-xl hover:bg-orange-700 transition-colors"
             >
-              {{ t('save') }}
+              {{ t('create') }}
             </button>
           </div>
         </div>
       </div>
     </template>
 
-    <!-- Delete Confirmation Modal -->
+    <!-- Token Modal -->
+    <template v-if="showTokenModal">
+      <div class="fixed inset-0 bg-black/50 z-40" @click="showTokenModal = false" />
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        @click.self="showTokenModal = false"
+      >
+        <div
+          class="bg-white rounded-3xl shadow-2xl dark:bg-gray-900 dark:border dark:border-gray-800 w-full max-w-md"
+        >
+          <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-800">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">
+              {{ t('apolloConsumerToken') }}
+            </h3>
+          </div>
+          <div class="p-6">
+            <div
+              class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl text-sm font-mono text-gray-900 dark:text-gray-100 break-all"
+            >
+              {{ tokenValue || t('loading') }}
+            </div>
+          </div>
+          <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800 rounded-b-3xl flex justify-end">
+            <button
+              @click="showTokenModal = false"
+              class="px-5 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors"
+            >
+              {{ t('close') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Delete Confirmation -->
     <template v-if="showDeleteModal">
       <div class="fixed inset-0 bg-black/50 z-40" @click="showDeleteModal = false" />
       <div
@@ -308,10 +299,7 @@
           </div>
           <div class="p-6">
             <p class="text-sm text-gray-600 dark:text-gray-400">
-              {{ t('apolloConfirmDeleteApp') }}
-            </p>
-            <p class="text-xs text-red-500 dark:text-red-400 mt-2">
-              {{ t('apolloDeleteAppWarning') }}
+              {{ t('apolloConfirmDeleteConsumer') }}
             </p>
           </div>
           <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800 rounded-b-3xl flex justify-end gap-3">
@@ -336,30 +324,24 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
-import { Box, RefreshCw, Plus, Search, Pencil, Trash2, Star } from 'lucide-vue-next'
+import { RefreshCw, Plus, Key, Trash2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import { useApolloStore } from '@/stores/apollo'
 import { useApolloPortalStore } from '@/stores/apollo-portal'
-import { storage } from '@/composables/useStorage'
-import type { ApolloApp, ApolloAppPayload } from '@/types/apollo'
+import type { ApolloConsumer, ApolloConsumerPayload } from '@/types/apollo'
 import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
-const apolloStore = useApolloStore()
 const portalStore = useApolloPortalStore()
 
 const loading = ref(false)
-const searchQuery = ref('')
-const showFavoritesOnly = ref(false)
-const favoriteAppIds = ref<Set<string>>(new Set())
-const favoriteIdMap = ref<Map<string, number>>(new Map())
+const currentPage = ref(0)
 const showCreateModal = ref(false)
-const showEditModal = ref(false)
+const showTokenModal = ref(false)
 const showDeleteModal = ref(false)
-const deleteTarget = ref<ApolloApp | null>(null)
+const tokenValue = ref('')
+const deleteTarget = ref<ApolloConsumer | null>(null)
 
-const emptyForm = (): ApolloAppPayload => ({
+const emptyForm = (): ApolloConsumerPayload => ({
   appId: '',
   name: '',
   orgId: '',
@@ -368,118 +350,71 @@ const emptyForm = (): ApolloAppPayload => ({
   ownerEmail: '',
 })
 
-const formData = ref<ApolloAppPayload>(emptyForm())
+const createForm = ref<ApolloConsumerPayload>(emptyForm())
 
-const filteredApps = computed(() => {
-  let list = apolloStore.apps
-  if (showFavoritesOnly.value) {
-    list = list.filter((app) => favoriteAppIds.value.has(app.appId))
-  }
-  if (!searchQuery.value) return list
-  const q = searchQuery.value.toLowerCase()
-  return list.filter(
-    (app) => app.appId.toLowerCase().includes(q) || app.name.toLowerCase().includes(q),
-  )
+const consumerList = computed(() => portalStore.consumers?.content || [])
+const hasNextPage = computed(() => {
+  if (!portalStore.consumers) return false
+  return (currentPage.value + 1) * portalStore.consumers.size < portalStore.consumers.total
 })
-
-function isFavorite(appId: string) {
-  return favoriteAppIds.value.has(appId)
-}
-
-async function toggleFavorite(app: ApolloApp) {
-  try {
-    if (isFavorite(app.appId)) {
-      const favId = favoriteIdMap.value.get(app.appId)
-      if (favId !== undefined) {
-        await portalStore.removeFavorite(favId)
-        favoriteAppIds.value.delete(app.appId)
-        favoriteIdMap.value.delete(app.appId)
-      }
-    } else {
-      const fav = await portalStore.addFavorite({ appId: app.appId })
-      if (fav?.id) {
-        favoriteAppIds.value.add(app.appId)
-        favoriteIdMap.value.set(app.appId, fav.id)
-      }
-    }
-  } catch (err) {
-    logger.error('Failed to toggle favorite:', err)
-  }
-}
-
-async function loadFavorites() {
-  try {
-    const savedUser = storage.getJSON<{ name: string }>('batata_user')
-    if (savedUser?.name) {
-      const favs = await portalStore.fetchFavorites(savedUser.name)
-      favoriteAppIds.value = new Set(favs.map((f) => f.appId))
-      favoriteIdMap.value = new Map(favs.filter((f) => f.id).map((f) => [f.appId, f.id!]))
-    }
-  } catch {
-    // Favorites may not be available
-  }
-}
 
 async function refreshData() {
   loading.value = true
   try {
-    await apolloStore.fetchApps()
-    await loadFavorites()
+    await portalStore.fetchConsumers(currentPage.value)
   } catch (err) {
-    logger.error('Failed to fetch apps:', err)
+    logger.error('Failed to fetch consumers:', err)
   } finally {
     loading.value = false
   }
 }
 
-function editApp(app: ApolloApp) {
-  formData.value = {
-    appId: app.appId,
-    name: app.name,
-    orgId: app.orgId,
-    orgName: app.orgName,
-    ownerName: app.ownerName,
-    ownerEmail: app.ownerEmail,
-  }
-  showEditModal.value = true
+function changePage(page: number) {
+  currentPage.value = page
+  refreshData()
 }
 
-function confirmDelete(app: ApolloApp) {
-  deleteTarget.value = app
+async function handleCreate() {
+  try {
+    await portalStore.createConsumer(createForm.value)
+    showCreateModal.value = false
+    createForm.value = emptyForm()
+    await refreshData()
+  } catch (err) {
+    logger.error('Failed to create consumer:', err)
+  }
+}
+
+async function viewToken(consumer: ApolloConsumer) {
+  tokenValue.value = ''
+  showTokenModal.value = true
+  try {
+    if (consumer.id) {
+      const result = await portalStore.getConsumerToken(consumer.id)
+      tokenValue.value = result.token
+    }
+  } catch (err) {
+    logger.error('Failed to get token:', err)
+    tokenValue.value = 'Error loading token'
+  }
+}
+
+function confirmDeleteConsumer(consumer: ApolloConsumer) {
+  deleteTarget.value = consumer
   showDeleteModal.value = true
 }
 
 async function handleDelete() {
-  if (!deleteTarget.value) return
+  if (!deleteTarget.value?.id) return
   try {
-    await apolloStore.deleteApp(deleteTarget.value.appId)
-    await apolloStore.fetchApps()
+    await portalStore.deleteConsumer(deleteTarget.value.id)
+    await refreshData()
   } catch (err) {
-    logger.error('Failed to delete app:', err)
+    logger.error('Failed to delete consumer:', err)
   } finally {
     showDeleteModal.value = false
     deleteTarget.value = null
   }
-}
-
-async function saveApp() {
-  try {
-    if (showEditModal.value) {
-      await apolloStore.updateApp(formData.value.appId, formData.value)
-    } else {
-      await apolloStore.createApp(formData.value)
-    }
-    await apolloStore.fetchApps()
-    closeModal()
-  } catch (err) {
-    logger.error('Failed to save app:', err)
-  }
-}
-
-function closeModal() {
-  showCreateModal.value = false
-  showEditModal.value = false
-  formData.value = emptyForm()
 }
 
 onMounted(() => {

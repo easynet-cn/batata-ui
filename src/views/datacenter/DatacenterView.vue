@@ -400,7 +400,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import {
   Globe,
   RefreshCw,
@@ -467,9 +467,6 @@ const form = reactive({
   accessToken: '',
   isPrimary: false,
 })
-
-// Track active sync intervals for cleanup
-const activeSyncIntervals = new Set<ReturnType<typeof setInterval>>()
 
 // Sync showFormModal with showAddModal / showEditModal
 watch(showAddModal, (val) => {
@@ -591,23 +588,8 @@ const formatTime = (timestamp: number) => {
   return new Date(timestamp).toLocaleString()
 }
 
-const syncDatacenter = async (dc: Datacenter) => {
-  dc.status = 'syncing'
-  dc.syncProgress = 0
-
-  // Simulate sync progress
-  const interval = setInterval(() => {
-    if (dc.syncProgress !== undefined && dc.syncProgress < 100) {
-      dc.syncProgress += 10
-    } else {
-      clearInterval(interval)
-      activeSyncIntervals.delete(interval)
-      dc.status = 'healthy'
-      dc.lastSyncTime = Date.now()
-      dc.syncProgress = undefined
-    }
-  }, 500)
-  activeSyncIntervals.add(interval)
+const syncDatacenter = async (_dc: Datacenter) => {
+  toast.warning(t('featureNotSupported'))
 }
 
 const showDatacenterDetail = (dc: Datacenter) => {
@@ -689,11 +671,5 @@ const saveDatacenter = () => {
 // Lifecycle
 onMounted(() => {
   fetchDatacenters()
-})
-
-onUnmounted(() => {
-  // Clear all active sync intervals to prevent memory leaks
-  activeSyncIntervals.forEach((interval) => clearInterval(interval))
-  activeSyncIntervals.clear()
 })
 </script>

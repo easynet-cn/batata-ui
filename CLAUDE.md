@@ -22,7 +22,6 @@ batata-ui 是一个基于 Vue 3 + TypeScript + Tailwind CSS 4 构建的 Nacos �
 - 路由: Vue Router
 - 图表: ECharts + Vue-ECharts
 - HTTP 客户端: Axios
-- Mock: MockJS
 - 构建工具: Vite (rolldown-vite)
 
 ## Development Commands
@@ -73,10 +72,6 @@ src/
 │   └── translations.ts   # 翻译文本
 ├── layout/               # 布局组件
 │   └── BatataLayout.vue  # 主布局 (sidebar + header + content)
-├── mock/                 # Mock 数据
-│   ├── index.ts         # Mock 入口
-│   ├── data.ts          # Mock 数据
-│   └── modules/         # Mock 模块
 ├── router/              # 路由配置
 │   └── index.ts        # 路由定义
 ├── stores/             # Pinia 状态管理

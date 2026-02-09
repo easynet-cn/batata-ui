@@ -724,11 +724,25 @@ const apolloNavGroups = computed(() => [
   },
   {
     title: t('apolloConfigManagement'),
-    items: [{ path: '/apps', label: t('apolloApps'), icon: Box }],
+    items: [
+      { path: '/apps', label: t('apolloApps'), icon: Box },
+      { path: '/search', label: t('apolloGlobalSearch'), icon: Globe2 },
+    ],
+  },
+  {
+    title: t('apolloAccessControl'),
+    items: [
+      { path: '/users', label: t('apolloUserManagement'), icon: Users },
+      { path: '/consumers', label: t('apolloConsumers'), icon: Key },
+    ],
   },
   {
     title: t('system'),
-    items: [{ path: '/settings', label: t('settings'), icon: Cog }],
+    items: [
+      { path: '/system-info', label: t('apolloSystemInfo'), icon: Activity },
+      { path: '/server-config', label: t('apolloServerConfig'), icon: Database },
+      { path: '/settings', label: t('settings'), icon: Cog },
+    ],
   },
 ])
 

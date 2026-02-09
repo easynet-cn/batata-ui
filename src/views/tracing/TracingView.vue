@@ -350,7 +350,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import {
   Search,
   RotateCcw,
@@ -364,6 +364,8 @@ import {
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { logger } from '@/utils/logger'
+import batataApi from '@/api/batata'
+import { ApiError } from '@/utils/error'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import AppPagination from '@/components/common/AppPagination.vue'
 import type { Namespace } from '@/types'
@@ -408,16 +410,7 @@ const pageSize = ref(20)
 const showDetailModal = ref(false)
 const selectedTrace = ref<Trace | null>(null)
 
-// Track active timeout for cleanup
-let fetchDelayTimer: ReturnType<typeof setTimeout> | null = null
-
-const services = ref([
-  'user-service',
-  'order-service',
-  'payment-service',
-  'gateway-service',
-  'inventory-service',
-])
+const services = ref<string[]>([])
 
 // Filters
 const filters = reactive({
@@ -464,75 +457,38 @@ const getServiceColor = (serviceName: string, alpha: number): string => {
 const fetchTraces = async () => {
   loading.value = true
   try {
-    await new Promise<void>((resolve) => {
-      fetchDelayTimer = setTimeout(() => {
-        fetchDelayTimer = null
-        resolve()
-      }, 500)
+    await batataApi.getTraceList({
+      serviceName: filters.serviceName || undefined,
+      operationName: filters.operationName || undefined,
+      traceId: filters.traceId || undefined,
+      timeRange: filters.timeRange,
+      minDuration: filters.minDuration,
+      maxDuration: filters.maxDuration,
+      errorsOnly: filters.errorsOnly,
+      rootSpansOnly: filters.rootSpansOnly,
+      page: currentPage.value,
+      pageSize: pageSize.value,
     })
-    traces.value = generateMockTraces()
-    total.value = 156
   } catch (error) {
-    logger.error('Failed to fetch traces:', error)
+    if (!(error instanceof ApiError && error.code === 501)) {
+      logger.error('Failed to fetch traces:', error)
+    }
+    traces.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
 }
 
-const generateMockTraces = (): Trace[] => {
-  const operations = [
-    'GET /api/users',
-    'POST /api/orders',
-    'GET /api/products',
-    'PUT /api/inventory',
-    'POST /api/payments',
-  ]
-
-  return Array.from({ length: 20 }, (_, i) => {
-    const rootService = services.value[Math.floor(Math.random() * services.value.length)] as string
-    const spanCount = Math.floor(Math.random() * 8) + 2
-    const duration = Math.floor(Math.random() * 2000) + 50
-    const hasError = Math.random() > 0.85
-
-    const spans: Span[] = []
-    let currentDepth = 0
-
-    for (let j = 0; j < spanCount; j++) {
-      const serviceName = services.value[
-        Math.floor(Math.random() * services.value.length)
-      ] as string
-      const spanDuration = Math.floor((duration / spanCount) * (0.5 + Math.random()))
-
-      spans.push({
-        spanId: `span-${i}-${j}`,
-        parentSpanId: j > 0 ? `span-${i}-${j - 1}` : undefined,
-        serviceName,
-        operationName: operations[Math.floor(Math.random() * operations.length)] as string,
-        duration: spanDuration,
-        startTime: Date.now() - Math.floor(Math.random() * 3600000),
-        hasError: j === spanCount - 1 && hasError,
-        depth: Math.min(currentDepth, 4),
-      })
-
-      // Vary depth for visual interest
-      if (Math.random() > 0.5 && currentDepth < 4) {
-        currentDepth++
-      } else if (currentDepth > 0 && Math.random() > 0.7) {
-        currentDepth--
-      }
+const fetchServices = async () => {
+  try {
+    await batataApi.getTraceServices()
+  } catch (error) {
+    if (!(error instanceof ApiError && error.code === 501)) {
+      logger.error('Failed to fetch trace services:', error)
     }
-
-    return {
-      traceId: `trace-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 10)}`,
-      rootService,
-      rootOperation: operations[Math.floor(Math.random() * operations.length)] as string,
-      spanCount,
-      duration,
-      startTime: Date.now() - Math.floor(Math.random() * 3600000),
-      hasError,
-      spans,
-    }
-  }).sort((a, b) => b.startTime - a.startTime)
+    services.value = []
+  }
 }
 
 const handleSearch = () => {
@@ -594,13 +550,6 @@ const copyTraceId = () => {
 // Lifecycle
 onMounted(() => {
   fetchTraces()
-})
-
-onUnmounted(() => {
-  // Clear pending fetch delay timer to prevent memory leaks
-  if (fetchDelayTimer !== null) {
-    clearTimeout(fetchDelayTimer)
-    fetchDelayTimer = null
-  }
+  fetchServices()
 })
 </script>
