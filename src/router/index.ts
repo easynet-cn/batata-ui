@@ -192,137 +192,141 @@ const nacosChildren: RouteRecordRaw[] = [
 const consulChildren: RouteRecordRaw[] = [
   // Dashboard
   {
-    path: '',
+    path: 'consul',
+    redirect: 'consul/dashboard',
+  },
+  {
+    path: 'consul/dashboard',
     name: 'consul-dashboard',
     component: () => import('../views/consul/ConsulDashboardView.vue'),
     meta: { titleKey: 'routeConsulDashboard' },
   },
   // KV Store
   {
-    path: 'kv',
+    path: 'consul/kv',
     name: 'consul-kv',
     component: () => import('../views/consul/KVListView.vue'),
     meta: { titleKey: 'routeConsulKV' },
   },
   {
-    path: 'kv/new',
+    path: 'consul/kv/new',
     name: 'consul-kv-new',
     component: () => import('../views/consul/KVEditorView.vue'),
     meta: { titleKey: 'routeConsulKVNew' },
   },
   {
-    path: 'kv/edit',
-    name: 'consul-kv-edit',
+    path: 'consul/kv/editor',
+    name: 'consul-kv-editor',
     component: () => import('../views/consul/KVEditorView.vue'),
     meta: { titleKey: 'routeConsulKVEdit' },
   },
   {
-    path: 'kv/detail',
+    path: 'consul/kv/detail',
     name: 'consul-kv-detail',
     component: () => import('../views/consul/KVDetailView.vue'),
     meta: { titleKey: 'routeConsulKVDetail' },
   },
   // Catalog Services
   {
-    path: 'catalog/services',
+    path: 'consul/catalog/services',
     name: 'consul-services',
     component: () => import('../views/consul/CatalogServiceListView.vue'),
     meta: { titleKey: 'routeConsulServices' },
   },
   {
-    path: 'catalog/service/:name',
+    path: 'consul/catalog/service/:name',
     name: 'consul-service-detail',
     component: () => import('../views/consul/CatalogServiceDetailView.vue'),
     meta: { titleKey: 'routeConsulServiceDetail' },
   },
   // Catalog Nodes
   {
-    path: 'catalog/nodes',
+    path: 'consul/catalog/nodes',
     name: 'consul-nodes',
     component: () => import('../views/consul/CatalogNodeListView.vue'),
     meta: { titleKey: 'routeConsulNodes' },
   },
   {
-    path: 'catalog/node/:name',
+    path: 'consul/catalog/node/:name',
     name: 'consul-node-detail',
     component: () => import('../views/consul/CatalogNodeDetailView.vue'),
     meta: { titleKey: 'routeConsulNodeDetail' },
   },
   // Health Checks
   {
-    path: 'health',
+    path: 'consul/health',
     name: 'consul-health',
     component: () => import('../views/consul/HealthCheckListView.vue'),
     meta: { titleKey: 'routeConsulHealth' },
   },
   // ACL
   {
-    path: 'acl/tokens',
+    path: 'consul/acl/tokens',
     name: 'consul-tokens',
     component: () => import('../views/consul/ACLTokenListView.vue'),
     meta: { titleKey: 'routeConsulTokens' },
   },
   {
-    path: 'acl/policies',
+    path: 'consul/acl/policies',
     name: 'consul-policies',
     component: () => import('../views/consul/ACLPolicyListView.vue'),
     meta: { titleKey: 'routeConsulPolicies' },
   },
   {
-    path: 'acl/roles',
+    path: 'consul/acl/roles',
     name: 'consul-roles',
     component: () => import('../views/consul/ACLRoleListView.vue'),
     meta: { titleKey: 'routeConsulRoles' },
   },
   // ACL Auth Methods
   {
-    path: 'acl/auth-methods',
+    path: 'consul/acl/auth-methods',
     name: 'consul-auth-methods',
     component: () => import('../views/consul/AuthMethodListView.vue'),
     meta: { titleKey: 'routeConsulAuthMethods' },
   },
   {
-    path: 'acl/auth-method/:name',
+    path: 'consul/acl/auth-method/:name',
     name: 'consul-auth-method-detail',
     component: () => import('../views/consul/AuthMethodDetailView.vue'),
     meta: { titleKey: 'routeConsulAuthMethodDetail' },
   },
   // Service Mesh
   {
-    path: 'intentions',
+    path: 'consul/intentions',
     name: 'consul-intentions',
     component: () => import('../views/consul/IntentionListView.vue'),
     meta: { titleKey: 'routeConsulIntentions' },
   },
   {
-    path: 'config-entries',
+    path: 'consul/config-entries',
     name: 'consul-config-entries',
     component: () => import('../views/consul/ConfigEntryListView.vue'),
     meta: { titleKey: 'routeConsulConfigEntries' },
   },
   // Peerings
   {
-    path: 'peerings',
+    path: 'consul/peerings',
     name: 'consul-peerings',
     component: () => import('../views/consul/PeeringListView.vue'),
     meta: { titleKey: 'routeConsulPeerings' },
   },
   {
-    path: 'peering/:name',
+    path: 'consul/peering/:name',
     name: 'consul-peering-detail',
     component: () => import('../views/consul/PeeringDetailView.vue'),
     meta: { titleKey: 'routeConsulPeeringDetail' },
   },
   // Sessions
   {
-    path: 'sessions',
+    path: 'consul/sessions',
     name: 'consul-sessions',
     component: () => import('../views/consul/SessionListView.vue'),
     meta: { titleKey: 'routeConsulSessions' },
   },
   // Settings (shared)
   {
-    path: 'settings',
+    path: 'consul/settings',
     name: 'consul-settings',
     component: () => import('../views/settings/SettingsView.vue'),
     meta: { titleKey: 'routeSettings' },
@@ -333,91 +337,95 @@ const consulChildren: RouteRecordRaw[] = [
 const apolloChildren: RouteRecordRaw[] = [
   // Dashboard
   {
-    path: '',
+    path: 'apollo',
+    redirect: 'apollo/dashboard',
+  },
+  {
+    path: 'apollo/dashboard',
     name: 'apollo-dashboard',
     component: () => import('../views/apollo/ApolloDashboardView.vue'),
     meta: { titleKey: 'routeApolloDashboard' },
   },
   // Apps
   {
-    path: 'apps',
+    path: 'apollo/apps',
     name: 'apollo-apps',
     component: () => import('../views/apollo/ApolloAppListView.vue'),
     meta: { titleKey: 'routeApolloApps' },
   },
   // App Detail
   {
-    path: 'app/:appId',
+    path: 'apollo/app/:appId',
     name: 'apollo-app-detail',
     component: () => import('../views/apollo/ApolloAppDetailView.vue'),
     meta: { titleKey: 'routeApolloAppDetail' },
   },
   // Namespace Detail
   {
-    path: 'namespace/:appId/:env/:clusterName/:namespaceName',
+    path: 'apollo/namespace/:appId/:env/:clusterName/:namespaceName',
     name: 'apollo-namespace-detail',
     component: () => import('../views/apollo/ApolloNamespaceDetailView.vue'),
     meta: { titleKey: 'routeApolloNamespaceDetail' },
   },
   // Release History
   {
-    path: 'releases/:appId/:env/:clusterName/:namespaceName',
+    path: 'apollo/releases/:appId/:env/:clusterName/:namespaceName',
     name: 'apollo-release-history',
     component: () => import('../views/apollo/ApolloReleaseHistoryView.vue'),
     meta: { titleKey: 'routeApolloReleaseHistory' },
   },
   // Gray Release
   {
-    path: 'gray-release/:appId/:env/:clusterName/:namespaceName',
+    path: 'apollo/gray-release/:appId/:env/:clusterName/:namespaceName',
     name: 'apollo-gray-release',
     component: () => import('../views/apollo/ApolloGrayReleaseView.vue'),
     meta: { titleKey: 'routeApolloGrayRelease' },
   },
   // Instances
   {
-    path: 'instances/:appId/:env/:clusterName/:namespaceName',
+    path: 'apollo/instances/:appId/:env/:clusterName/:namespaceName',
     name: 'apollo-instances',
     component: () => import('../views/apollo/ApolloInstancesView.vue'),
     meta: { titleKey: 'routeApolloInstances' },
   },
   // Global Search
   {
-    path: 'search',
+    path: 'apollo/search',
     name: 'apollo-search',
     component: () => import('../views/apollo/ApolloGlobalSearchView.vue'),
     meta: { titleKey: 'routeApolloSearch' },
   },
   // User Management
   {
-    path: 'users',
+    path: 'apollo/users',
     name: 'apollo-users',
     component: () => import('../views/apollo/ApolloUserManagementView.vue'),
     meta: { titleKey: 'routeApolloUsers' },
   },
   // Consumer Management
   {
-    path: 'consumers',
+    path: 'apollo/consumers',
     name: 'apollo-consumers',
     component: () => import('../views/apollo/ApolloConsumerManagementView.vue'),
     meta: { titleKey: 'routeApolloConsumers' },
   },
   // System Info
   {
-    path: 'system-info',
+    path: 'apollo/system-info',
     name: 'apollo-system-info',
     component: () => import('../views/apollo/ApolloSystemInfoView.vue'),
     meta: { titleKey: 'routeApolloSystemInfo' },
   },
   // Server Config
   {
-    path: 'server-config',
+    path: 'apollo/server-config',
     name: 'apollo-server-config',
     component: () => import('../views/apollo/ApolloServerConfigView.vue'),
     meta: { titleKey: 'routeApolloServerConfig' },
   },
   // Settings (shared)
   {
-    path: 'settings',
+    path: 'apollo/settings',
     name: 'apollo-settings',
     component: () => import('../views/settings/SettingsView.vue'),
     meta: { titleKey: 'routeSettings' },
@@ -456,8 +464,10 @@ const router = createRouter({
  * Determine initial children based on stored provider preference.
  */
 function getInitialChildren(): RouteRecordRaw[] {
-  const provider = storage.get('batata_provider') || 'batata'
-  switch (provider) {
+  const provider = storage.get('batata_provider')
+  // Normalize provider value - handle string 'null' or invalid values
+  const normalizedProvider = provider === 'null' || !provider ? 'batata' : (provider as string)
+  switch (normalizedProvider) {
     case 'consul':
       return consulChildren
     case 'apollo':
@@ -514,10 +524,32 @@ router.beforeEach((to, _from, next) => {
     }
   }
 
+  // Auto-switch provider based on path for direct links
+  const provider = storage.get('batata_provider') || 'batata'
+  const normalizedProvider = provider === 'null' || !provider ? 'batata' : (provider as string)
+
+  if (to.path.startsWith('/consul') && normalizedProvider !== 'consul') {
+    // Switch to consul routes and continue
+    switchProviderRoutes('consul')
+  } else if (to.path.startsWith('/apollo') && normalizedProvider !== 'apollo') {
+    // Switch to apollo routes and continue
+    switchProviderRoutes('apollo')
+  }
+
   if (to.meta.requiresAuth !== false && !batataStore.isAuthenticated) {
     next('/login')
   } else if (to.path === '/login' && batataStore.isAuthenticated) {
-    next('/')
+    // Redirect to appropriate dashboard based on provider
+    switch (normalizedProvider) {
+      case 'consul':
+        next('/consul/dashboard')
+        break
+      case 'apollo':
+        next('/apollo/dashboard')
+        break
+      default:
+        next('/')
+    }
   } else {
     next()
   }

@@ -615,7 +615,16 @@ const handleSwitchProvider = (p: 'batata' | 'consul' | 'apollo') => {
   if (provider.value === p) return
   setProvider(p)
   switchProviderRoutes(p)
-  router.push('/')
+  switch (p) {
+    case 'consul':
+      router.push('/consul/dashboard')
+      break
+    case 'apollo':
+      router.push('/apollo/dashboard')
+      break
+    default:
+      router.push('/')
+  }
 }
 
 const nacosNavGroups = computed(() => [
@@ -673,75 +682,75 @@ const nacosNavGroups = computed(() => [
 const consulNavGroups = computed(() => [
   {
     title: t('overview'),
-    items: [{ path: '/', label: t('dashboard'), icon: LayoutDashboard }],
+    items: [{ path: '/consul/dashboard', label: t('dashboard'), icon: LayoutDashboard }],
   },
   {
     title: t('catalog'),
     items: [
-      { path: '/catalog/services', label: t('services'), icon: Server },
-      { path: '/catalog/nodes', label: t('nodes'), icon: HardDrive },
-      { path: '/health', label: t('healthChecks'), icon: HeartPulse },
+      { path: '/consul/catalog/services', label: t('services'), icon: Server },
+      { path: '/consul/catalog/nodes', label: t('nodes'), icon: HardDrive },
+      { path: '/consul/health', label: t('healthChecks'), icon: HeartPulse },
     ],
   },
   {
     title: t('kvStore'),
-    items: [{ path: '/kv', label: t('kvStore'), icon: Database }],
+    items: [{ path: '/consul/kv', label: t('kvStore'), icon: Database }],
   },
   {
     title: t('serviceMesh'),
     items: [
-      { path: '/intentions', label: t('intentions'), icon: Link },
-      { path: '/config-entries', label: t('configEntries'), icon: Settings2 },
+      { path: '/consul/intentions', label: t('intentions'), icon: Link },
+      { path: '/consul/config-entries', label: t('configEntries'), icon: Settings2 },
     ],
   },
   {
     title: t('peerings'),
-    items: [{ path: '/peerings', label: t('peerings'), icon: GitBranch }],
+    items: [{ path: '/consul/peerings', label: t('peerings'), icon: GitBranch }],
   },
   {
     title: t('acl'),
     items: [
-      { path: '/acl/tokens', label: t('aclTokens'), icon: Key },
-      { path: '/acl/policies', label: t('aclPolicies'), icon: Shield },
-      { path: '/acl/roles', label: t('roles'), icon: ShieldAlert },
-      { path: '/acl/auth-methods', label: t('authMethods'), icon: Fingerprint },
+      { path: '/consul/acl/tokens', label: t('aclTokens'), icon: Key },
+      { path: '/consul/acl/policies', label: t('aclPolicies'), icon: Shield },
+      { path: '/consul/acl/roles', label: t('roles'), icon: ShieldAlert },
+      { path: '/consul/acl/auth-methods', label: t('authMethods'), icon: Fingerprint },
     ],
   },
   {
     title: t('cluster'),
-    items: [{ path: '/sessions', label: t('consulSessions'), icon: Timer }],
+    items: [{ path: '/consul/sessions', label: t('consulSessions'), icon: Timer }],
   },
   {
     title: t('system'),
-    items: [{ path: '/settings', label: t('settings'), icon: Cog }],
+    items: [{ path: '/consul/settings', label: t('settings'), icon: Cog }],
   },
 ])
 
 const apolloNavGroups = computed(() => [
   {
     title: t('overview'),
-    items: [{ path: '/', label: t('dashboard'), icon: LayoutDashboard }],
+    items: [{ path: '/apollo/dashboard', label: t('dashboard'), icon: LayoutDashboard }],
   },
   {
     title: t('apolloConfigManagement'),
     items: [
-      { path: '/apps', label: t('apolloApps'), icon: Box },
-      { path: '/search', label: t('apolloGlobalSearch'), icon: Globe2 },
+      { path: '/apollo/apps', label: t('apolloApps'), icon: Box },
+      { path: '/apollo/search', label: t('apolloGlobalSearch'), icon: Globe2 },
     ],
   },
   {
     title: t('apolloAccessControl'),
     items: [
-      { path: '/users', label: t('apolloUserManagement'), icon: Users },
-      { path: '/consumers', label: t('apolloConsumers'), icon: Key },
+      { path: '/apollo/users', label: t('apolloUserManagement'), icon: Users },
+      { path: '/apollo/consumers', label: t('apolloConsumers'), icon: Key },
     ],
   },
   {
     title: t('system'),
     items: [
-      { path: '/system-info', label: t('apolloSystemInfo'), icon: Activity },
-      { path: '/server-config', label: t('apolloServerConfig'), icon: Database },
-      { path: '/settings', label: t('settings'), icon: Cog },
+      { path: '/apollo/system-info', label: t('apolloSystemInfo'), icon: Activity },
+      { path: '/apollo/server-config', label: t('apolloServerConfig'), icon: Database },
+      { path: '/apollo/settings', label: t('settings'), icon: Cog },
     ],
   },
 ])
