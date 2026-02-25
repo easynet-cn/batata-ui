@@ -146,7 +146,7 @@
                 <td>
                   <router-link
                     :to="{
-                      name: 'consul-catalog-service-detail',
+                      name: 'consul-service-detail',
                       params: { name: svc.ServiceName },
                     }"
                     class="text-fuchsia-600 hover:text-fuchsia-700 hover:underline font-medium dark:text-fuchsia-400 dark:hover:text-fuchsia-300"
@@ -182,7 +182,7 @@
                 <td>
                   <router-link
                     :to="{
-                      name: 'consul-catalog-service-detail',
+                      name: 'consul-service-detail',
                       params: { name: svc.ServiceName },
                     }"
                     class="btn btn-ghost btn-sm"
@@ -212,7 +212,7 @@
                 <th>{{ t('serviceName') }}</th>
                 <th>{{ t('status') }}</th>
                 <th>{{ t('output') }}</th>
-                <th>{{ t('type') }}</th>
+                <th>{{ t('checkType') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -273,9 +273,21 @@ const nodeData = ref<{ Node: ConsulNode; Services: Record<string, ConsulServiceN
 const nodeHealthChecks = ref<ConsulHealthCheck[]>([])
 
 // Computed
-const serviceList = computed<ConsulServiceNode[]>(() => {
+const serviceList = computed(() => {
   if (!nodeData.value?.Services) return []
-  return Object.values(nodeData.value.Services)
+  // Convert ConsulServiceNode to flat structure for template compatibility
+  return Object.values(nodeData.value.Services).map((svc) => ({
+    ServiceID: svc.Service.ID,
+    ServiceName: svc.Service.Service,
+    ServicePort: svc.Service.Port,
+    ServiceTags: svc.Service.Tags || [],
+    ServiceAddress: svc.Service.Address,
+    ServiceMeta: svc.Service.Meta,
+    ServiceWeights: svc.Service.Weights,
+    ServiceEnableTagOverride: svc.Service.EnableTagOverride,
+    CreateIndex: svc.Service.CreateIndex,
+    ModifyIndex: svc.Service.ModifyIndex,
+  }))
 })
 
 // Methods
@@ -326,7 +338,7 @@ const handleRefresh = () => {
 }
 
 const goBack = () => {
-  router.push({ name: 'consul-catalog-nodes' })
+  router.push({ name: 'consul-nodes' })
 }
 
 // Lifecycle

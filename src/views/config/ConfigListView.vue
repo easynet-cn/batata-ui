@@ -236,8 +236,8 @@
                       name: 'config-detail',
                       query: {
                         dataId: config.dataId,
-                        group: config.groupName,
-                        tenant: namespace.namespace,
+                        groupName: config.groupName,
+                        namespaceId: namespace.namespace,
                       },
                     }"
                     class="btn btn-ghost btn-sm"
@@ -250,8 +250,8 @@
                       name: 'config-edit',
                       query: {
                         dataId: config.dataId,
-                        group: config.groupName,
-                        tenant: namespace.namespace,
+                        groupName: config.groupName,
+                        namespaceId: namespace.namespace,
                       },
                     }"
                     class="btn btn-ghost btn-sm"
@@ -264,8 +264,8 @@
                       name: 'config-history',
                       query: {
                         dataId: config.dataId,
-                        group: config.groupName,
-                        tenant: namespace.namespace,
+                        groupName: config.groupName,
+                        namespaceId: namespace.namespace,
                       },
                     }"
                     class="btn btn-ghost btn-sm"

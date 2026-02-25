@@ -55,7 +55,7 @@
               <th>{{ t('service') }}</th>
               <th>{{ t('status') }}</th>
               <th>{{ t('output') }}</th>
-              <th>{{ t('type') }}</th>
+              <th>{{ t('checkType') }}</th>
               <th class="w-32">{{ t('actions') }}</th>
             </tr>
           </thead>
@@ -90,7 +90,7 @@
                 <template v-if="check.ServiceName">
                   <router-link
                     :to="{
-                      name: 'consul-catalog-service-detail',
+                      name: 'consul-service-detail',
                       params: { name: check.ServiceName },
                     }"
                     class="text-fuchsia-600 hover:text-fuchsia-700 hover:underline font-medium dark:text-fuchsia-400 dark:hover:text-fuchsia-300"
@@ -183,7 +183,7 @@
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">
-            {{ t('type') }}
+            {{ t('checkType') }}
           </label>
           <p class="text-sm text-text-primary">{{ detailCheck.Type || '-' }}</p>
         </div>

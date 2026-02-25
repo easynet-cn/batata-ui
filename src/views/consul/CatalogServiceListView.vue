@@ -56,7 +56,7 @@
             <tr v-for="svc in filteredServices" :key="svc.name" class="hover:bg-bg-secondary">
               <td>
                 <router-link
-                  :to="{ name: 'consul-catalog-service-detail', params: { name: svc.name } }"
+                  :to="{ name: 'consul-service-detail', params: { name: svc.name } }"
                   class="text-fuchsia-600 hover:text-fuchsia-700 hover:underline font-medium dark:text-fuchsia-400 dark:hover:text-fuchsia-300"
                 >
                   {{ svc.name }}
@@ -111,7 +111,7 @@
               </td>
               <td>
                 <router-link
-                  :to="{ name: 'consul-catalog-service-detail', params: { name: svc.name } }"
+                  :to="{ name: 'consul-service-detail', params: { name: svc.name } }"
                   class="btn btn-ghost btn-sm"
                   :title="t('viewDetails')"
                 >

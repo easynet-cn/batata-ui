@@ -29,6 +29,43 @@ export interface ConsulCatalogService {
 }
 
 export interface ConsulServiceNode {
+  Node: ConsulNodeInfo
+  Service: ConsulServiceInfo
+  Checks: ConsulHealthCheck[]
+}
+
+export interface ConsulNodeInfo {
+  ID: string
+  Node: string
+  Address: string
+  Datacenter: string
+  TaggedAddresses?: Record<string, string>
+  Meta?: Record<string, string>
+  CreateIndex?: number
+  ModifyIndex?: number
+}
+
+export interface ConsulServiceInfo {
+  ID: string
+  Service: string
+  Tags?: string[] | null
+  Address: string
+  Port: number
+  Meta?: Record<string, string> | null
+  EnableTagOverride: boolean
+  Weights: { Passing: number; Warning: number }
+  TaggedAddresses?: Record<string, unknown> | null
+  Datacenter?: string
+  Kind?: string
+  Proxy?: Record<string, unknown>
+  Connect?: Record<string, unknown>
+  Namespace?: string
+  CreateIndex?: number
+  ModifyIndex?: number
+}
+
+// Legacy type for catalog/service endpoint (flat structure)
+export interface ConsulCatalogServiceNode {
   ID: string
   Node: string
   Address: string
@@ -74,8 +111,10 @@ export interface ConsulHealthCheck {
   Output: string
   ServiceID: string
   ServiceName: string
-  ServiceTags: string[]
+  ServiceTags?: string[]
   Type: string
+  Interval?: string
+  Timeout?: string
   Definition?: {
     HTTP?: string
     Header?: Record<string, string[]>
@@ -91,8 +130,8 @@ export interface ConsulHealthCheck {
     Timeout?: string
     DeregisterCriticalServiceAfter?: string
   }
-  CreateIndex: number
-  ModifyIndex: number
+  CreateIndex?: number
+  ModifyIndex?: number
 }
 
 // ============================================

@@ -213,6 +213,7 @@ import { Pencil, Trash2, ArrowLeft, RefreshCw, AlertTriangle, Copy } from 'lucid
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import { logger } from '@/utils/logger'
+import { decodeBase64 } from '@/utils/base64'
 import type { ConsulKVPair } from '@/types/consul'
 
 const { t } = useI18n()
@@ -229,12 +230,7 @@ const deleting = ref(false)
 
 // Decode base64 value safely
 const decodedValue = computed(() => {
-  if (!kvPair.value?.Value) return ''
-  try {
-    return atob(kvPair.value.Value)
-  } catch {
-    return kvPair.value.Value
-  }
+  return decodeBase64(kvPair.value?.Value ?? null)
 })
 
 // Load KV pair data

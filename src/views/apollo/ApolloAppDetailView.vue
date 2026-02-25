@@ -131,16 +131,10 @@
               v-model="addMasterUser"
               :placeholder="t('apolloAddUserPlaceholder')"
               class="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
-              @keyup.enter="
-                handleAssignRole(addMasterUser, 'master')
-                addMasterUser = ''
-              "
+              @keyup.enter="handleAssignMasterRole"
             />
             <button
-              @click="
-                handleAssignRole(addMasterUser, 'master')
-                addMasterUser = ''
-              "
+              @click="handleAssignMasterRole"
               class="p-1.5 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg transition-colors"
             >
               <Plus :size="14" />
@@ -173,16 +167,10 @@
               v-model="addModifyUser"
               :placeholder="t('apolloAddUserPlaceholder')"
               class="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
-              @keyup.enter="
-                handleAssignRole(addModifyUser, 'modify')
-                addModifyUser = ''
-              "
+              @keyup.enter="handleAssignModifyRole"
             />
             <button
-              @click="
-                handleAssignRole(addModifyUser, 'modify')
-                addModifyUser = ''
-              "
+              @click="handleAssignModifyRole"
               class="p-1.5 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg transition-colors"
             >
               <Plus :size="14" />
@@ -215,16 +203,10 @@
               v-model="addReleaseUser"
               :placeholder="t('apolloAddUserPlaceholder')"
               class="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
-              @keyup.enter="
-                handleAssignRole(addReleaseUser, 'release')
-                addReleaseUser = ''
-              "
+              @keyup.enter="handleAssignReleaseRole"
             />
             <button
-              @click="
-                handleAssignRole(addReleaseUser, 'release')
-                addReleaseUser = ''
-              "
+              @click="handleAssignReleaseRole"
               class="p-1.5 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg transition-colors"
             >
               <Plus :size="14" />
@@ -836,6 +818,21 @@ async function handleRemoveRole(userId: string, roleType: ApolloRoleType) {
   } catch (err) {
     logger.error('Failed to remove role:', err)
   }
+}
+
+function handleAssignMasterRole() {
+  handleAssignRole(addMasterUser.value, 'master')
+  addMasterUser.value = ''
+}
+
+function handleAssignModifyRole() {
+  handleAssignRole(addModifyUser.value, 'modify')
+  addModifyUser.value = ''
+}
+
+function handleAssignReleaseRole() {
+  handleAssignRole(addReleaseUser.value, 'release')
+  addReleaseUser.value = ''
 }
 
 async function refreshAccessKeys() {

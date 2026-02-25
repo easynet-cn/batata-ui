@@ -608,7 +608,65 @@ const switchNamespace = (ns: Namespace) => {
 
 const isActiveRoute = (path: string) => {
   if (path === '/') return route.path === '/'
-  return route.path.startsWith(path)
+
+  const routePath = route.path
+
+  // Exact match
+  if (routePath === path) return true
+
+  // Starts with path (for subroutes like /services -> /service/detail)
+  if (routePath.startsWith(path + '/')) return true
+
+  // Special case for consul detail routes
+  // /consul/catalog/services should match /consul/catalog/service/:name
+  if (path === '/consul/catalog/services' && routePath.startsWith('/consul/catalog/service/')) {
+    return true
+  }
+  // /consul/catalog/nodes should match /consul/catalog/node/:name
+  if (path === '/consul/catalog/nodes' && routePath.startsWith('/consul/catalog/node/')) {
+    return true
+  }
+  // /consul/kv should match /consul/kv/new, /consul/kv/editor, /consul/kv/detail
+  if (path === '/consul/kv' && routePath.startsWith('/consul/kv/')) {
+    return true
+  }
+  // /consul/peerings should match /consul/peering/:name
+  if (path === '/consul/peerings' && routePath.startsWith('/consul/peering/')) {
+    return true
+  }
+  // /consul/acl/auth-methods should match /consul/acl/auth-method/:name
+  if (path === '/consul/acl/auth-methods' && routePath.startsWith('/consul/acl/auth-method/')) {
+    return true
+  }
+
+  // Special case for batata service routes
+  // /services should match /service/detail
+  if (path === '/services' && routePath.startsWith('/service/')) {
+    return true
+  }
+  // /configs should match /config/new, /config/edit, /config/detail, /config/history
+  // But NOT /config/listeners or /config/sync (these are separate pages)
+  if (path === '/configs' && routePath.startsWith('/config/')) {
+    // Exclude /config/listeners and /config/sync from /configs highlighting
+    if (!['/config/listeners', '/config/sync'].includes(routePath)) {
+      return true
+    }
+  }
+  // /mcp should match /mcp/new, /mcp/edit, /mcp/detail
+  if (path === '/mcp' && routePath.startsWith('/mcp/')) {
+    return true
+  }
+  // /agents should match /agent/new, /agent/edit
+  if (path === '/agents' && routePath.startsWith('/agent/')) {
+    return true
+  }
+
+  // Special case for apollo app routes
+  if (path === '/apollo/apps' && routePath.startsWith('/apollo/app/')) {
+    return true
+  }
+
+  return false
 }
 
 const handleSwitchProvider = (p: 'batata' | 'consul' | 'apollo') => {

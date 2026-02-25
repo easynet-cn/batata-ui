@@ -259,6 +259,7 @@ import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
 import { logger } from '@/utils/logger'
+import { decodeBase64 } from '@/utils/base64'
 import type { ConsulKVPair } from '@/types/consul'
 
 const { t } = useI18n()
@@ -293,16 +294,6 @@ const breadcrumbSegments = computed(() => {
 
 function breadcrumbPath(index: number): string {
   return breadcrumbSegments.value.slice(0, index + 1).join('/') + '/'
-}
-
-// Decode base64 value safely
-function decodeValue(value: string | null): string {
-  if (!value) return ''
-  try {
-    return atob(value)
-  } catch {
-    return value
-  }
 }
 
 // Truncate string to 100 chars
@@ -356,12 +347,15 @@ const displayItems = computed<DisplayItem[]>(() => {
     } else {
       // Regular key
       const detail = kvDetails.value.get(key)
+      console.log('[KVListView] key:', key, 'detail:', detail)
+      const decoded = decodeBase64(detail?.Value ?? null)
+      console.log('[KVListView] decoded value for', key, ':', decoded.substring(0, 100))
       items.push({
         key: relative,
         fullKey: key,
         displayKey: relative,
         isFolder: false,
-        decodedValue: truncate(decodeValue(detail?.Value ?? null)),
+        decodedValue: truncate(decoded),
         flags: detail?.Flags ?? 0,
         modifyIndex: detail?.ModifyIndex ?? 0,
       })
@@ -403,7 +397,8 @@ async function fetchKeys() {
   loading.value = true
   try {
     const prefix = currentPrefix.value || undefined
-    const response = await consulApi.listKVKeys(prefix, '/')
+    // Don't use separator to get all keys, then build folder structure locally
+    const response = await consulApi.listKVKeys(prefix)
     kvKeys.value = response.data || []
 
     // Fetch details for non-folder keys

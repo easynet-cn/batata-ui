@@ -15,10 +15,12 @@ declare global {
   const createApp: typeof import('vue').createApp
   const createPinia: typeof import('pinia').createPinia
   const customRef: typeof import('vue').customRef
+  const decodeBase64: typeof import('./utils/base64').decodeBase64
   const defineAsyncComponent: typeof import('vue').defineAsyncComponent
   const defineComponent: typeof import('vue').defineComponent
   const defineStore: typeof import('pinia').defineStore
   const effectScope: typeof import('vue').effectScope
+  const encodeBase64: typeof import('./utils/base64').encodeBase64
   const formatContent: typeof import('./utils/formatters').formatContent
   const formatDateTime: typeof import('./utils/date').formatDateTime
   const formatTimestamp: typeof import('./utils/date').formatTimestamp
@@ -31,6 +33,7 @@ declare global {
   const h: typeof import('vue').h
   const handleError: typeof import('./utils/error').handleError
   const inject: typeof import('vue').inject
+  const isBase64: typeof import('./utils/base64').isBase64
   const isProxy: typeof import('vue').isProxy
   const isReactive: typeof import('vue').isReactive
   const isReadonly: typeof import('vue').isReadonly
@@ -143,10 +146,12 @@ declare module 'vue' {
     readonly createApp: UnwrapRef<(typeof import('vue'))['createApp']>
     readonly createPinia: UnwrapRef<(typeof import('pinia'))['createPinia']>
     readonly customRef: UnwrapRef<(typeof import('vue'))['customRef']>
+    readonly decodeBase64: UnwrapRef<(typeof import('./utils/base64'))['decodeBase64']>
     readonly defineAsyncComponent: UnwrapRef<(typeof import('vue'))['defineAsyncComponent']>
     readonly defineComponent: UnwrapRef<(typeof import('vue'))['defineComponent']>
     readonly defineStore: UnwrapRef<(typeof import('pinia'))['defineStore']>
     readonly effectScope: UnwrapRef<(typeof import('vue'))['effectScope']>
+    readonly encodeBase64: UnwrapRef<(typeof import('./utils/base64'))['encodeBase64']>
     readonly formatContent: UnwrapRef<(typeof import('./utils/formatters'))['formatContent']>
     readonly formatDateTime: UnwrapRef<(typeof import('./utils/date'))['formatDateTime']>
     readonly formatTimestamp: UnwrapRef<(typeof import('./utils/date'))['formatTimestamp']>
@@ -159,6 +164,7 @@ declare module 'vue' {
     readonly h: UnwrapRef<(typeof import('vue'))['h']>
     readonly handleError: UnwrapRef<(typeof import('./utils/error'))['handleError']>
     readonly inject: UnwrapRef<(typeof import('vue'))['inject']>
+    readonly isBase64: UnwrapRef<(typeof import('./utils/base64'))['isBase64']>
     readonly isProxy: UnwrapRef<(typeof import('vue'))['isProxy']>
     readonly isReactive: UnwrapRef<(typeof import('vue'))['isReactive']>
     readonly isReadonly: UnwrapRef<(typeof import('vue'))['isReadonly']>

@@ -87,13 +87,13 @@
                   {{ t('noInstances') }}
                 </td>
               </tr>
-              <tr v-for="node in serviceNodes" :key="node.ServiceID" class="hover:bg-bg-secondary">
-                <td class="font-medium text-text-primary">{{ node.Node }}</td>
+              <tr v-for="node in serviceNodes" :key="node.Service.ID" class="hover:bg-bg-secondary">
+                <td class="font-medium text-text-primary">{{ node.Node.Node }}</td>
                 <td class="text-text-secondary font-mono text-xs">
-                  {{ node.ServiceAddress || node.Address }}
+                  {{ node.Service.Address || node.Node.Address }}
                 </td>
-                <td>{{ node.ServicePort }}</td>
-                <td class="text-text-secondary text-xs">{{ node.ServiceID }}</td>
+                <td>{{ node.Service.Port }}</td>
+                <td class="text-text-secondary text-xs">{{ node.Service.ID }}</td>
                 <td>
                   <div class="flex flex-wrap gap-1">
                     <template v-if="node.Checks && node.Checks.length > 0">
@@ -111,13 +111,13 @@
                 </td>
                 <td>
                   <button
-                    @click="toggleNodeDetail(node.ServiceID)"
+                    @click="toggleNodeDetail(node.Service.ID)"
                     class="btn btn-ghost btn-sm"
                     :title="t('viewDetails')"
                   >
                     <ChevronDown
                       class="w-3.5 h-3.5 transition-transform"
-                      :class="{ 'rotate-180': expandedNodes.has(node.ServiceID) }"
+                      :class="{ 'rotate-180': expandedNodes.has(node.Service.ID) }"
                     />
                   </button>
                 </td>
@@ -143,6 +143,8 @@
                 <th>{{ t('status') }}</th>
                 <th>{{ t('output') }}</th>
                 <th>{{ t('type') }}</th>
+                <th>{{ t('interval') }}</th>
+                <th>{{ t('timeout') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -169,6 +171,8 @@
                   </span>
                 </td>
                 <td class="text-text-secondary text-xs">{{ check.Type || '-' }}</td>
+                <td class="text-text-secondary text-xs">{{ check.Interval || '-' }}</td>
+                <td class="text-text-secondary text-xs">{{ check.Timeout || '-' }}</td>
               </tr>
             </tbody>
           </table>
@@ -201,8 +205,8 @@ const expandedNodes = ref<Set<string>>(new Set())
 const serviceTags = computed(() => {
   const tags = new Set<string>()
   for (const node of serviceNodes.value) {
-    if (node.ServiceTags) {
-      for (const tag of node.ServiceTags) {
+    if (node.Service.Tags) {
+      for (const tag of node.Service.Tags) {
         tags.add(tag)
       }
     }
@@ -275,7 +279,7 @@ const handleRefresh = () => {
 }
 
 const goBack = () => {
-  router.push({ name: 'consul-catalog-services' })
+  router.push({ name: 'consul-services' })
 }
 
 // Lifecycle

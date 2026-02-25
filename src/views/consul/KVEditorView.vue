@@ -116,6 +116,7 @@ import { ArrowLeft, Save, RefreshCw } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
 import { logger } from '@/utils/logger'
+import { decodeBase64 } from '@/utils/base64'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -134,16 +135,6 @@ const form = reactive({
   flags: 0,
 })
 
-// Decode base64 value safely
-function decodeValue(value: string | null): string {
-  if (!value) return ''
-  try {
-    return atob(value)
-  } catch {
-    return value
-  }
-}
-
 // Load existing KV pair data for editing
 async function loadKVData() {
   if (!isEditMode.value || !editKey.value) return
@@ -153,7 +144,7 @@ async function loadKVData() {
     if (response.data && response.data.length > 0) {
       const kvPair = response.data[0]!
       form.key = kvPair.Key
-      form.value = decodeValue(kvPair.Value)
+      form.value = decodeBase64(kvPair.Value)
       form.flags = kvPair.Flags
     }
   } catch (err) {
@@ -174,9 +165,8 @@ async function handleSave() {
   saving.value = true
   errorMsg.value = ''
   try {
-    // Encode value to base64
-    const encodedValue = btoa(form.value)
-    await consulApi.putKV(form.key, encodedValue, form.flags || undefined)
+    // Send raw value - batata-server will handle base64 encoding
+    await consulApi.putKV(form.key, form.value, form.flags || undefined)
     router.push('/consul/kv')
   } catch (err) {
     logger.error('Failed to save KV pair:', err)
