@@ -341,11 +341,12 @@ import { Box, RefreshCw, Plus, Search, Pencil, Trash2, Star } from 'lucide-vue-n
 import { useI18n } from '@/i18n'
 import { useApolloStore } from '@/stores/apollo'
 import { useApolloPortalStore } from '@/stores/apollo-portal'
-import { storage } from '@/composables/useStorage'
+import { useBatataStore } from '@/stores/batata'
 import type { ApolloApp, ApolloAppPayload } from '@/types/apollo'
 import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
+const batataStore = useBatataStore()
 const apolloStore = useApolloStore()
 const portalStore = useApolloPortalStore()
 
@@ -409,9 +410,9 @@ async function toggleFavorite(app: ApolloApp) {
 
 async function loadFavorites() {
   try {
-    const savedUser = storage.getJSON<{ name: string }>('batata_user')
-    if (savedUser?.name) {
-      const favs = await portalStore.fetchFavorites(savedUser.name)
+    const username = batataStore.currentUser?.username
+    if (username) {
+      const favs = await portalStore.fetchFavorites(username)
       favoriteAppIds.value = new Set(favs.map((f) => f.appId))
       favoriteIdMap.value = new Map(favs.filter((f) => f.id).map((f) => [f.appId, f.id!]))
     }

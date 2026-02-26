@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ServiceInfo, ConfigInfo, Namespace, NodeInfo } from '@/types'
 import batataApi from '@/api/batata'
+import { config } from '@/config'
 import { storage } from '@/composables/useStorage'
 import { useI18n } from '@/i18n'
 
@@ -38,6 +39,23 @@ export const useBatataStore = defineStore('batata', () => {
   const totalInstancesCount = computed(() => services.value.reduce((sum, s) => sum + s.ipCount, 0))
 
   // Actions
+
+  /**
+   * Restore session from localStorage.
+   * Called once from the router guard — no other component should duplicate this.
+   */
+  function restoreSession(): boolean {
+    if (currentUser.value) return true
+
+    const savedUser = storage.getJSON<{ name: string }>(config.storage.userKey)
+    const savedToken = storage.get(config.storage.tokenKey)
+    if (savedUser?.name && savedToken) {
+      currentUser.value = { username: savedUser.name, token: savedToken }
+      return true
+    }
+    return false
+  }
+
   async function login(username: string, password: string) {
     try {
       loading.value = true
@@ -47,8 +65,9 @@ export const useBatataStore = defineStore('batata', () => {
       const { accessToken } = response.data
 
       currentUser.value = { username, token: accessToken }
-      storage.set('batata-token', accessToken)
-      storage.set('batata-username', username)
+      storage.set(config.storage.tokenKey, accessToken)
+      storage.set(config.storage.usernameKey, username)
+      storage.setJSON(config.storage.userKey, { name: username })
 
       return true
     } catch (err: unknown) {
@@ -61,8 +80,9 @@ export const useBatataStore = defineStore('batata', () => {
 
   function logout() {
     currentUser.value = null
-    storage.remove('batata-token')
-    storage.remove('batata-username')
+    storage.remove(config.storage.tokenKey)
+    storage.remove(config.storage.usernameKey)
+    storage.remove(config.storage.userKey)
     services.value = []
     configs.value = []
     namespaces.value = []
@@ -338,6 +358,7 @@ export const useBatataStore = defineStore('batata', () => {
     totalInstancesCount,
 
     // Actions
+    restoreSession,
     login,
     logout,
     fetchServices,

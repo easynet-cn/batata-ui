@@ -148,6 +148,7 @@ export interface ServerState {
   apollo_enabled?: string
   apollo_port?: string
   auth_enabled?: string
+  auth_admin_request?: string
   console_ui_enabled?: string
   login_page_enabled?: string
   datasource_platform?: string

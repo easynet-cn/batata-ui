@@ -1,6 +1,7 @@
 import axios from 'axios'
 import type { AxiosInstance } from 'axios'
 import { config } from '@/config'
+import { setupRetryInterceptor } from '@/utils/retry'
 import { storage } from '@/composables/useStorage'
 import type {
   ConsulKVPair,
@@ -33,6 +34,9 @@ class ConsulApi {
         'Content-Type': 'application/json',
       },
     })
+
+    // Retry interceptor
+    setupRetryInterceptor(this.instance, config.api.retryCount)
 
     // Request interceptor: attach Consul token
     this.instance.interceptors.request.use(

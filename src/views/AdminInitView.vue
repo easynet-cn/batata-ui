@@ -1,45 +1,60 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Moon, Sun, Languages } from 'lucide-vue-next'
+import { Moon, Sun, Languages, ShieldAlert } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
-import { useBatataStore } from '@/stores/batata'
 import { useTheme } from '@/composables/useTheme'
 import batataApi from '@/api/batata'
+import { storage } from '@/composables/useStorage'
+import { config } from '@/config'
 
 const { t, language, setLanguage } = useI18n()
 const router = useRouter()
-const batataStore = useBatataStore()
 const { isDark, toggleTheme } = useTheme()
 
-const username = ref('')
 const password = ref('')
 const isLoading = ref(false)
-const loginError = ref('')
+const errorMsg = ref('')
 
 onMounted(async () => {
   try {
     const res = await batataApi.getServerState()
-    if (res.data.auth_admin_request === 'true') {
-      router.replace('/admin-init')
+    if (res.data.auth_admin_request !== 'true') {
+      router.replace('/login')
     }
   } catch {
-    // ignore - server might not be ready
+    router.replace('/login')
   }
 })
 
 const handleSubmit = async () => {
+  if (!password.value) return
+
   isLoading.value = true
-  loginError.value = ''
+  errorMsg.value = ''
+
   try {
-    const success = await batataStore.login(username.value, password.value)
-    if (success) {
-      router.push('/')
+    const res = await batataApi.initAdmin(password.value)
+    const { accessToken, username } = res.data
+
+    storage.set(config.storage.tokenKey, accessToken)
+    storage.set(config.storage.usernameKey, username)
+    storage.setJSON(config.storage.userKey, { name: username })
+
+    router.replace('/')
+  } catch (err: unknown) {
+    if (
+      err &&
+      typeof err === 'object' &&
+      'status' in err &&
+      (err as { status: number }).status === 409
+    ) {
+      errorMsg.value = t('adminAlreadyExists')
+    } else if (err && typeof err === 'object' && 'message' in err) {
+      errorMsg.value = (err as { message: string }).message
     } else {
-      loginError.value = batataStore.error || t('loginFailed')
+      errorMsg.value = t('loginFailed')
     }
-  } catch {
-    loginError.value = t('loginFailed')
   } finally {
     isLoading.value = false
   }
@@ -73,7 +88,7 @@ const toggleLanguage = () => {
       </button>
     </div>
 
-    <!-- Login Card -->
+    <!-- Admin Init Card -->
     <div
       class="max-w-md w-full bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800 transition-all duration-500"
     >
@@ -86,22 +101,47 @@ const toggleLanguage = () => {
           </div>
         </div>
         <h1 class="text-3xl font-extrabold text-gray-800 dark:text-gray-100 mb-2 tracking-tight">
-          {{ t('welcomeBack') }}
+          {{ t('initPassword') }}
         </h1>
         <p class="text-gray-500 dark:text-gray-400 text-sm font-medium italic">
-          {{ t('loginSlogan') }}
+          {{ t('initPasswordSubtitle') }}
         </p>
       </div>
 
       <form @submit.prevent="handleSubmit" class="px-10 pb-10 space-y-6">
+        <!-- Warning messages -->
+        <div
+          class="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 space-y-2"
+        >
+          <div class="flex items-start space-x-2">
+            <ShieldAlert
+              :size="16"
+              class="text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0"
+            />
+            <p class="text-xs text-amber-700 dark:text-amber-300">
+              {{ t('initPasswordWarning1') }}
+            </p>
+          </div>
+          <div class="flex items-start space-x-2">
+            <ShieldAlert
+              :size="16"
+              class="text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0"
+            />
+            <p class="text-xs text-amber-700 dark:text-amber-300">
+              {{ t('initPasswordWarning2') }}
+            </p>
+          </div>
+        </div>
+
         <div class="space-y-1">
-          <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{ t('username') }}</label>
+          <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{
+            t('adminUsername')
+          }}</label>
           <input
             type="text"
-            v-model="username"
-            :placeholder="t('loginUserPlaceholder')"
-            class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-gray-100 outline-none transition-all text-sm"
-            required
+            value="nacos"
+            readonly
+            class="w-full pl-4 pr-4 py-3.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 dark:text-gray-400 outline-none text-sm cursor-not-allowed"
           />
         </div>
 
@@ -110,19 +150,19 @@ const toggleLanguage = () => {
           <input
             type="password"
             v-model="password"
-            :placeholder="t('loginPassPlaceholder')"
+            :placeholder="t('setAdminPassword')"
             class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-gray-100 outline-none transition-all text-sm"
             required
           />
         </div>
 
-        <div v-if="loginError" class="text-red-500 dark:text-red-400 text-sm text-center">
-          {{ loginError }}
+        <div v-if="errorMsg" class="text-red-500 dark:text-red-400 text-sm text-center">
+          {{ errorMsg }}
         </div>
 
         <button
           type="submit"
-          :disabled="isLoading"
+          :disabled="isLoading || !password"
           class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 active:scale-95 transform disabled:opacity-70 disabled:cursor-not-allowed"
         >
           <template v-if="isLoading">
@@ -131,18 +171,9 @@ const toggleLanguage = () => {
             />
           </template>
           <template v-else>
-            {{ t('signIn') }}
+            {{ t('initPassword') }}
           </template>
         </button>
-
-        <div class="text-center">
-          <router-link
-            to="/register"
-            class="text-gray-400 hover:text-blue-500 text-sm transition-colors"
-          >
-            {{ t('noAccount') }}
-          </router-link>
-        </div>
       </form>
     </div>
   </div>

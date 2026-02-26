@@ -33,6 +33,7 @@ import type {
 } from '@/types'
 import { config } from '@/config'
 import { ApiError, AuthError, NetworkError } from '@/utils/error'
+import { setupRetryInterceptor } from '@/utils/retry'
 import { storage } from '@/composables/useStorage'
 
 // Batata API response interface
@@ -69,6 +70,9 @@ class BatataApi {
         'Content-Type': 'application/json',
       },
     })
+
+    // Retry interceptor (must be added before error classification)
+    setupRetryInterceptor(this.instance, config.api.retryCount)
 
     // 请求拦截器
     this.instance.interceptors.request.use(
@@ -179,6 +183,9 @@ class BatataApi {
         },
       })
 
+      // Retry interceptor (must be added before error classification)
+      setupRetryInterceptor(this.authInstance, config.api.retryCount)
+
       this.authInstance.interceptors.request.use(
         (reqConfig) => {
           const token = storage.get(config.storage.tokenKey)
@@ -233,6 +240,15 @@ class BatataApi {
     formData.append('password', password)
 
     return this.getAuthInstance().post<LoginResponse>('/user/login', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
+  }
+
+  async initAdmin(password: string) {
+    const formData = new URLSearchParams()
+    formData.append('username', 'nacos')
+    formData.append('password', password)
+    return this.getAuthInstance().post<LoginResponse>('/user/admin', formData, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     })
   }

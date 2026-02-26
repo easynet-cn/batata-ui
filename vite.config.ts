@@ -87,6 +87,16 @@ export default defineConfig(({ mode }) => {
               if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router')) {
                 return 'vue-vendor'
               }
+              if (id.includes('echarts') || id.includes('zrender')) {
+                return 'echarts'
+              }
+              if (
+                id.includes('codemirror') ||
+                id.includes('@codemirror') ||
+                id.includes('@lezer')
+              ) {
+                return 'codemirror'
+              }
               if (id.includes('lucide')) {
                 return 'icons'
               }
@@ -102,8 +112,7 @@ export default defineConfig(({ mode }) => {
           assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
         },
       },
-      // Increase chunk size warning limit
-      chunkSizeWarningLimit: 1000,
+      chunkSizeWarningLimit: 500,
     },
 
     // Development server configuration

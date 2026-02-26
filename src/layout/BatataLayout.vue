@@ -505,7 +505,9 @@ const clearNotifications = () => {
   showNotifications.value = false
 }
 
-const user = ref<{ name: string } | null>(null)
+const user = computed(() =>
+  batataStore.currentUser ? { name: batataStore.currentUser.username } : null,
+)
 const defaultNamespace: Namespace = {
   namespace: '',
   namespaceShowName: 'public',
@@ -573,16 +575,6 @@ const fetchServerState = async () => {
 }
 
 onMounted(() => {
-  const savedUser = storage.getJSON<{ name: string }>('batata_user')
-  const savedToken = storage.get('batata-token')
-  if (savedUser) {
-    user.value = savedUser
-    // Also restore store state for router guard
-    if (savedToken) {
-      batataStore.currentUser = { username: user.value!.name, token: savedToken }
-    }
-  }
-
   fetchServerState()
   fetchNamespaces()
 })
@@ -593,9 +585,6 @@ const handlerChangeLanguage = (lang: Language) => {
 }
 
 const handleLogout = () => {
-  user.value = null
-  storage.remove('batata_user')
-  storage.remove('batata-token')
   batataStore.logout()
   router.push('/login')
 }

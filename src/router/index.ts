@@ -451,11 +451,23 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
+      path: '/admin-init',
+      name: 'admin-init',
+      component: () => import('../views/AdminInitView.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/',
       name: LAYOUT_ROUTE_NAME,
       component: BatataLayout,
       meta: { requiresAuth: true },
       children: getInitialChildren(),
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('../views/NotFoundView.vue'),
+      meta: { requiresAuth: false },
     },
   ],
 })
@@ -512,17 +524,7 @@ router.beforeEach((to, _from, next) => {
   const batataStore = useBatataStore()
 
   // Restore user session from localStorage if not already in store
-  if (!batataStore.isAuthenticated) {
-    const savedUser = storage.getJSON<{ name: string }>('batata_user')
-    const savedToken = storage.get('batata-token')
-    if (savedUser && savedToken) {
-      const user = savedUser
-      batataStore.currentUser = {
-        username: user.name,
-        token: savedToken,
-      }
-    }
-  }
+  batataStore.restoreSession()
 
   // Auto-switch provider based on path for direct links
   const provider = storage.get('batata_provider') || 'batata'

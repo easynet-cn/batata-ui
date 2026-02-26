@@ -86,6 +86,16 @@ export const translations = {
     noAccount: "Don't have an account? Register",
     loginFailed: 'Login failed, please check your username and password',
 
+    // Admin Init
+    initPassword: 'Initialize Password',
+    initPasswordSubtitle: 'Set the administrator password for your Batata instance',
+    adminUsername: 'Admin Username',
+    setAdminPassword: 'Set Admin Password',
+    initPasswordWarning1: 'This is an internal system. Please ensure network security.',
+    initPasswordWarning2: 'Please save your password securely. It cannot be recovered if lost.',
+    initPasswordSuccess: 'Admin password initialized successfully',
+    adminAlreadyExists: 'Admin user already exists',
+
     // Config
     dataId: 'Data ID',
     group: 'Group',
@@ -1166,6 +1176,11 @@ export const translations = {
     apolloConfigMgmt: 'Configuration',
     apolloSystemSection: 'System',
     featureNotSupported: 'This feature is not supported by the server',
+    // 404 Not Found
+    notFoundTitle: 'Page Not Found',
+    notFoundDescription: 'The page you are looking for does not exist or has been moved.',
+    goBack: 'Go Back',
+    goHome: 'Back to Home',
   },
   zh: {
     // Common
@@ -1253,6 +1268,16 @@ export const translations = {
     forgotPassword: '忘记密码？',
     noAccount: '没有账户？立即注册',
     loginFailed: '登录失败，请检查用户名和密码',
+
+    // Admin Init
+    initPassword: '初始化密码',
+    initPasswordSubtitle: '为您的 Batata 实例设置管理员密码',
+    adminUsername: '管理员用户名',
+    setAdminPassword: '设置管理员密码',
+    initPasswordWarning1: '此为内部系统，请确保网络安全。',
+    initPasswordWarning2: '请妥善保存密码，密码丢失后无法找回。',
+    initPasswordSuccess: '管理员密码初始化成功',
+    adminAlreadyExists: '管理员用户已存在',
 
     // Config
     dataId: '配置 ID',
@@ -2332,6 +2357,11 @@ export const translations = {
     apolloConfigMgmt: '配置管理',
     apolloSystemSection: '系统',
     featureNotSupported: '服务器不支持此功能',
+    // 404 Not Found
+    notFoundTitle: '页面未找到',
+    notFoundDescription: '您访问的页面不存在或已被移动。',
+    goBack: '返回',
+    goHome: '回到首页',
   },
 }
 
