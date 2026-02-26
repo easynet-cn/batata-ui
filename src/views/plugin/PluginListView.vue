@@ -375,11 +375,10 @@ const errorCount = computed(() => plugins.value.filter((p) => p.status === 'erro
 const fetchPlugins = async () => {
   loading.value = true
   try {
-    const response = await batataApi.getPluginList()
-    plugins.value = response.data.data || []
+    await batataApi.getPluginList()
   } catch (error) {
-    logger.error('Failed to fetch plugins:', error)
-    toast.error(t('operationFailed'))
+    logger.error('Plugin management is not supported:', error)
+    toast.error(t('featureNotSupported'))
   } finally {
     loading.value = false
   }

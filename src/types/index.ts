@@ -111,7 +111,7 @@ export interface InstanceInfo {
 }
 
 export interface SubscriberInfo {
-  addrStr: string
+  address: string
   agent: string
   app: string
   namespaceId?: string

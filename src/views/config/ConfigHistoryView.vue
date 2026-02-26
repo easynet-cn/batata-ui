@@ -64,13 +64,6 @@
                   >
                     <GitCompare class="w-3.5 h-3.5" />
                   </button>
-                  <button
-                    @click="rollbackHistory(item)"
-                    class="btn btn-ghost btn-sm text-warning"
-                    :title="t('rollback')"
-                  >
-                    <RotateCcw class="w-3.5 h-3.5" />
-                  </button>
                 </div>
               </td>
             </tr>
@@ -151,23 +144,13 @@
         </div>
       </div>
     </ConfirmModal>
-
-    <!-- Rollback Confirm Modal -->
-    <ConfirmModal
-      v-model="showRollbackModal"
-      :title="t('confirmRollback')"
-      :message="t('confirmRollbackDesc')"
-      :confirm-text="t('rollback')"
-      danger
-      @confirm="confirmRollback"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Loader2, Eye, GitCompare, RotateCcw } from 'lucide-vue-next'
+import { ArrowLeft, Loader2, Eye, GitCompare } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
@@ -197,7 +180,6 @@ const configType = ref<ConfigType>('text')
 // Modals
 const showViewModal = ref(false)
 const showCompareModal = ref(false)
-const showRollbackModal = ref(false)
 const selectedHistory = ref<ConfigHistoryInfo | null>(null)
 
 // Methods
@@ -298,31 +280,6 @@ const compareHistory = async (item: ConfigHistoryInfo) => {
     }
   }
   showCompareModal.value = true
-}
-
-const rollbackHistory = (item: ConfigHistoryInfo) => {
-  selectedHistory.value = item
-  showRollbackModal.value = true
-}
-
-const confirmRollback = async () => {
-  if (!selectedHistory.value) return
-  const { dataId, groupName, namespaceId } = route.query
-
-  try {
-    await batataApi.rollbackConfig(
-      selectedHistory.value.id,
-      dataId as string,
-      groupName as string,
-      (namespaceId as string) || props.namespace.namespace,
-    )
-    showRollbackModal.value = false
-    fetchHistories()
-    fetchCurrentConfig()
-  } catch (error) {
-    logger.error('Failed to rollback:', error)
-    toast.error(t('operationFailed'))
-  }
 }
 
 // Lifecycle

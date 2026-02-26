@@ -77,7 +77,7 @@
               </td>
             </tr>
             <tr v-for="(item, index) in subscribers" :key="index" class="hover:bg-bg-secondary">
-              <td class="font-mono text-sm">{{ item.addrStr }}</td>
+              <td class="font-mono text-sm">{{ item.address }}</td>
               <td>{{ item.agent || '-' }}</td>
               <td>{{ item.app || '-' }}</td>
             </tr>
@@ -158,8 +158,8 @@ const fetchSubscribers = async () => {
       pageNo: currentPage.value,
       pageSize: pageSize.value,
     })
-    subscribers.value = response.data.data.subscribers || []
-    total.value = response.data.data.count || 0
+    subscribers.value = response.data.data.pageItems || []
+    total.value = response.data.data.totalCount || 0
   } catch (error) {
     logger.error('Failed to fetch subscribers:', error)
   } finally {

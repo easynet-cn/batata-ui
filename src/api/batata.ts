@@ -26,7 +26,6 @@ import type {
   AuditLogSearch,
   PageResult,
   LoginResponse,
-  PluginInfo,
   SyncEnvironment,
   SyncHistory,
   SyncRequest,
@@ -314,18 +313,20 @@ class BatataApi {
     })
   }
 
-  // TODO: Backend does not yet support batch delete - delete one by one
-  async batchDeleteConfig(_ids: string[], _namespaceId?: string): Promise<never> {
-    throw new ApiError(501, 'Batch delete is not supported by the server')
+  async batchDeleteConfig(ids: string[], namespaceId?: string) {
+    return this.instance.delete<BatataResponse>('/cs/config/batchDelete', {
+      params: { ids: ids.join(','), namespaceId },
+    })
   }
 
-  // TODO: Backend does not yet support clone
-  async cloneConfig(_data: {
+  async cloneConfig(data: {
     ids: string
     targetNamespaceId: string
     policy: 'ABORT' | 'SKIP' | 'OVERWRITE'
-  }): Promise<never> {
-    throw new ApiError(501, 'Clone config is not supported by the server')
+  }) {
+    return this.instance.post<BatataResponse>('/cs/config/clone', null, {
+      params: data,
+    })
   }
 
   async importConfig(file: File, namespaceId: string, policy: 'ABORT' | 'SKIP' | 'OVERWRITE') {
@@ -364,10 +365,14 @@ class BatataApi {
     })
   }
 
-  async rollbackConfig(nid: string, dataId: string, groupName: string, namespaceId?: string) {
-    return this.instance.post<BatataResponse>('/cs/history/rollback', null, {
-      params: { nid, dataId, groupName, namespaceId },
-    })
+  // Config rollback is not supported by Nacos v3 or Batata
+  async rollbackConfig(
+    _nid: string,
+    _dataId: string,
+    _groupName: string,
+    _namespaceId?: string,
+  ): Promise<never> {
+    throw new ApiError(501, 'Config rollback is not supported by the server')
   }
 
   // 配置监听
@@ -494,8 +499,8 @@ class BatataApi {
     pageNo?: number
     pageSize?: number
   }) {
-    return this.instance.get<BatataResponse<{ count: number; subscribers: SubscriberInfo[] }>>(
-      '/ns/subscriber/list',
+    return this.instance.get<BatataResponse<PageResult<SubscriberInfo>>>(
+      '/ns/service/subscribers',
       { params },
     )
   }
@@ -704,6 +709,7 @@ class BatataApi {
 
   // ============================================
   // MCP Management API (/v3/console/ai/mcp)
+  // Aligned with Nacos V3 Console API
   // ============================================
 
   async getMcpServerList(params?: {
@@ -712,49 +718,72 @@ class BatataApi {
     namespaceId?: string
     search?: string
   }) {
-    return this.instance.get<BatataResponse<PageResult<McpServerInfo>>>('/ai/mcp/servers', {
+    return this.instance.get<BatataResponse<PageResult<McpServerInfo>>>('/ai/mcp/list', {
       params: {
-        page: params?.pageNo,
+        pageNo: params?.pageNo,
         pageSize: params?.pageSize,
-        namespace: params?.namespaceId,
-        namePattern: params?.search ? `*${params.search}*` : undefined,
+        namespaceId: params?.namespaceId,
+        mcpName: params?.search || undefined,
+        search: params?.search ? 'blur' : undefined,
       },
     })
   }
 
   async getMcpServerDetail(namespace: string, name: string) {
-    return this.instance.get<BatataResponse<McpServerInfo>>(
-      `/ai/mcp/servers/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
-    )
+    return this.instance.get<BatataResponse<McpServerInfo>>('/ai/mcp', {
+      params: {
+        namespaceId: namespace,
+        mcpName: name,
+      },
+    })
   }
 
   async createMcpServer(data: McpServerPayload) {
-    return this.instance.post<BatataResponse>('/ai/mcp/servers', data)
+    return this.instance.post<BatataResponse>('/ai/mcp', data)
   }
 
   async updateMcpServer(namespace: string, name: string, data: Partial<McpServerPayload>) {
-    return this.instance.put<BatataResponse>(
-      `/ai/mcp/servers/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
-      data,
-    )
+    return this.instance.put<BatataResponse>('/ai/mcp', data, {
+      params: {
+        namespaceId: namespace,
+        mcpName: name,
+      },
+    })
   }
 
   async deleteMcpServer(namespace: string, name: string) {
-    return this.instance.delete<BatataResponse>(
-      `/ai/mcp/servers/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
-    )
+    return this.instance.delete<BatataResponse>('/ai/mcp', {
+      params: {
+        namespaceId: namespace,
+        mcpName: name,
+      },
+    })
   }
 
   async importMcpServers(data: McpServerImportPayload) {
-    return this.instance.post<BatataResponse>('/ai/mcp/servers/import', data)
+    return this.instance.post<BatataResponse>('/ai/mcp/import', data)
   }
 
-  async getMcpStats() {
-    return this.instance.get<BatataResponse>('/ai/mcp/servers/stats')
+  async importToolsFromMcp(params: {
+    transportType: string
+    baseUrl: string
+    endpoint: string
+    authToken?: string
+  }) {
+    return this.instance.get<BatataResponse>('/ai/mcp/importToolsFromMcp', { params })
+  }
+
+  async validateMcpImport(data: { content: string }) {
+    return this.instance.post<BatataResponse>('/ai/mcp/import/validate', data)
+  }
+
+  async executeMcpImport(data: { content: string; namespace?: string; overwrite?: boolean }) {
+    return this.instance.post<BatataResponse>('/ai/mcp/import/execute', data)
   }
 
   // ============================================
   // Agent (A2A) Management API (/v3/console/ai/a2a)
+  // Aligned with Nacos V3 Console API
   // ============================================
 
   async getAgentList(params?: {
@@ -763,47 +792,50 @@ class BatataApi {
     namespaceId?: string
     name?: string
   }) {
-    return this.instance.get<BatataResponse<PageResult<AgentInfo>>>('/ai/a2a/agents', {
+    return this.instance.get<BatataResponse<PageResult<AgentInfo>>>('/ai/a2a/list', {
       params: {
-        page: params?.pageNo,
+        pageNo: params?.pageNo,
         pageSize: params?.pageSize,
-        namespace: params?.namespaceId,
-        namePattern: params?.name ? `*${params.name}*` : undefined,
+        namespaceId: params?.namespaceId,
+        agentName: params?.name || undefined,
+        search: params?.name ? 'blur' : undefined,
       },
     })
   }
 
   async getAgentDetail(namespace: string, name: string) {
-    return this.instance.get<BatataResponse<AgentInfo>>(
-      `/ai/a2a/agents/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
-    )
+    return this.instance.get<BatataResponse<AgentInfo>>('/ai/a2a', {
+      params: {
+        namespaceId: namespace,
+        agentName: name,
+      },
+    })
   }
 
   async createAgent(data: AgentPayload) {
-    return this.instance.post<BatataResponse>('/ai/a2a/agents', data)
+    return this.instance.post<BatataResponse>('/ai/a2a', data)
   }
 
   async updateAgent(namespace: string, name: string, data: Partial<AgentPayload>) {
-    return this.instance.put<BatataResponse>(
-      `/ai/a2a/agents/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
-      data,
-    )
+    return this.instance.put<BatataResponse>('/ai/a2a', data, {
+      params: {
+        namespaceId: namespace,
+        agentName: name,
+      },
+    })
   }
 
   async deleteAgent(namespace: string, name: string) {
-    return this.instance.delete<BatataResponse>(
-      `/ai/a2a/agents/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
-    )
+    return this.instance.delete<BatataResponse>('/ai/a2a', {
+      params: {
+        namespaceId: namespace,
+        agentName: name,
+      },
+    })
   }
 
-  async findAgentsBySkill(skill: string) {
-    return this.instance.get<BatataResponse<AgentInfo[]>>(
-      `/ai/a2a/agents/by-skill/${encodeURIComponent(skill)}`,
-    )
-  }
-
-  async getA2aStats() {
-    return this.instance.get<BatataResponse>('/ai/a2a/agents/stats')
+  async getAgentVersionList(params: { namespaceId?: string; agentName?: string }) {
+    return this.instance.get<BatataResponse>('/ai/a2a/version/list', { params })
   }
 
   // ============================================
@@ -839,24 +871,22 @@ class BatataApi {
     })
   }
 
-  // TODO: Backend does not yet support publishing beta config
-  async publishBetaConfig(_data: {
+  async publishBetaConfig(data: {
     dataId: string
     groupName: string
     content: string
     namespaceId?: string
-    betaIps?: string
-  }): Promise<never> {
-    throw new ApiError(501, 'Publish beta config is not supported by the server')
+    grayName?: string
+    grayRule?: string
+    appName?: string
+  }) {
+    return this.instance.post<BatataResponse>('/cs/config/beta', data)
   }
 
-  // TODO: Backend does not yet support deleting beta config
-  async deleteBetaConfig(
-    _dataId: string,
-    _groupName: string,
-    _namespaceId?: string,
-  ): Promise<never> {
-    throw new ApiError(501, 'Delete beta config is not supported by the server')
+  async deleteBetaConfig(dataId: string, groupName: string, namespaceId?: string) {
+    return this.instance.delete<BatataResponse>('/cs/config/beta', {
+      params: { dataId, groupName, namespaceId },
+    })
   }
 
   // TODO: Backend does not yet support promoting beta config
@@ -885,14 +915,13 @@ class BatataApi {
   // Plugin Management API
   // ============================================
 
-  async getPluginList() {
-    return this.instance.get<BatataResponse<PluginInfo[]>>('/core/plugin/list')
+  // Plugin management is not available in Nacos v3 or Batata
+  async getPluginList(): Promise<never> {
+    throw new ApiError(501, 'Plugin management is not supported by the server')
   }
 
-  async getPluginDetail(name: string) {
-    return this.instance.get<BatataResponse<PluginInfo>>('/core/plugin', {
-      params: { name },
-    })
+  async getPluginDetail(_name: string): Promise<never> {
+    throw new ApiError(501, 'Plugin management is not supported by the server')
   }
 
   // TODO: Backend does not yet support updating plugin status

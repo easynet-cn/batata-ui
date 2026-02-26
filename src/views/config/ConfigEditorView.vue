@@ -332,7 +332,8 @@ const handleSubmit = async () => {
         groupName: form.group,
         content: form.content,
         namespaceId: props.namespace.namespace,
-        betaIps: form.betaIps,
+        grayName: 'beta',
+        grayRule: form.betaIps,
       })
     } else {
       // Publish as regular config
