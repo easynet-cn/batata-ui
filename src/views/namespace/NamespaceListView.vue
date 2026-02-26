@@ -20,7 +20,7 @@
             <tr>
               <th>{{ t('namespaceName') }}</th>
               <th>{{ t('namespaceId') }}</th>
-              <th>{{ t('configCount') }}</th>
+              <th>{{ t('configCount') }} / {{ t('quota') }}</th>
               <th>{{ t('type') }}</th>
               <th class="w-32">{{ t('actions') }}</th>
             </tr>
@@ -39,7 +39,10 @@
             <tr v-for="ns in namespaces" :key="ns.namespace" class="hover:bg-bg-secondary">
               <td class="font-medium">{{ ns.namespaceShowName }}</td>
               <td class="font-mono text-sm text-text-secondary">{{ ns.namespace || 'public' }}</td>
-              <td>{{ ns.configCount }}</td>
+              <td>
+                <span v-if="ns.quota > 0">{{ ns.configCount }} / {{ ns.quota }}</span>
+                <span v-else>{{ ns.configCount }} / {{ t('unlimited') }}</span>
+              </td>
               <td>
                 <span :class="getTypeClass(ns.type)">
                   {{ getTypeName(ns.type) }}

@@ -3,6 +3,7 @@ import type { AxiosInstance, AxiosResponse, AxiosRequestConfig } from 'axios'
 import { LRUCache } from 'lru-cache'
 import type {
   ConfigInfo,
+  ConfigBasicInfo,
   ConfigHistoryInfo,
   ConfigListenerInfo,
   ConfigGrayInfo,
@@ -320,12 +321,12 @@ class BatataApi {
   }
 
   async cloneConfig(data: {
-    ids: string
+    configBeans: Array<{ cfgId: number; dataId: string; group: string }>
     targetNamespaceId: string
     policy: 'ABORT' | 'SKIP' | 'OVERWRITE'
   }) {
-    return this.instance.post<BatataResponse>('/cs/config/clone', null, {
-      params: data,
+    return this.instance.post<BatataResponse>('/cs/config/clone', data.configBeans, {
+      params: { targetNamespaceId: data.targetNamespaceId, policy: data.policy },
     })
   }
 
@@ -343,6 +344,13 @@ class BatataApi {
     return this.instance.get('/cs/config/export', {
       params: { dataIds: ids.join(','), namespaceId },
       responseType: 'blob',
+    })
+  }
+
+  // Configs that have history records
+  async getHistoryConfigs(namespaceId?: string) {
+    return this.instance.get<BatataResponse<ConfigBasicInfo[]>>('/cs/history/configs', {
+      params: { namespaceId },
     })
   }
 
@@ -365,14 +373,19 @@ class BatataApi {
     })
   }
 
-  // Config rollback is not supported by Nacos v3 or Batata
-  async rollbackConfig(
-    _nid: string,
-    _dataId: string,
-    _groupName: string,
-    _namespaceId?: string,
-  ): Promise<never> {
-    throw new ApiError(501, 'Config rollback is not supported by the server')
+  async getHistoryPrevious(params: {
+    dataId: string
+    groupName: string
+    namespaceId?: string
+    id: string
+  }) {
+    return this.instance.get<BatataResponse<ConfigHistoryInfo>>('/cs/history/previous', { params })
+  }
+
+  async rollbackConfig(nid: string, dataId: string, groupName: string, namespaceId?: string) {
+    return this.instance.post<BatataResponse>('/cs/history/rollback', null, {
+      params: { nid, dataId, groupName, namespaceId },
+    })
   }
 
   // 配置监听

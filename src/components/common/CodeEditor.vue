@@ -1,9 +1,20 @@
 <template>
   <div
-    ref="editorContainer"
-    class="code-editor-wrapper rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
-    :style="{ minHeight }"
-  ></div>
+    ref="wrapperRef"
+    class="code-editor-wrapper rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden relative"
+    :class="{ 'fixed inset-0 z-50 rounded-none border-0': isFullscreen }"
+    :style="isFullscreen ? {} : { minHeight }"
+  >
+    <div ref="editorContainer" class="h-full"></div>
+    <button
+      @click="toggleFullscreen"
+      class="absolute top-2 right-2 z-10 p-1 rounded-md bg-gray-100 dark:bg-gray-800 text-text-secondary hover:text-text-primary opacity-60 hover:opacity-100 transition-opacity"
+      :title="isFullscreen ? t('exitFullscreen') : t('fullscreen')"
+    >
+      <Minimize2 v-if="isFullscreen" class="w-3.5 h-3.5" />
+      <Maximize2 v-else class="w-3.5 h-3.5" />
+    </button>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -17,7 +28,9 @@ import { html } from '@codemirror/lang-html'
 import { yaml } from '@codemirror/lang-yaml'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { defaultKeymap } from '@codemirror/commands'
+import { Maximize2, Minimize2 } from 'lucide-vue-next'
 import { useTheme } from '@/composables/useTheme'
+import { useI18n } from '@/i18n'
 import type { ConfigType } from '@/types'
 import type { Extension } from '@codemirror/state'
 
@@ -43,12 +56,30 @@ const emit = defineEmits<{
 }>()
 
 const { isDark } = useTheme()
+const { t } = useI18n()
 
+const wrapperRef = ref<HTMLElement>()
 const editorContainer = ref<HTMLElement>()
 const view = shallowRef<EditorView>()
 const languageCompartment = new Compartment()
 const themeCompartment = new Compartment()
 const readonlyCompartment = new Compartment()
+
+// Fullscreen state
+const isFullscreen = ref(false)
+
+const toggleFullscreen = () => {
+  isFullscreen.value = !isFullscreen.value
+}
+
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'F11') {
+    e.preventDefault()
+    toggleFullscreen()
+  } else if (e.key === 'Escape' && isFullscreen.value) {
+    isFullscreen.value = false
+  }
+}
 
 function getLanguageExtension(lang: ConfigType): Extension {
   switch (lang) {
@@ -74,6 +105,8 @@ const suppressedKeymap = keymap.of(defaultKeymap)
 
 onMounted(() => {
   if (!editorContainer.value) return
+
+  document.addEventListener('keydown', handleKeydown)
 
   const extensions: Extension[] = [
     basicSetup,
@@ -121,6 +154,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleKeydown)
   view.value?.destroy()
 })
 

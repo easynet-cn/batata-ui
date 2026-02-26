@@ -409,6 +409,7 @@ import {
   Bot,
   Cpu,
   Activity,
+  History,
   RefreshCw,
   Puzzle,
   Radio,
@@ -636,8 +637,8 @@ const isActiveRoute = (path: string) => {
   // /configs should match /config/new, /config/edit, /config/detail, /config/history
   // But NOT /config/listeners or /config/sync (these are separate pages)
   if (path === '/configs' && routePath.startsWith('/config/')) {
-    // Exclude /config/listeners and /config/sync from /configs highlighting
-    if (!['/config/listeners', '/config/sync'].includes(routePath)) {
+    // Exclude pages that have their own sidebar items
+    if (!['/config/listeners', '/config/sync', '/config/history'].includes(routePath)) {
       return true
     }
   }
@@ -683,6 +684,7 @@ const nacosNavGroups = computed(() => [
     title: t('configManagement'),
     items: [
       { path: '/configs', label: t('configList'), icon: FileCode },
+      { path: '/config/history', label: t('historicalVersions'), icon: History },
       { path: '/config/listeners', label: t('listeningToQuery'), icon: Radio },
       { path: '/config/sync', label: t('configSync'), icon: RefreshCw },
     ],

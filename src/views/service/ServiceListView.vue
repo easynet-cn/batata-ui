@@ -93,6 +93,10 @@
               v-for="service in services"
               :key="`${service.groupName}@@${service.name}`"
               class="hover:bg-bg-secondary"
+              :class="{
+                'bg-red-50 dark:bg-red-950/20':
+                  service.healthyInstanceCount === 0 && service.ipCount > 0,
+              }"
             >
               <td>
                 <router-link
@@ -155,6 +159,13 @@
                   >
                     <Users class="w-3.5 h-3.5" />
                   </router-link>
+                  <button
+                    @click="handleShowCode(service)"
+                    class="btn btn-ghost btn-sm"
+                    :title="t('sampleCode')"
+                  >
+                    <Code class="w-3.5 h-3.5" />
+                  </button>
                   <button
                     @click="handleDelete(service)"
                     class="btn btn-ghost btn-sm text-danger"
@@ -247,12 +258,20 @@
       danger
       @confirm="confirmDelete"
     />
+
+    <!-- Sample Code Dialog -->
+    <ShowCodeDialog
+      v-model="showCodeDialog"
+      :data-id="codeDialogServiceName"
+      :group-name="codeDialogGroup"
+      mode="service"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { Search, RotateCcw, Plus, Eye, Pencil, Users, Trash2, Loader2 } from 'lucide-vue-next'
+import { Search, RotateCcw, Plus, Eye, Pencil, Users, Trash2, Loader2, Code } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { logger } from '@/utils/logger'
@@ -260,6 +279,7 @@ import { toast } from '@/utils/error'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import FormModal from '@/components/common/FormModal.vue'
 import AppPagination from '@/components/common/AppPagination.vue'
+import ShowCodeDialog from '@/components/common/ShowCodeDialog.vue'
 import type { ServiceInfo, Namespace } from '@/types'
 
 const props = defineProps<{
@@ -425,6 +445,17 @@ const confirmDelete = async () => {
     logger.error('Failed to delete service', error)
     toast.error(t('operationFailed'))
   }
+}
+
+// Sample code dialog
+const showCodeDialog = ref(false)
+const codeDialogServiceName = ref('')
+const codeDialogGroup = ref('')
+
+const handleShowCode = (service: ServiceInfo) => {
+  codeDialogServiceName.value = service.name
+  codeDialogGroup.value = service.groupName
+  showCodeDialog.value = true
 }
 
 // Watch namespace change

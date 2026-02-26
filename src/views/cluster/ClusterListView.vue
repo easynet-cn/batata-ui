@@ -12,6 +12,35 @@
       </button>
     </div>
 
+    <!-- Search Bar -->
+    <div class="card">
+      <div class="p-3">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+          <div>
+            <label class="block text-xs font-medium text-text-secondary mb-1">{{
+              t('searchByIp')
+            }}</label>
+            <input
+              v-model="searchKeyword"
+              type="text"
+              class="input"
+              :placeholder="t('searchByIp')"
+              @keyup.enter="handleSearch"
+            />
+          </div>
+          <div class="flex items-end gap-1.5">
+            <button @click="handleSearch" class="btn btn-primary">
+              <Search class="w-3.5 h-3.5" />
+              {{ t('search') }}
+            </button>
+            <button @click="handleReset" class="btn btn-secondary">
+              <RotateCcw class="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Cluster Nodes -->
     <div class="card">
       <div class="overflow-x-auto">
@@ -110,7 +139,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { RefreshCw, Server, Loader2, ChevronDown } from 'lucide-vue-next'
+import { RefreshCw, Server, Loader2, ChevronDown, Search, RotateCcw } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
@@ -127,12 +156,14 @@ const { t } = useI18n()
 const loading = ref(false)
 const nodes = ref<NodeInfo[]>([])
 const expandedNodes = ref<Set<string>>(new Set())
+const searchKeyword = ref('')
 
 // Methods
 const fetchNodes = async () => {
   loading.value = true
   try {
-    const response = await batataApi.getClusterNodes()
+    const params = searchKeyword.value ? { keyword: searchKeyword.value } : undefined
+    const response = await batataApi.getClusterNodes(params)
     nodes.value = response.data.data || []
   } catch (error) {
     logger.error('Failed to fetch nodes:', error)
@@ -140,6 +171,15 @@ const fetchNodes = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handleSearch = () => {
+  fetchNodes()
+}
+
+const handleReset = () => {
+  searchKeyword.value = ''
+  fetchNodes()
 }
 
 const getStateClass = (state: string) => {

@@ -12,6 +12,14 @@
           {{ t('import') }}
         </button>
         <button
+          @click="handleBatchDelete"
+          class="btn btn-danger"
+          :disabled="selectedIds.length === 0"
+        >
+          <Trash2 class="w-3.5 h-3.5" />
+          {{ t('batchDelete') }}
+        </button>
+        <button
           @click="handleExport"
           class="btn btn-secondary"
           :disabled="selectedIds.length === 0"
@@ -109,7 +117,19 @@
               <option value="text">{{ t('configTypeText') }}</option>
             </select>
           </div>
-          <div class="flex items-center gap-4 md:col-span-2">
+          <div>
+            <label class="block text-xs font-medium text-text-secondary mb-1">{{
+              t('searchByContent')
+            }}</label>
+            <input
+              v-model="searchParams.content"
+              type="text"
+              class="input"
+              :placeholder="t('searchByContent')"
+              @keyup.enter="handleSearch"
+            />
+          </div>
+          <div class="flex items-center gap-4 md:col-span-3">
             <div class="flex items-center gap-2">
               <label class="flex items-center gap-1.5 cursor-pointer">
                 <input
@@ -281,6 +301,13 @@
                     <Copy class="w-3.5 h-3.5" />
                   </button>
                   <button
+                    @click="handleShowCode(config)"
+                    class="btn btn-ghost btn-sm"
+                    :title="t('sampleCode')"
+                  >
+                    <Code class="w-3.5 h-3.5" />
+                  </button>
+                  <button
                     v-if="isBetaConfig(config)"
                     @click="handlePromote(config)"
                     class="btn btn-ghost btn-sm text-purple-600 dark:text-purple-400"
@@ -318,6 +345,16 @@
       :confirm-text="t('delete')"
       danger
       @confirm="confirmDelete"
+    />
+
+    <!-- Batch Delete Confirm Modal -->
+    <ConfirmModal
+      v-model="showBatchDeleteModal"
+      :title="t('confirmDelete')"
+      :message="`${t('confirmBatchDelete')} ${selectedIds.length} ${t('items')}?`"
+      :confirm-text="t('delete')"
+      danger
+      @confirm="confirmBatchDelete"
     />
 
     <!-- Import Modal -->
@@ -385,6 +422,14 @@
       </div>
     </FormModal>
 
+    <!-- Sample Code Dialog -->
+    <ShowCodeDialog
+      v-model="showCodeDialog"
+      :data-id="codeDialogDataId"
+      :group-name="codeDialogGroup"
+      mode="config"
+    />
+
     <!-- Promote Modal -->
     <ConfirmModal
       v-model="showPromoteModal"
@@ -440,6 +485,7 @@ import {
   Lock,
   FlaskConical,
   ArrowUpCircle,
+  Code,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
@@ -448,6 +494,7 @@ import { toast } from '@/utils/error'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import FormModal from '@/components/common/FormModal.vue'
 import AppPagination from '@/components/common/AppPagination.vue'
+import ShowCodeDialog from '@/components/common/ShowCodeDialog.vue'
 import type { ConfigInfo, Namespace } from '@/types'
 
 const props = defineProps<{
@@ -473,6 +520,7 @@ const searchParams = reactive({
   appName: '',
   configTags: '',
   type: '',
+  content: '',
   search: 'blur' as 'accurate' | 'blur',
   showBetaOnly: false,
 })
@@ -536,6 +584,7 @@ const handleReset = () => {
     appName: '',
     configTags: '',
     type: '',
+    content: '',
     search: 'blur',
     showBetaOnly: false,
   })
@@ -581,6 +630,26 @@ const confirmDelete = async () => {
     fetchConfigs()
   } catch (error) {
     logger.error('Failed to delete config', error)
+    toast.error(t('operationFailed'))
+  }
+}
+
+// Batch delete
+const showBatchDeleteModal = ref(false)
+
+const handleBatchDelete = () => {
+  if (selectedIds.value.length === 0) return
+  showBatchDeleteModal.value = true
+}
+
+const confirmBatchDelete = async () => {
+  try {
+    await batataApi.batchDeleteConfig(selectedIds.value, props.namespace.namespace)
+    showBatchDeleteModal.value = false
+    selectedIds.value = []
+    fetchConfigs()
+  } catch (error) {
+    logger.error('Failed to batch delete configs', error)
     toast.error(t('operationFailed'))
   }
 }
@@ -633,7 +702,13 @@ const confirmClone = async () => {
   if (!configToClone.value) return
   try {
     await batataApi.cloneConfig({
-      ids: configToClone.value.id,
+      configBeans: [
+        {
+          cfgId: Number(configToClone.value.id),
+          dataId: configToClone.value.dataId,
+          group: configToClone.value.groupName,
+        },
+      ],
       targetNamespaceId: cloneTargetNs.value,
       policy: clonePolicy.value,
     })
@@ -647,6 +722,17 @@ const confirmClone = async () => {
 const formatTime = (timestamp: number) => {
   if (!timestamp) return '-'
   return new Date(timestamp).toLocaleString()
+}
+
+// Sample code dialog
+const showCodeDialog = ref(false)
+const codeDialogDataId = ref('')
+const codeDialogGroup = ref('')
+
+const handleShowCode = (config: ConfigInfo) => {
+  codeDialogDataId.value = config.dataId
+  codeDialogGroup.value = config.groupName
+  showCodeDialog.value = true
 }
 
 // Track which configs have beta versions

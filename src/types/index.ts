@@ -38,6 +38,13 @@ export interface ConfigInfo {
   encryptedDataKey?: string
 }
 
+export interface ConfigBasicInfo {
+  id: string
+  dataId: string
+  groupName: string
+  namespaceId: string
+}
+
 export interface ConfigHistoryInfo {
   id: string
   dataId: string
@@ -50,8 +57,10 @@ export interface ConfigHistoryInfo {
   srcUser: string
   opType: string
   publishType: string
-  createdTime: number
-  lastModifiedTime: number
+  grayName?: string
+  createTime: number
+  modifyTime: number
+  extInfo?: string
   encryptedDataKey?: string
 }
 

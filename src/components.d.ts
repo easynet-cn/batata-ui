@@ -15,10 +15,12 @@ declare module 'vue' {
     CodeEditor: typeof import('./components/common/CodeEditor.vue')['default']
     ConfirmModal: typeof import('./components/common/ConfirmModal.vue')['default']
     DataTable: typeof import('./components/common/DataTable.vue')['default']
+    DiffEditor: typeof import('./components/common/DiffEditor.vue')['default']
     FilterBar: typeof import('./components/common/FilterBar.vue')['default']
     FormModal: typeof import('./components/common/FormModal.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    ShowCodeDialog: typeof import('./components/common/ShowCodeDialog.vue')['default']
     ToastMessage: typeof import('./components/feedback/ToastMessage.vue')['default']
   }
 }
