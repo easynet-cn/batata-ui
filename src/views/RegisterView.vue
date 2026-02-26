@@ -43,7 +43,7 @@ const handleSubmit = async () => {
     router.push('/login')
   } catch (error) {
     logger.error('Registration failed:', error)
-    toast.error(t('registerFailed'))
+    toast.apiError(error)
   } finally {
     isLoading.value = false
   }

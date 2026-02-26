@@ -420,7 +420,7 @@ const fetchConfigs = async () => {
     }))
   } catch (error) {
     logger.error('Failed to fetch configs:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }
@@ -500,7 +500,7 @@ const executeSync = async () => {
     }, 1000)
   } catch (error) {
     logger.error('Failed to sync configs:', error)
-    toast.error(t('syncFailed'))
+    toast.apiError(error)
   } finally {
     syncing.value = false
   }

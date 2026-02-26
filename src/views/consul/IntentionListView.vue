@@ -220,7 +220,7 @@ async function loadIntentions() {
     await store.fetchIntentions()
   } catch (error) {
     logger.error('Failed to fetch intentions:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -247,7 +247,7 @@ async function handleEdit(intention: ConsulIntention) {
     showCreateModal.value = true
   } catch (error) {
     logger.error('Failed to fetch intention details:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -279,7 +279,7 @@ async function submitCreate() {
     await loadIntentions()
   } catch (error) {
     logger.error('Failed to save intention:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     saving.value = false
   }
@@ -299,7 +299,7 @@ async function confirmDelete() {
     await loadIntentions()
   } catch (error) {
     logger.error('Failed to delete intention:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

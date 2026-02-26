@@ -179,7 +179,7 @@ async function loadPolicies() {
     await store.fetchACLPolicies()
   } catch (error) {
     logger.error('Failed to fetch ACL policies:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -204,7 +204,7 @@ async function handleEdit(policy: ConsulACLPolicy) {
     showCreateModal.value = true
   } catch (error) {
     logger.error('Failed to fetch policy details:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -234,7 +234,7 @@ async function submitCreate() {
     await loadPolicies()
   } catch (error) {
     logger.error('Failed to save ACL policy:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     saving.value = false
   }
@@ -254,7 +254,7 @@ async function confirmDelete() {
     await loadPolicies()
   } catch (error) {
     logger.error('Failed to delete ACL policy:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

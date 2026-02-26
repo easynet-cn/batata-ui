@@ -378,7 +378,7 @@ const fetchPlugins = async () => {
     await batataApi.getPluginList()
   } catch (error) {
     logger.error('Plugin management is not supported:', error)
-    toast.error(t('featureNotSupported'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }
@@ -404,7 +404,7 @@ const togglePlugin = async (plugin: PluginInfo, enable: boolean) => {
     toast.success(enable ? t('pluginEnabled') : t('pluginDisabled'))
   } catch (error) {
     logger.error('Failed to toggle plugin:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -432,7 +432,7 @@ const savePluginConfig = async () => {
     toast.success(t('configSaved'))
   } catch (error) {
     logger.error('Failed to save plugin config:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     saving.value = false
   }

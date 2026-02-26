@@ -347,7 +347,7 @@ const fetchService = async () => {
     service.value = response.data.data
   } catch (error) {
     logger.error('Failed to fetch service:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }
@@ -385,7 +385,7 @@ const toggleInstanceStatus = async (instance: InstanceInfo) => {
     fetchService()
   } catch (error) {
     logger.error('Failed to toggle instance status:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -418,7 +418,7 @@ const submitInstance = async () => {
     fetchService()
   } catch (error) {
     logger.error('Failed to update instance:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     saving.value = false
   }
@@ -463,7 +463,7 @@ const submitCluster = async () => {
     fetchService()
   } catch (error) {
     logger.error('Failed to update cluster:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     saving.value = false
   }

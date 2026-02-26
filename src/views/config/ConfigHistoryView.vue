@@ -442,7 +442,7 @@ const fetchHistories = async () => {
     total.value = response.data.data.totalCount || 0
   } catch (error) {
     logger.error('Failed to fetch histories:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }
@@ -461,7 +461,7 @@ const fetchCurrentConfig = async () => {
     configType.value = response.data.data.type || 'text'
   } catch (error) {
     logger.error('Failed to fetch current config:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -528,7 +528,7 @@ const viewHistory = async (item: ConfigHistoryInfo) => {
       selectedHistory.value = response.data.data
     } catch (error) {
       logger.error('Failed to fetch history detail:', error)
-      toast.error(t('operationFailed'))
+      toast.apiError(error)
     }
   }
   showViewModal.value = true
@@ -603,7 +603,7 @@ const confirmRollback = async () => {
     fetchCurrentConfig()
   } catch (error) {
     logger.error('Failed to rollback config:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     rollbackLoading.value = false
   }

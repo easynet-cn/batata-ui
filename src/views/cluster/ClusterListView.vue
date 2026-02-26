@@ -167,7 +167,7 @@ const fetchNodes = async () => {
     nodes.value = response.data.data || []
   } catch (error) {
     logger.error('Failed to fetch nodes:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }

@@ -405,7 +405,7 @@ const fetchCrossCompareConfig = async () => {
     showCrossCompareResult.value = true
   } catch (error) {
     logger.error('Failed to fetch target config:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

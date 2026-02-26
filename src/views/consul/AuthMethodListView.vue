@@ -84,7 +84,7 @@ async function loadAuthMethods() {
     await store.fetchAuthMethods()
   } catch (error) {
     logger.error('Failed to fetch auth methods:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

@@ -143,7 +143,7 @@ async function loadData() {
     bindingRules.value = rulesRes.data || []
   } catch (error) {
     logger.error('Failed to fetch auth method detail:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }

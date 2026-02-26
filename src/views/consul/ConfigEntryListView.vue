@@ -180,7 +180,7 @@ async function loadConfigEntries() {
     await store.fetchConfigEntries(selectedKind.value)
   } catch (error) {
     logger.error('Failed to fetch config entries:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -201,8 +201,8 @@ function copyJson() {
       .then(() => {
         toast.success(t('success'))
       })
-      .catch(() => {
-        toast.error(t('operationFailed'))
+      .catch((err) => {
+        toast.apiError(err)
       })
   }
 }
@@ -221,7 +221,7 @@ async function confirmDelete() {
     await loadConfigEntries()
   } catch (error) {
     logger.error('Failed to delete config entry:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

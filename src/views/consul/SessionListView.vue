@@ -141,7 +141,7 @@ async function loadSessions() {
     await store.fetchSessions()
   } catch (error) {
     logger.error('Failed to fetch sessions:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -159,7 +159,7 @@ async function confirmDestroy() {
     await loadSessions()
   } catch (error) {
     logger.error('Failed to destroy session:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

@@ -235,7 +235,7 @@ async function loadTokens() {
     await store.fetchACLTokens()
   } catch (error) {
     logger.error('Failed to fetch ACL tokens:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -269,7 +269,7 @@ async function handleEdit(token: ConsulACLToken) {
     showCreateModal.value = true
   } catch (error) {
     logger.error('Failed to fetch token details:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -303,7 +303,7 @@ async function submitCreate() {
     await loadTokens()
   } catch (error) {
     logger.error('Failed to save ACL token:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     saving.value = false
   }
@@ -323,7 +323,7 @@ async function confirmDelete() {
     await loadTokens()
   } catch (error) {
     logger.error('Failed to delete ACL token:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

@@ -563,7 +563,7 @@ const fetchDatacenters = async () => {
     }
   } catch (error) {
     logger.error('Failed to fetch datacenters:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
     datacenters.value = []
   } finally {
     loading.value = false

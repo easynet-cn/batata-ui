@@ -247,7 +247,7 @@ async function loadPeerings() {
     await store.fetchPeerings()
   } catch (error) {
     logger.error('Failed to fetch peerings:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -275,7 +275,7 @@ async function submitGenerateToken() {
     toast.success(t('success'))
   } catch (error) {
     logger.error('Failed to generate peering token:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     generating.value = false
   }
@@ -294,7 +294,7 @@ async function submitEstablish() {
     await loadPeerings()
   } catch (error) {
     logger.error('Failed to establish peering:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     establishing.value = false
   }
@@ -314,7 +314,7 @@ async function confirmDelete() {
     await loadPeerings()
   } catch (error) {
     logger.error('Failed to delete peering:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

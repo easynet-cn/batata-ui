@@ -212,7 +212,7 @@ const fetchPermissions = async () => {
     total.value = response.data.data.totalCount || 0
   } catch (error) {
     logger.error('Failed to fetch permissions:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }
@@ -290,7 +290,7 @@ const submitCreate = async () => {
     fetchPermissions()
   } catch (error) {
     logger.error('Failed to create permission:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     saving.value = false
   }
@@ -313,7 +313,7 @@ const confirmDelete = async () => {
     fetchPermissions()
   } catch (error) {
     logger.error('Failed to delete permission:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

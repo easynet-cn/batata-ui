@@ -109,9 +109,10 @@ class BatataApi {
           window.location.href = '/login'
           throw new AuthError()
         }
+        const respData = error.response?.data
         throw new ApiError(
-          error.response?.status || 500,
-          error.response?.data?.message || error.message,
+          respData?.code || error.response?.status || 500,
+          respData?.message || error.message,
         )
       },
     )
@@ -220,9 +221,10 @@ class BatataApi {
             window.location.href = '/login'
             throw new AuthError()
           }
+          const respData = error.response?.data
           throw new ApiError(
-            error.response?.status || 500,
-            error.response?.data?.message || error.message,
+            respData?.code || error.response?.status || 500,
+            respData?.message || error.message,
           )
         },
       )

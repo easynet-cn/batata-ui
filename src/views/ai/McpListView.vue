@@ -176,7 +176,7 @@ const fetchMcpServers = async () => {
     total.value = response.data.data.totalCount || 0
   } catch (error) {
     logger.error('Failed to fetch MCP servers:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }
@@ -221,7 +221,7 @@ const handleToggleStatus = async (server: McpServerInfo) => {
     fetchMcpServers()
   } catch (error) {
     logger.error('Failed to toggle MCP server status:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -239,7 +239,7 @@ const confirmDelete = async () => {
     fetchMcpServers()
   } catch (error) {
     logger.error('Failed to delete MCP server:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

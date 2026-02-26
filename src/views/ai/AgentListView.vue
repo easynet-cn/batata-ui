@@ -179,7 +179,7 @@ const fetchAgents = async () => {
     total.value = response.data.data.totalCount || 0
   } catch (error) {
     logger.error('Failed to fetch agents:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }
@@ -215,7 +215,7 @@ const handleToggleStatus = async (agent: AgentInfo) => {
     fetchAgents()
   } catch (error) {
     logger.error('Failed to toggle agent status:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -233,7 +233,7 @@ const confirmDelete = async () => {
     fetchAgents()
   } catch (error) {
     logger.error('Failed to delete agent:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

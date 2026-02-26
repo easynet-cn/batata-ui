@@ -382,7 +382,7 @@ const fetchLogs = async () => {
     total.value = data.totalCount
   } catch (error) {
     logger.error('Failed to fetch audit logs:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
     logs.value = []
     total.value = 0
   } finally {

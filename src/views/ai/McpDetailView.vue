@@ -172,7 +172,7 @@ const fetchMcpServer = async () => {
     tools.value = serverRes.data.data?.tools || []
   } catch (error) {
     logger.error('Failed to fetch MCP server:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }
@@ -189,7 +189,7 @@ const refreshTools = async () => {
     tools.value = response.data.data?.tools || []
   } catch (error) {
     logger.error('Failed to refresh tools:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     refreshing.value = false
   }

@@ -337,7 +337,7 @@ const fetchServices = async () => {
     total.value = response.data.data.totalCount || 0
   } catch (error) {
     logger.error('Failed to fetch services', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }
@@ -420,7 +420,7 @@ const handleSubmit = async () => {
     fetchServices()
   } catch (error) {
     logger.error('Failed to save service', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     saving.value = false
   }
@@ -443,7 +443,7 @@ const confirmDelete = async () => {
     fetchServices()
   } catch (error) {
     logger.error('Failed to delete service', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

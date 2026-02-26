@@ -190,7 +190,7 @@ async function loadData() {
     peering.value = response.data
   } catch (error) {
     logger.error('Failed to fetch peering detail:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }

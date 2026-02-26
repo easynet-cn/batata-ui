@@ -190,7 +190,7 @@ const fetchRoles = async () => {
     total.value = response.data.data.totalCount || 0
   } catch (error) {
     logger.error('Failed to fetch roles:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }
@@ -220,7 +220,7 @@ const submitCreate = async () => {
     fetchRoles()
   } catch (error) {
     logger.error('Failed to create role:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     saving.value = false
   }
@@ -239,7 +239,7 @@ const confirmDelete = async () => {
     fetchRoles()
   } catch (error) {
     logger.error('Failed to delete role:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

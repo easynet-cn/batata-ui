@@ -300,7 +300,7 @@ const fetchHealthChecks = async () => {
     allChecks.value = result || []
   } catch (err) {
     logger.error('Failed to fetch health checks:', err)
-    toast.error(t('operationFailed'))
+    toast.apiError(err)
   } finally {
     loading.value = false
   }

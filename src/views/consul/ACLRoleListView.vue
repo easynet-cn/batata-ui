@@ -200,7 +200,7 @@ async function loadRoles() {
     await store.fetchACLRoles()
   } catch (error) {
     logger.error('Failed to fetch ACL roles:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -243,7 +243,7 @@ async function handleEdit(role: ConsulACLRole) {
     showCreateModal.value = true
   } catch (error) {
     logger.error('Failed to fetch role details:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -278,7 +278,7 @@ async function submitCreate() {
     await loadRoles()
   } catch (error) {
     logger.error('Failed to save ACL role:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     saving.value = false
   }
@@ -298,7 +298,7 @@ async function confirmDelete() {
     await loadRoles()
   } catch (error) {
     logger.error('Failed to delete ACL role:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

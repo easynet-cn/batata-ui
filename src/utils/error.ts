@@ -81,6 +81,10 @@ export const toast = {
       toasts.value.splice(index, 1)
     }
   },
+  apiError(error: unknown, duration?: number) {
+    const message = handleError(error)
+    return this.error(message, duration)
+  },
   clear() {
     toasts.value = []
   },

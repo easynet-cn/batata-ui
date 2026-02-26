@@ -174,7 +174,7 @@ const fetchNamespaces = async () => {
     namespaces.value = response.data.data || []
   } catch (error) {
     logger.error('Failed to fetch namespaces:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }
@@ -244,7 +244,7 @@ const handleSubmit = async () => {
     fetchNamespaces()
   } catch (error) {
     logger.error('Failed to save namespace:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     saving.value = false
   }
@@ -263,7 +263,7 @@ const confirmDelete = async () => {
     fetchNamespaces()
   } catch (error) {
     logger.error('Failed to delete namespace:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

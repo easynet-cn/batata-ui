@@ -218,7 +218,7 @@ const fetchUsers = async () => {
     total.value = response.data.data.totalCount || 0
   } catch (error) {
     logger.error('Failed to fetch users:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }
@@ -248,7 +248,7 @@ const submitCreate = async () => {
     fetchUsers()
   } catch (error) {
     logger.error('Failed to create user:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     saving.value = false
   }
@@ -272,7 +272,7 @@ const submitResetPassword = async () => {
     showPasswordModal.value = false
   } catch (error) {
     logger.error('Failed to reset password:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     saving.value = false
   }
@@ -291,7 +291,7 @@ const confirmDelete = async () => {
     fetchUsers()
   } catch (error) {
     logger.error('Failed to delete user:', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 

@@ -557,7 +557,7 @@ const fetchConfigs = async () => {
     checkAllBetaConfigs()
   } catch (error) {
     logger.error('Failed to fetch configs', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     loading.value = false
   }
@@ -630,7 +630,7 @@ const confirmDelete = async () => {
     fetchConfigs()
   } catch (error) {
     logger.error('Failed to delete config', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -650,7 +650,7 @@ const confirmBatchDelete = async () => {
     fetchConfigs()
   } catch (error) {
     logger.error('Failed to batch delete configs', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -671,7 +671,7 @@ const confirmImport = async () => {
     fetchConfigs()
   } catch (error) {
     logger.error('Failed to import config', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -688,7 +688,7 @@ const handleExport = async () => {
     window.URL.revokeObjectURL(url)
   } catch (error) {
     logger.error('Failed to export config', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -715,7 +715,7 @@ const confirmClone = async () => {
     showCloneModal.value = false
   } catch (error) {
     logger.error('Failed to clone config', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   }
 }
 
@@ -817,7 +817,7 @@ const confirmPromote = async () => {
     fetchConfigs()
   } catch (error) {
     logger.error('Failed to promote config', error)
-    toast.error(t('operationFailed'))
+    toast.apiError(error)
   } finally {
     promoting.value = false
   }
