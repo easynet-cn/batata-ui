@@ -354,105 +354,6 @@ const consulChildren: RouteRecordRaw[] = [
   },
 ]
 
-// Apollo route children
-const apolloChildren: RouteRecordRaw[] = [
-  // Dashboard
-  {
-    path: 'apollo',
-    redirect: 'apollo/dashboard',
-  },
-  {
-    path: 'apollo/dashboard',
-    name: 'apollo-dashboard',
-    component: () => import('../views/apollo/ApolloDashboardView.vue'),
-    meta: { titleKey: 'routeApolloDashboard' },
-  },
-  // Apps
-  {
-    path: 'apollo/apps',
-    name: 'apollo-apps',
-    component: () => import('../views/apollo/ApolloAppListView.vue'),
-    meta: { titleKey: 'routeApolloApps' },
-  },
-  // App Detail
-  {
-    path: 'apollo/app/:appId',
-    name: 'apollo-app-detail',
-    component: () => import('../views/apollo/ApolloAppDetailView.vue'),
-    meta: { titleKey: 'routeApolloAppDetail' },
-  },
-  // Namespace Detail
-  {
-    path: 'apollo/namespace/:appId/:env/:clusterName/:namespaceName',
-    name: 'apollo-namespace-detail',
-    component: () => import('../views/apollo/ApolloNamespaceDetailView.vue'),
-    meta: { titleKey: 'routeApolloNamespaceDetail' },
-  },
-  // Release History
-  {
-    path: 'apollo/releases/:appId/:env/:clusterName/:namespaceName',
-    name: 'apollo-release-history',
-    component: () => import('../views/apollo/ApolloReleaseHistoryView.vue'),
-    meta: { titleKey: 'routeApolloReleaseHistory' },
-  },
-  // Gray Release
-  {
-    path: 'apollo/gray-release/:appId/:env/:clusterName/:namespaceName',
-    name: 'apollo-gray-release',
-    component: () => import('../views/apollo/ApolloGrayReleaseView.vue'),
-    meta: { titleKey: 'routeApolloGrayRelease' },
-  },
-  // Instances
-  {
-    path: 'apollo/instances/:appId/:env/:clusterName/:namespaceName',
-    name: 'apollo-instances',
-    component: () => import('../views/apollo/ApolloInstancesView.vue'),
-    meta: { titleKey: 'routeApolloInstances' },
-  },
-  // Global Search
-  {
-    path: 'apollo/search',
-    name: 'apollo-search',
-    component: () => import('../views/apollo/ApolloGlobalSearchView.vue'),
-    meta: { titleKey: 'routeApolloSearch' },
-  },
-  // User Management
-  {
-    path: 'apollo/users',
-    name: 'apollo-users',
-    component: () => import('../views/apollo/ApolloUserManagementView.vue'),
-    meta: { titleKey: 'routeApolloUsers' },
-  },
-  // Consumer Management
-  {
-    path: 'apollo/consumers',
-    name: 'apollo-consumers',
-    component: () => import('../views/apollo/ApolloConsumerManagementView.vue'),
-    meta: { titleKey: 'routeApolloConsumers' },
-  },
-  // System Info
-  {
-    path: 'apollo/system-info',
-    name: 'apollo-system-info',
-    component: () => import('../views/apollo/ApolloSystemInfoView.vue'),
-    meta: { titleKey: 'routeApolloSystemInfo' },
-  },
-  // Server Config
-  {
-    path: 'apollo/server-config',
-    name: 'apollo-server-config',
-    component: () => import('../views/apollo/ApolloServerConfigView.vue'),
-    meta: { titleKey: 'routeApolloServerConfig' },
-  },
-  // Settings (shared)
-  {
-    path: 'apollo/settings',
-    name: 'apollo-settings',
-    component: () => import('../views/settings/SettingsView.vue'),
-    meta: { titleKey: 'routeSettings' },
-  },
-]
-
 // Layout route name used for dynamic route swapping
 const LAYOUT_ROUTE_NAME = 'layout'
 
@@ -503,8 +404,6 @@ function getInitialChildren(): RouteRecordRaw[] {
   switch (normalizedProvider) {
     case 'consul':
       return consulChildren
-    case 'apollo':
-      return apolloChildren
     default:
       return nacosChildren
   }
@@ -519,9 +418,6 @@ export function switchProviderRoutes(provider: ProviderType) {
   switch (provider) {
     case 'consul':
       children = consulChildren
-      break
-    case 'apollo':
-      children = apolloChildren
       break
     default:
       children = nacosChildren
@@ -554,9 +450,6 @@ router.beforeEach((to, _from, next) => {
   if (to.path.startsWith('/consul') && normalizedProvider !== 'consul') {
     // Switch to consul routes and continue
     switchProviderRoutes('consul')
-  } else if (to.path.startsWith('/apollo') && normalizedProvider !== 'apollo') {
-    // Switch to apollo routes and continue
-    switchProviderRoutes('apollo')
   }
 
   if (to.meta.requiresAuth !== false && !batataStore.isAuthenticated) {
@@ -566,9 +459,6 @@ router.beforeEach((to, _from, next) => {
     switch (normalizedProvider) {
       case 'consul':
         next('/consul/dashboard')
-        break
-      case 'apollo':
-        next('/apollo/dashboard')
         break
       default:
         next('/')

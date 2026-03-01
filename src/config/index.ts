@@ -5,8 +5,6 @@ export const config = {
   api: {
     baseUrl: import.meta.env.VITE_API_BASE_URL ?? '',
     consulBaseUrl: '/consul-api/v1',
-    apolloBaseUrl: '/apollo-api/openapi/v1',
-    apolloPortalBaseUrl: '/apollo-api',
     timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 30000,
     retryCount: Number(import.meta.env.VITE_API_RETRY_COUNT) || 3,
   },

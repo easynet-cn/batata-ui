@@ -154,8 +154,6 @@ export interface ServerState {
   server_port?: string
   consul_enabled?: string
   consul_port?: string
-  apollo_enabled?: string
-  apollo_port?: string
   auth_enabled?: string
   auth_admin_request?: string
   console_ui_enabled?: string
@@ -272,7 +270,7 @@ export interface AgentInfo {
 // Provider Type
 // ============================================
 
-export type ProviderType = 'batata' | 'consul' | 'apollo'
+export type ProviderType = 'batata' | 'consul'
 
 // ============================================
 // Settings Types
