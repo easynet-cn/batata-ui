@@ -120,9 +120,9 @@ export interface InstanceInfo {
 }
 
 export interface SubscriberInfo {
-  address: string
+  addrStr: string
   agent: string
-  app: string
+  app?: string
   namespaceId?: string
   serviceName?: string
   groupName?: string

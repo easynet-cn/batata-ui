@@ -63,6 +63,25 @@
               }}</label>
               <p class="text-text-primary font-medium">{{ service.protectThreshold ?? 0 }}</p>
             </div>
+            <div v-if="service.selector && service.selector.type !== 'none'">
+              <label class="block text-sm text-text-tertiary mb-1">{{ t('selector') }}</label>
+              <p class="text-text-primary font-medium">
+                {{ service.selector.type }}
+                <span v-if="service.selector.expression" class="text-text-secondary text-xs ml-1">
+                  ({{ service.selector.expression }})
+                </span>
+              </p>
+            </div>
+            <div
+              v-if="service.metadata && Object.keys(service.metadata).length > 0"
+              class="md:col-span-2 lg:col-span-4"
+            >
+              <label class="block text-sm text-text-tertiary mb-1">{{ t('metadata') }}</label>
+              <pre
+                class="text-text-primary font-mono text-xs bg-bg-secondary rounded p-2 overflow-auto max-h-32"
+                >{{ JSON.stringify(service.metadata, null, 2) }}</pre
+              >
+            </div>
           </div>
         </div>
       </div>
@@ -277,6 +296,67 @@
         </div>
       </div>
     </FormModal>
+
+    <!-- Edit Service Modal -->
+    <FormModal
+      v-model="showServiceModal"
+      :title="t('editService')"
+      :submit-text="t('save')"
+      :loading="saving"
+      @submit="submitService"
+    >
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">{{
+            t('serviceName')
+          }}</label>
+          <input :value="serviceForm.serviceName" type="text" class="input" disabled />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">{{
+            t('protectThreshold')
+          }}</label>
+          <input
+            v-model.number="serviceForm.protectThreshold"
+            type="number"
+            class="input"
+            min="0"
+            max="1"
+            step="0.1"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">{{
+            t('metadata')
+          }}</label>
+          <textarea
+            v-model="serviceMetadataText"
+            class="input min-h-[80px] font-mono text-sm"
+            placeholder='{"key": "value"}'
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">{{
+            t('selector')
+          }}</label>
+          <select v-model="serviceForm.selectorType" class="input">
+            <option value="none">none</option>
+            <option value="label">label</option>
+          </select>
+        </div>
+        <div v-if="serviceForm.selectorType === 'label'">
+          <label class="block text-xs font-medium text-text-primary mb-1">{{
+            t('selectorExpression')
+          }}</label>
+          <input
+            v-model="serviceForm.selectorExpression"
+            type="text"
+            class="input"
+            placeholder="CONSUMER.label.xxx=PROVIDER.label.xxx"
+          />
+        </div>
+      </div>
+    </FormModal>
   </div>
 </template>
 
@@ -307,8 +387,10 @@ const service = ref<ServiceDetail | null>(null)
 // Modals
 const showInstanceModal = ref(false)
 const showClusterModal = ref(false)
+const showServiceModal = ref(false)
 const instanceMetadataText = ref('')
 const clusterMetadataText = ref('')
+const serviceMetadataText = ref('')
 
 const instanceForm = reactive({
   ip: '',
@@ -326,6 +408,13 @@ const clusterForm = reactive({
     path: '',
   },
   metadata: {} as Record<string, string>,
+})
+
+const serviceForm = reactive({
+  serviceName: '',
+  protectThreshold: 0,
+  selectorType: 'none' as string,
+  selectorExpression: '',
 })
 
 // Methods
@@ -354,7 +443,50 @@ const fetchService = async () => {
 }
 
 const handleEditService = () => {
-  // Navigate to edit or show modal
+  if (!service.value) return
+  Object.assign(serviceForm, {
+    serviceName: service.value.name,
+    protectThreshold: service.value.protectThreshold ?? 0,
+    selectorType: service.value.selector?.type || 'none',
+    selectorExpression: service.value.selector?.expression || '',
+  })
+  serviceMetadataText.value = JSON.stringify(service.value.metadata || {}, null, 2)
+  showServiceModal.value = true
+}
+
+const submitService = async () => {
+  let metadata: Record<string, string> = {}
+  if (serviceMetadataText.value) {
+    try {
+      metadata = JSON.parse(serviceMetadataText.value)
+    } catch {
+      toast.warning(t('invalidJson'))
+      return
+    }
+  }
+
+  const { serviceName, groupName, namespaceId } = route.query
+  saving.value = true
+  try {
+    await batataApi.updateService({
+      serviceName: serviceName as string,
+      groupName: groupName as string,
+      namespaceId: (namespaceId as string) || props.namespace.namespace,
+      protectThreshold: serviceForm.protectThreshold,
+      metadata,
+      selector:
+        serviceForm.selectorType === 'none'
+          ? { type: 'none' }
+          : { type: serviceForm.selectorType, expression: serviceForm.selectorExpression },
+    })
+    showServiceModal.value = false
+    fetchService()
+  } catch (error) {
+    logger.error('Failed to update service:', error)
+    toast.apiError(error)
+  } finally {
+    saving.value = false
+  }
 }
 
 const handleEditInstance = (instance: InstanceInfo) => {

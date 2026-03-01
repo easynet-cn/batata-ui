@@ -77,7 +77,7 @@
               </td>
             </tr>
             <tr v-for="(item, index) in subscribers" :key="index" class="hover:bg-bg-secondary">
-              <td class="font-mono text-sm">{{ item.address }}</td>
+              <td class="font-mono text-sm">{{ item.addrStr }}</td>
               <td>{{ item.agent || '-' }}</td>
               <td>{{ item.app || '-' }}</td>
             </tr>

@@ -343,7 +343,7 @@ class BatataApi {
   }
 
   async exportConfig(ids: string[], namespaceId?: string) {
-    return this.instance.get('/cs/config/export', {
+    return this.instance.get('/cs/config/export2', {
       params: { dataIds: ids.join(','), namespaceId },
       responseType: 'blob',
     })
@@ -379,7 +379,7 @@ class BatataApi {
     dataId: string
     groupName: string
     namespaceId?: string
-    id: string
+    id: string | number
   }) {
     return this.instance.get<BatataResponse<ConfigHistoryInfo>>('/cs/history/previous', { params })
   }
@@ -474,9 +474,22 @@ class BatataApi {
   }
 
   // 实例管理
-  async getInstanceList(serviceName: string, groupName: string, namespaceId?: string) {
-    return this.instance.get<BatataResponse<{ hosts: InstanceInfo[] }>>('/ns/instance/list', {
-      params: { serviceName, groupName, namespaceId },
+  async getInstanceList(
+    serviceName: string,
+    groupName: string,
+    namespaceId?: string,
+    pageNo = 1,
+    pageSize = 100,
+  ) {
+    return this.instance.get<
+      BatataResponse<{
+        totalCount: number
+        pageNumber: number
+        pagesAvailable: number
+        list: InstanceInfo[]
+      }>
+    >('/ns/instance/list', {
+      params: { serviceName, groupName, namespaceId, pageNo, pageSize },
     })
   }
 
@@ -514,10 +527,25 @@ class BatataApi {
     pageNo?: number
     pageSize?: number
   }) {
-    return this.instance.get<BatataResponse<PageResult<SubscriberInfo>>>(
-      '/ns/service/subscribers',
-      { params },
-    )
+    const response = await this.instance.get<
+      BatataResponse<{ count: number; subscribers: SubscriberInfo[] }>
+    >('/ns/service/subscribers', { params })
+
+    // Transform to PageResult format expected by views
+    const raw = response.data.data
+    const pageNo = params.pageNo ?? 1
+    const pageSize = params.pageSize ?? 20
+    const transformed: PageResult<SubscriberInfo> = {
+      totalCount: raw.count,
+      pageNumber: pageNo,
+      pagesAvailable: Math.ceil(raw.count / pageSize),
+      pageItems: raw.subscribers || [],
+    }
+    response.data.data = transformed as never
+
+    return response as unknown as import('axios').AxiosResponse<
+      BatataResponse<PageResult<SubscriberInfo>>
+    >
   }
 
   // 服务路由类型
@@ -893,9 +921,19 @@ class BatataApi {
     namespaceId?: string
     grayName?: string
     grayRule?: string
+    betaIps?: string
     appName?: string
   }) {
-    return this.instance.post<BatataResponse>('/cs/config/beta', data)
+    const formData = new URLSearchParams()
+    formData.append('dataId', data.dataId)
+    formData.append('groupName', data.groupName)
+    formData.append('content', data.content)
+    if (data.namespaceId) formData.append('namespaceId', data.namespaceId)
+    if (data.betaIps) formData.append('betaIps', data.betaIps)
+    if (data.appName) formData.append('appName', data.appName)
+    return this.instance.post<BatataResponse>('/cs/config/beta', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
   }
 
   async deleteBetaConfig(dataId: string, groupName: string, namespaceId?: string) {
