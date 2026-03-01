@@ -16,6 +16,13 @@ import type {
   ConsulAgentMember,
   ConsulServiceNode,
   ConsulPeering,
+  ConsulCatalogSummary,
+  ConsulServiceTopology,
+  ConsulExportedService,
+  ConsulImportedService,
+  ConsulUserEvent,
+  ConsulRaftConfiguration,
+  ConsulOperatorUsage,
 } from '@/types/consul'
 import consulApi from '@/api/consul'
 
@@ -57,6 +64,23 @@ export const useConsulStore = defineStore('consul', () => {
 
   // Sessions
   const sessions = ref<ConsulSession[]>([])
+
+  // Catalog Overview
+  const catalogOverview = ref<ConsulCatalogSummary | null>(null)
+
+  // Service Topology
+  const serviceTopology = ref<ConsulServiceTopology | null>(null)
+
+  // Exported/Imported Services
+  const exportedServices = ref<ConsulExportedService[]>([])
+  const importedServices = ref<ConsulImportedService[]>([])
+
+  // Events
+  const events = ref<ConsulUserEvent[]>([])
+
+  // Operator
+  const raftConfig = ref<ConsulRaftConfiguration | null>(null)
+  const operatorUsage = ref<ConsulOperatorUsage | null>(null)
 
   // Cluster
   const datacenters = ref<string[]>([])
@@ -376,6 +400,150 @@ export const useConsulStore = defineStore('consul', () => {
   }
 
   // ============================================
+  // Catalog Overview Actions
+  // ============================================
+
+  async function fetchCatalogOverview(dc?: string) {
+    try {
+      loading.value = true
+      error.value = null
+      const response = await consulApi.getCatalogOverview(dc || currentDc.value || undefined)
+      catalogOverview.value = response.data || null
+      return catalogOverview.value
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch catalog overview'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchServiceTopology(service: string, dc?: string) {
+    try {
+      loading.value = true
+      error.value = null
+      const response = await consulApi.getServiceTopology(
+        service,
+        dc || currentDc.value || undefined,
+      )
+      serviceTopology.value = response.data || null
+      return serviceTopology.value
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch service topology'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ============================================
+  // Exported/Imported Services Actions
+  // ============================================
+
+  async function fetchExportedServices() {
+    try {
+      loading.value = true
+      error.value = null
+      const response = await consulApi.getExportedServices()
+      exportedServices.value = response.data || []
+      return exportedServices.value
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch exported services'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchImportedServices() {
+    try {
+      loading.value = true
+      error.value = null
+      const response = await consulApi.getImportedServices()
+      importedServices.value = response.data || []
+      return importedServices.value
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch imported services'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ============================================
+  // Events Actions
+  // ============================================
+
+  async function fetchEvents(name?: string) {
+    try {
+      loading.value = true
+      error.value = null
+      const response = await consulApi.listEvents(name)
+      events.value = response.data || []
+      return events.value
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch events'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fireEvent(
+    name: string,
+    payload?: string,
+    node?: string,
+    service?: string,
+    tag?: string,
+  ) {
+    try {
+      loading.value = true
+      error.value = null
+      const response = await consulApi.fireEvent(name, payload, node, service, tag)
+      return response.data
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Failed to fire event'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ============================================
+  // Operator Actions
+  // ============================================
+
+  async function fetchRaftConfig() {
+    try {
+      loading.value = true
+      error.value = null
+      const response = await consulApi.getRaftConfiguration()
+      raftConfig.value = response.data || null
+      return raftConfig.value
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch raft configuration'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchOperatorUsage() {
+    try {
+      loading.value = true
+      error.value = null
+      const response = await consulApi.getOperatorUsage()
+      operatorUsage.value = response.data || null
+      return operatorUsage.value
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch operator usage'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ============================================
   // Datacenter Actions
   // ============================================
 
@@ -422,6 +590,13 @@ export const useConsulStore = defineStore('consul', () => {
     intentions.value = []
     configEntries.value = []
     sessions.value = []
+    catalogOverview.value = null
+    serviceTopology.value = null
+    exportedServices.value = []
+    importedServices.value = []
+    events.value = []
+    raftConfig.value = null
+    operatorUsage.value = null
     datacenters.value = []
     currentDc.value = ''
     error.value = null
@@ -447,6 +622,13 @@ export const useConsulStore = defineStore('consul', () => {
     intentions,
     configEntries,
     sessions,
+    catalogOverview,
+    serviceTopology,
+    exportedServices,
+    importedServices,
+    events,
+    raftConfig,
+    operatorUsage,
     datacenters,
     currentDc,
 
@@ -469,6 +651,14 @@ export const useConsulStore = defineStore('consul', () => {
     fetchIntentions,
     fetchConfigEntries,
     fetchSessions,
+    fetchCatalogOverview,
+    fetchServiceTopology,
+    fetchExportedServices,
+    fetchImportedServices,
+    fetchEvents,
+    fireEvent,
+    fetchRaftConfig,
+    fetchOperatorUsage,
     fetchDatacenters,
     setCurrentDc,
     clearError,

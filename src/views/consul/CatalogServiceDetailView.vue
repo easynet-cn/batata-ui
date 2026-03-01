@@ -62,8 +62,25 @@
         </div>
       </div>
 
+      <!-- Tab Bar -->
+      <div class="flex gap-1 p-1 bg-bg-secondary rounded-xl">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          @click="switchTab(tab.key)"
+          :class="
+            activeTab === tab.key
+              ? 'bg-fuchsia-600 text-white shadow-md'
+              : 'text-text-secondary hover:text-text-primary'
+          "
+          class="px-4 py-2 text-xs font-bold rounded-xl transition-colors"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+
       <!-- Instances Table -->
-      <div class="card">
+      <div v-show="activeTab === 'instances'" class="card">
         <div class="px-6 py-4 border-b border-border">
           <h3 class="text-sm font-semibold text-text-primary">
             {{ t('serviceInstances') }} ({{ serviceNodes.length }})
@@ -128,7 +145,7 @@
       </div>
 
       <!-- Health Checks Section -->
-      <div class="card">
+      <div v-show="activeTab === 'health'" class="card">
         <div class="px-6 py-4 border-b border-border">
           <h3 class="text-sm font-semibold text-text-primary">
             {{ t('healthChecksList') }} ({{ allHealthChecks.length }})
@@ -149,7 +166,7 @@
             </thead>
             <tbody>
               <tr v-if="allHealthChecks.length === 0">
-                <td colspan="5" class="text-center py-6 text-text-secondary">
+                <td colspan="7" class="text-center py-6 text-text-secondary">
                   {{ t('noHealthChecks') }}
                 </td>
               </tr>
@@ -178,6 +195,122 @@
           </table>
         </div>
       </div>
+
+      <!-- Topology Tab -->
+      <div v-show="activeTab === 'topology'">
+        <!-- Loading state -->
+        <div v-if="topologyLoading" class="card">
+          <div class="p-6 text-center">
+            <Loader2 class="w-6 h-6 animate-spin mx-auto text-fuchsia-600" />
+            <p class="text-sm text-text-secondary mt-2">{{ t('loading') }}</p>
+          </div>
+        </div>
+
+        <!-- Topology content -->
+        <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <!-- Upstreams -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-border">
+              <h3 class="text-sm font-semibold text-text-primary">
+                {{ t('consulUpstreams') }}
+                <span class="text-text-tertiary font-normal">
+                  ({{ topology?.Upstreams?.length ?? 0 }})
+                </span>
+              </h3>
+            </div>
+            <div class="p-4 space-y-2">
+              <div
+                v-if="!topology?.Upstreams || topology.Upstreams.length === 0"
+                class="text-center py-6 text-text-tertiary"
+              >
+                <GitBranch class="w-6 h-6 mx-auto mb-2 opacity-50" />
+                <p class="text-xs">{{ t('consulNoUpstreams') }}</p>
+              </div>
+              <div
+                v-for="up in topology?.Upstreams"
+                :key="up.Name"
+                class="p-3 rounded-xl border border-border hover:bg-bg-secondary transition-colors"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-medium text-text-primary">{{ up.Name }}</span>
+                  <span
+                    :class="up.Intention?.Allowed ? 'badge badge-success' : 'badge badge-danger'"
+                  >
+                    {{
+                      up.Intention?.Allowed
+                        ? t('consulIntentionAllowed')
+                        : t('consulIntentionDenied')
+                    }}
+                  </span>
+                </div>
+                <span v-if="up.Datacenter" class="text-xs text-text-tertiary mt-1 inline-block">
+                  {{ up.Datacenter }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Current Service -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-border">
+              <h3 class="text-sm font-semibold text-text-primary">{{ t('service') }}</h3>
+            </div>
+            <div class="p-6 flex flex-col items-center justify-center">
+              <div
+                class="w-16 h-16 bg-fuchsia-50 dark:bg-fuchsia-950/30 rounded-2xl flex items-center justify-center mb-3"
+              >
+                <Server class="w-8 h-8 text-fuchsia-600" />
+              </div>
+              <p class="text-sm font-bold text-text-primary">{{ serviceName }}</p>
+              <p v-if="topology?.Protocol" class="text-xs text-text-tertiary mt-1">
+                {{ topology.Protocol }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Downstreams -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-border">
+              <h3 class="text-sm font-semibold text-text-primary">
+                {{ t('consulDownstreams') }}
+                <span class="text-text-tertiary font-normal">
+                  ({{ topology?.Downstreams?.length ?? 0 }})
+                </span>
+              </h3>
+            </div>
+            <div class="p-4 space-y-2">
+              <div
+                v-if="!topology?.Downstreams || topology.Downstreams.length === 0"
+                class="text-center py-6 text-text-tertiary"
+              >
+                <GitBranch class="w-6 h-6 mx-auto mb-2 opacity-50" />
+                <p class="text-xs">{{ t('consulNoDownstreams') }}</p>
+              </div>
+              <div
+                v-for="down in topology?.Downstreams"
+                :key="down.Name"
+                class="p-3 rounded-xl border border-border hover:bg-bg-secondary transition-colors"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-medium text-text-primary">{{ down.Name }}</span>
+                  <span
+                    :class="down.Intention?.Allowed ? 'badge badge-success' : 'badge badge-danger'"
+                  >
+                    {{
+                      down.Intention?.Allowed
+                        ? t('consulIntentionAllowed')
+                        : t('consulIntentionDenied')
+                    }}
+                  </span>
+                </div>
+                <span v-if="down.Datacenter" class="text-xs text-text-tertiary mt-1 inline-block">
+                  {{ down.Datacenter }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -185,11 +318,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, RefreshCw, Loader2, ChevronDown } from 'lucide-vue-next'
+import { ArrowLeft, RefreshCw, Loader2, ChevronDown, Server, GitBranch } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
 import { logger } from '@/utils/logger'
-import type { ConsulServiceNode, ConsulHealthCheck, ConsulHealthStatus } from '@/types/consul'
+import type {
+  ConsulServiceNode,
+  ConsulHealthCheck,
+  ConsulHealthStatus,
+  ConsulServiceTopology,
+} from '@/types/consul'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -200,6 +338,36 @@ const loading = ref(false)
 const serviceName = computed(() => (route.params.name as string) || '')
 const serviceNodes = ref<ConsulServiceNode[]>([])
 const expandedNodes = ref<Set<string>>(new Set())
+
+// Tabs
+type TabKey = 'instances' | 'health' | 'topology'
+const activeTab = ref<TabKey>('instances')
+const tabs = computed(() => [
+  { key: 'instances' as TabKey, label: t('serviceInstances') },
+  { key: 'health' as TabKey, label: t('healthChecksList') },
+  { key: 'topology' as TabKey, label: t('consulTopology') },
+])
+
+// Topology
+const topology = ref<ConsulServiceTopology | null>(null)
+const topologyLoading = ref(false)
+const topologyLoaded = ref(false)
+
+async function switchTab(tab: TabKey) {
+  activeTab.value = tab
+  if (tab === 'topology' && !topologyLoaded.value) {
+    topologyLoading.value = true
+    try {
+      const response = await consulApi.getServiceTopology(serviceName.value)
+      topology.value = response.data
+      topologyLoaded.value = true
+    } catch (err) {
+      logger.error('Failed to fetch service topology:', err)
+    } finally {
+      topologyLoading.value = false
+    }
+  }
+}
 
 // Computed
 const serviceTags = computed(() => {

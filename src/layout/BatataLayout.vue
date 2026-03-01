@@ -427,6 +427,9 @@ import {
   Fingerprint,
   GitBranch,
   Box,
+  ExternalLink,
+  Zap,
+  Wrench,
 } from 'lucide-vue-next'
 import { useI18n, type Language } from '@/i18n'
 import type { Namespace } from '@/types'
@@ -750,6 +753,7 @@ const consulNavGroups = computed(() => [
     items: [
       { path: '/consul/intentions', label: t('intentions'), icon: Link },
       { path: '/consul/config-entries', label: t('configEntries'), icon: Settings2 },
+      { path: '/consul/exported-services', label: t('consulExportedServices'), icon: ExternalLink },
     ],
   },
   {
@@ -767,7 +771,11 @@ const consulNavGroups = computed(() => [
   },
   {
     title: t('cluster'),
-    items: [{ path: '/consul/sessions', label: t('consulSessions'), icon: Timer }],
+    items: [
+      { path: '/consul/sessions', label: t('consulSessions'), icon: Timer },
+      { path: '/consul/events', label: t('consulEvents'), icon: Zap },
+      { path: '/consul/operator', label: t('consulOperator'), icon: Wrench },
+    ],
   },
   {
     title: t('system'),

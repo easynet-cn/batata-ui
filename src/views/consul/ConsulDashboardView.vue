@@ -32,8 +32,25 @@
               {{ t('totalServices') }}
             </p>
             <p class="text-2xl font-extrabold text-gray-900 dark:text-gray-100 mt-1">
-              {{ serviceCount }}
+              {{ catalogOverview?.Services?.Total ?? serviceCount }}
             </p>
+            <div v-if="catalogOverview?.Services" class="flex items-center gap-2 mt-1">
+              <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                {{ catalogOverview.Services.Passing }} {{ t('consulPassing') }}
+              </span>
+              <span
+                v-if="catalogOverview.Services.Warning > 0"
+                class="text-xs font-medium text-amber-600 dark:text-amber-400"
+              >
+                {{ catalogOverview.Services.Warning }} {{ t('consulWarning') }}
+              </span>
+              <span
+                v-if="catalogOverview.Services.Critical > 0"
+                class="text-xs font-medium text-red-600 dark:text-red-400"
+              >
+                {{ catalogOverview.Services.Critical }} {{ t('consulCritical') }}
+              </span>
+            </div>
           </div>
           <div
             class="w-12 h-12 bg-fuchsia-50 dark:bg-fuchsia-950/30 rounded-lg flex items-center justify-center"
@@ -53,8 +70,25 @@
               {{ t('consulTotalNodes') }}
             </p>
             <p class="text-2xl font-extrabold text-gray-900 dark:text-gray-100 mt-1">
-              {{ consulStore.nodes.length }}
+              {{ catalogOverview?.Nodes?.Total ?? consulStore.nodes.length }}
             </p>
+            <div v-if="catalogOverview?.Nodes" class="flex items-center gap-2 mt-1">
+              <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                {{ catalogOverview.Nodes.Passing }} {{ t('consulPassing') }}
+              </span>
+              <span
+                v-if="catalogOverview.Nodes.Warning > 0"
+                class="text-xs font-medium text-amber-600 dark:text-amber-400"
+              >
+                {{ catalogOverview.Nodes.Warning }} {{ t('consulWarning') }}
+              </span>
+              <span
+                v-if="catalogOverview.Nodes.Critical > 0"
+                class="text-xs font-medium text-red-600 dark:text-red-400"
+              >
+                {{ catalogOverview.Nodes.Critical }} {{ t('consulCritical') }}
+              </span>
+            </div>
           </div>
           <div
             class="w-12 h-12 bg-fuchsia-50 dark:bg-fuchsia-950/30 rounded-lg flex items-center justify-center"
@@ -74,23 +108,23 @@
               {{ t('consulHealthChecks') }}
             </p>
             <p class="text-2xl font-extrabold text-gray-900 dark:text-gray-100 mt-1">
-              {{ consulStore.healthChecks.length }}
+              {{ catalogOverview?.Checks?.Total ?? consulStore.healthChecks.length }}
             </p>
             <div class="flex items-center gap-2 mt-1">
               <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                {{ passingCount }} {{ t('consulPassing') }}
+                {{ catalogOverview?.Checks?.Passing ?? passingCount }} {{ t('consulPassing') }}
               </span>
               <span
-                v-if="warningCount > 0"
+                v-if="(catalogOverview?.Checks?.Warning ?? warningCount) > 0"
                 class="text-xs font-medium text-amber-600 dark:text-amber-400"
               >
-                {{ warningCount }} {{ t('consulWarning') }}
+                {{ catalogOverview?.Checks?.Warning ?? warningCount }} {{ t('consulWarning') }}
               </span>
               <span
-                v-if="criticalCount > 0"
+                v-if="(catalogOverview?.Checks?.Critical ?? criticalCount) > 0"
                 class="text-xs font-medium text-red-600 dark:text-red-400"
               >
-                {{ criticalCount }} {{ t('consulCritical') }}
+                {{ catalogOverview?.Checks?.Critical ?? criticalCount }} {{ t('consulCritical') }}
               </span>
             </div>
           </div>
@@ -153,7 +187,7 @@
         </RouterLink>
 
         <RouterLink
-          to="/services"
+          to="/consul/catalog/services"
           class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 transition-all"
         >
           <div
@@ -167,7 +201,7 @@
         </RouterLink>
 
         <RouterLink
-          to="/cluster"
+          to="/consul/catalog/nodes"
           class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 transition-all"
         >
           <div
@@ -289,12 +323,15 @@ import { RouterLink } from 'vue-router'
 import { Server, Network, HeartPulse, Globe, Database, RefreshCw } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
+import consulApi from '@/api/consul'
 import { logger } from '@/utils/logger'
+import type { ConsulCatalogSummary } from '@/types/consul'
 
 const { t } = useI18n()
 const consulStore = useConsulStore()
 
 const loading = ref(false)
+const catalogOverview = ref<ConsulCatalogSummary | null>(null)
 
 const serviceCount = computed(() => Object.keys(consulStore.services).length)
 
@@ -349,6 +386,14 @@ async function fetchData() {
       consulStore.fetchHealthChecks(),
       consulStore.fetchMembers(),
       consulStore.fetchDatacenters(),
+      consulApi
+        .getCatalogOverview()
+        .then((res) => {
+          catalogOverview.value = res.data
+        })
+        .catch(() => {
+          // Catalog overview may not be available, fall back to manual counting
+        }),
     ])
   } catch (err) {
     logger.error('Failed to fetch consul dashboard data:', err)

@@ -324,6 +324,27 @@ const consulChildren: RouteRecordRaw[] = [
     component: () => import('../views/consul/SessionListView.vue'),
     meta: { titleKey: 'routeConsulSessions' },
   },
+  // Events
+  {
+    path: 'consul/events',
+    name: 'consul-events',
+    component: () => import('../views/consul/EventListView.vue'),
+    meta: { titleKey: 'routeConsulEvents' },
+  },
+  // Exported Services
+  {
+    path: 'consul/exported-services',
+    name: 'consul-exported-services',
+    component: () => import('../views/consul/ExportedServicesView.vue'),
+    meta: { titleKey: 'routeConsulExportedServices' },
+  },
+  // Operator
+  {
+    path: 'consul/operator',
+    name: 'consul-operator',
+    component: () => import('../views/consul/OperatorView.vue'),
+    meta: { titleKey: 'routeConsulOperator' },
+  },
   // Settings (shared)
   {
     path: 'consul/settings',

@@ -378,3 +378,104 @@ export interface ConsulPeering {
 export interface ConsulPeeringTokenResponse {
   PeeringToken: string
 }
+
+// ============================================
+// Consul Catalog Overview Types
+// ============================================
+
+export interface ConsulCatalogCountSummary {
+  Total: number
+  Passing: number
+  Warning: number
+  Critical: number
+}
+
+export interface ConsulCatalogSummary {
+  Nodes: ConsulCatalogCountSummary
+  Services: ConsulCatalogCountSummary
+  Checks: ConsulCatalogCountSummary
+}
+
+// ============================================
+// Consul Service Topology Types
+// ============================================
+
+export interface ConsulServiceTopologyIntention {
+  Allowed: boolean
+  HasPermissions: boolean
+  ExternalSource: string
+}
+
+export interface ConsulServiceTopologySummary {
+  Name: string
+  Datacenter: string
+  Namespace: string
+  Intention: ConsulServiceTopologyIntention
+}
+
+export interface ConsulServiceTopology {
+  Protocol: string
+  TransparentProxy: boolean
+  FilteredByACLs: boolean
+  Upstreams: ConsulServiceTopologySummary[]
+  Downstreams: ConsulServiceTopologySummary[]
+}
+
+// ============================================
+// Consul Exported/Imported Services Types
+// ============================================
+
+export interface ConsulExportedService {
+  Service: string
+  Consumers: { Peers: string[]; Partitions: string[] }
+}
+
+export interface ConsulImportedService {
+  Service: string
+  SourcePeer: string
+}
+
+// ============================================
+// Consul Event Types
+// ============================================
+
+export interface ConsulUserEvent {
+  ID: string
+  Name: string
+  Payload?: string | null
+  NodeFilter: string
+  ServiceFilter: string
+  TagFilter: string
+  Version: number
+  LTime: number
+}
+
+// ============================================
+// Consul Operator Types
+// ============================================
+
+export interface ConsulRaftServer {
+  ID: string
+  Node: string
+  Address: string
+  Leader: boolean
+  Voter: boolean
+  ProtocolVersion: string
+  LastIndex: number
+}
+
+export interface ConsulRaftConfiguration {
+  Servers: ConsulRaftServer[]
+  Index: number
+}
+
+export interface ConsulServiceUsage {
+  Nodes: number
+  Services: number
+  ServiceInstances: number
+  ConnectServiceInstances: number
+}
+
+export interface ConsulOperatorUsage {
+  Usage: Record<string, ConsulServiceUsage>
+}

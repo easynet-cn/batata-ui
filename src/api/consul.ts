@@ -21,6 +21,13 @@ import type {
   ConsulSession,
   ConsulPeering,
   ConsulPeeringTokenResponse,
+  ConsulCatalogSummary,
+  ConsulServiceTopology,
+  ConsulExportedService,
+  ConsulImportedService,
+  ConsulUserEvent,
+  ConsulRaftConfiguration,
+  ConsulOperatorUsage,
 } from '@/types/consul'
 
 class ConsulApi {
@@ -334,6 +341,107 @@ class ConsulApi {
 
   async deletePeering(name: string) {
     return this.instance.delete(`/peering/${name}`)
+  }
+
+  // ============================================
+  // Internal UI API
+  // ============================================
+
+  async getCatalogOverview(dc?: string) {
+    return this.instance.get<ConsulCatalogSummary>('/internal/ui/catalog-overview', {
+      params: dc ? { dc } : undefined,
+    })
+  }
+
+  async getServiceTopology(service: string, dc?: string) {
+    return this.instance.get<ConsulServiceTopology>(`/internal/ui/service-topology/${service}`, {
+      params: dc ? { dc } : undefined,
+    })
+  }
+
+  async getUIExportedServices(dc?: string) {
+    return this.instance.get<ConsulExportedService[]>('/internal/ui/exported-services', {
+      params: dc ? { dc } : undefined,
+    })
+  }
+
+  // ============================================
+  // Exported/Imported Services API
+  // ============================================
+
+  async getExportedServices() {
+    return this.instance.get<ConsulExportedService[]>('/exported-services')
+  }
+
+  async getImportedServices() {
+    return this.instance.get<ConsulImportedService[]>('/imported-services')
+  }
+
+  // ============================================
+  // Intentions Exact API
+  // ============================================
+
+  async getIntentionExact(source: string, destination: string) {
+    return this.instance.get<ConsulIntention>('/connect/intentions/exact', {
+      params: { source, destination },
+    })
+  }
+
+  async upsertIntentionExact(source: string, destination: string, data: Partial<ConsulIntention>) {
+    return this.instance.put('/connect/intentions/exact', data, {
+      params: { source, destination },
+    })
+  }
+
+  async deleteIntentionExact(source: string, destination: string) {
+    return this.instance.delete('/connect/intentions/exact', {
+      params: { source, destination },
+    })
+  }
+
+  // ============================================
+  // Events API
+  // ============================================
+
+  async fireEvent(name: string, payload?: string, node?: string, service?: string, tag?: string) {
+    return this.instance.put<ConsulUserEvent>(`/event/fire/${name}`, payload || '', {
+      params: { node, service, tag },
+      headers: { 'Content-Type': 'text/plain' },
+    })
+  }
+
+  async listEvents(name?: string) {
+    return this.instance.get<ConsulUserEvent[]>('/event/list', {
+      params: name ? { name } : undefined,
+    })
+  }
+
+  // ============================================
+  // Operator API
+  // ============================================
+
+  async getRaftConfiguration() {
+    return this.instance.get<ConsulRaftConfiguration>('/operator/raft/configuration')
+  }
+
+  async getOperatorUsage() {
+    return this.instance.get<ConsulOperatorUsage>('/operator/usage')
+  }
+
+  // ============================================
+  // Agent Health API
+  // ============================================
+
+  async getAgentHealthByName(serviceName: string) {
+    return this.instance.get(`/agent/health/service/name/${serviceName}`)
+  }
+
+  // ============================================
+  // Snapshot API
+  // ============================================
+
+  async downloadSnapshot() {
+    return this.instance.get('/snapshot', { responseType: 'blob' })
   }
 }
 

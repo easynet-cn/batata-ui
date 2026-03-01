@@ -6,10 +6,16 @@
         <h1 class="text-base font-semibold text-text-primary">{{ t('configEntries') }}</h1>
         <p class="text-xs text-text-secondary mt-0.5">{{ t('configEntriesDesc') }}</p>
       </div>
-      <button @click="loadConfigEntries" class="btn btn-secondary btn-sm">
-        <RefreshCw class="w-3.5 h-3.5" />
-        {{ t('refresh') }}
-      </button>
+      <div class="flex items-center gap-2">
+        <button @click="loadConfigEntries" class="btn btn-secondary btn-sm">
+          <RefreshCw class="w-3.5 h-3.5" />
+          {{ t('refresh') }}
+        </button>
+        <button @click="handleCreate" class="btn btn-primary btn-sm">
+          <Plus class="w-3.5 h-3.5" />
+          {{ t('consulCreateConfigEntry') }}
+        </button>
+      </div>
     </div>
 
     <!-- Kind Selector Tabs -->
@@ -80,6 +86,13 @@
                     <Eye class="w-3.5 h-3.5" />
                   </button>
                   <button
+                    @click="handleEdit(entry)"
+                    class="btn btn-ghost btn-sm text-text-secondary"
+                    :title="t('edit')"
+                  >
+                    <Pencil class="w-3.5 h-3.5" />
+                  </button>
+                  <button
                     @click="handleDelete(entry)"
                     class="btn btn-ghost btn-sm text-danger"
                     :title="t('delete')"
@@ -113,6 +126,50 @@
       </div>
     </ConfirmModal>
 
+    <!-- Create/Edit Config Entry Modal -->
+    <FormModal
+      v-model="showFormModal"
+      :title="isEditing ? t('consulEditConfigEntry') : t('consulCreateConfigEntry')"
+      :submit-text="isEditing ? t('save') : t('create')"
+      :loading="saving"
+      wide
+      @submit="submitForm"
+    >
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('kind') }} <span class="text-danger">*</span>
+          </label>
+          <select v-model="formData.Kind" class="input" :disabled="isEditing">
+            <option v-for="k in allKindOptions" :key="k" :value="k">{{ k }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('name') }} <span class="text-danger">*</span>
+          </label>
+          <input
+            v-model="formData.Name"
+            type="text"
+            class="input"
+            :placeholder="t('name')"
+            :disabled="isEditing"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('consulConfigEntryBody') }}
+          </label>
+          <textarea
+            v-model="formData.Body"
+            rows="12"
+            class="input font-mono text-xs"
+            placeholder="{}"
+          />
+        </div>
+      </div>
+    </FormModal>
+
     <!-- Delete Confirm Modal -->
     <ConfirmModal
       v-model="showDeleteModal"
@@ -135,14 +192,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, Eye, Trash2, Loader2, Copy } from 'lucide-vue-next'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { RefreshCw, Eye, Trash2, Loader2, Copy, Plus, Pencil } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
 import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import FormModal from '@/components/common/FormModal.vue'
 import type { ConsulConfigEntry, ConsulConfigEntryKind } from '@/types/consul'
 
 const { t } = useI18n()
@@ -155,14 +213,30 @@ const kindOptions: ConsulConfigEntryKind[] = [
   'service-router',
   'service-splitter',
   'service-resolver',
+  'ingress-gateway',
+  'terminating-gateway',
+  'service-intentions',
+  'mesh',
+  'exported-services',
 ]
+
+const allKindOptions = kindOptions
 
 // State
 const selectedKind = ref<ConsulConfigEntryKind>('service-defaults')
 const showJsonModal = ref(false)
 const showDeleteModal = ref(false)
+const showFormModal = ref(false)
+const isEditing = ref(false)
+const saving = ref(false)
 const selectedEntry = ref<ConsulConfigEntry | null>(null)
 const entryToDelete = ref<ConsulConfigEntry | null>(null)
+
+const formData = reactive({
+  Kind: 'service-defaults' as ConsulConfigEntryKind,
+  Name: '',
+  Body: '{}',
+})
 
 // Computed
 const formattedJson = computed(() => {
@@ -204,6 +278,54 @@ function copyJson() {
       .catch((err) => {
         toast.apiError(err)
       })
+  }
+}
+
+function handleCreate() {
+  isEditing.value = false
+  formData.Kind = selectedKind.value
+  formData.Name = ''
+  formData.Body = '{}'
+  showFormModal.value = true
+}
+
+function handleEdit(entry: ConsulConfigEntry) {
+  isEditing.value = true
+  formData.Kind = entry.Kind
+  formData.Name = entry.Name
+  try {
+    formData.Body = JSON.stringify(entry, null, 2)
+  } catch {
+    formData.Body = String(entry)
+  }
+  showFormModal.value = true
+}
+
+async function submitForm() {
+  if (!formData.Name) {
+    toast.warning(t('requiredFieldsMissing'))
+    return
+  }
+  saving.value = true
+  try {
+    let body: Record<string, unknown>
+    try {
+      body = JSON.parse(formData.Body)
+    } catch {
+      toast.warning('Invalid JSON')
+      return
+    }
+    body.Kind = formData.Kind
+    body.Name = formData.Name
+    await consulApi.putConfigEntry(body as ConsulConfigEntry)
+    showFormModal.value = false
+    toast.success(t('success'))
+    await loadConfigEntries()
+  } catch (error) {
+    logger.error('Failed to save config entry:', error)
+    toast.apiError(error)
+  } finally {
+    saving.value = false
   }
 }
 
