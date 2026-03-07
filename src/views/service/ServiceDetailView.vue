@@ -284,6 +284,41 @@
             placeholder="/health"
           />
         </div>
+        <div v-if="clusterForm.healthChecker.type === 'HTTP'">
+          <label class="block text-xs font-medium text-text-primary mb-1">{{
+            t('checkHeaders')
+          }}</label>
+          <textarea
+            v-model="clusterForm.healthChecker.headers"
+            class="input min-h-[60px] font-mono text-sm"
+            placeholder='{"Content-Type": "application/json"}'
+          />
+        </div>
+        <div v-if="clusterForm.healthChecker.type !== 'NONE'" class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-text-primary mb-1">{{
+              t('healthCheckPort')
+            }}</label>
+            <input
+              v-model.number="clusterForm.healthyCheckPort"
+              type="number"
+              class="input"
+              min="0"
+              max="65535"
+              placeholder="0"
+            />
+          </div>
+          <div class="flex items-end">
+            <label class="flex items-center gap-2 cursor-pointer pb-2">
+              <input
+                type="checkbox"
+                v-model="clusterForm.useInstancePortForCheck"
+                class="w-3.5 h-3.5 rounded text-primary"
+              />
+              <span class="text-sm text-text-primary">{{ t('useInstancePort') }}</span>
+            </label>
+          </div>
+        </div>
         <div>
           <label class="block text-xs font-medium text-text-primary mb-1">{{
             t('metadata')
@@ -340,8 +375,7 @@
             t('selector')
           }}</label>
           <select v-model="serviceForm.selectorType" class="input">
-            <option value="none">none</option>
-            <option value="label">label</option>
+            <option v-for="st in selectorTypes" :key="st" :value="st">{{ st }}</option>
           </select>
         </div>
         <div v-if="serviceForm.selectorType === 'label'">
@@ -406,7 +440,10 @@ const clusterForm = reactive({
   healthChecker: {
     type: 'TCP' as 'TCP' | 'HTTP' | 'MYSQL' | 'NONE',
     path: '',
+    headers: '',
   },
+  healthyCheckPort: 0,
+  useInstancePortForCheck: true,
   metadata: {} as Record<string, string>,
 })
 
@@ -416,6 +453,8 @@ const serviceForm = reactive({
   selectorType: 'none' as string,
   selectorExpression: '',
 })
+
+const selectorTypes = ref<string[]>(['none', 'label'])
 
 // Methods
 const goBack = () => {
@@ -442,6 +481,17 @@ const fetchService = async () => {
   }
 }
 
+const fetchSelectorTypes = async () => {
+  try {
+    const response = await batataApi.getSelectorTypes()
+    if (response.data.data && response.data.data.length > 0) {
+      selectorTypes.value = response.data.data
+    }
+  } catch {
+    // Keep default types
+  }
+}
+
 const handleEditService = () => {
   if (!service.value) return
   Object.assign(serviceForm, {
@@ -451,6 +501,7 @@ const handleEditService = () => {
     selectorExpression: service.value.selector?.expression || '',
   })
   serviceMetadataText.value = JSON.stringify(service.value.metadata || {}, null, 2)
+  fetchSelectorTypes()
   showServiceModal.value = true
 }
 
@@ -562,7 +613,10 @@ const handleEditCluster = (cluster: ClusterInfo) => {
     healthChecker: {
       type: cluster.healthChecker?.type || 'TCP',
       path: cluster.healthChecker?.path || '',
+      headers: cluster.healthChecker?.headers || '',
     },
+    healthyCheckPort: cluster.healthyCheckPort ?? 0,
+    useInstancePortForCheck: cluster.useInstancePortForCheck ?? true,
     metadata: cluster.metadata || {},
   })
   clusterMetadataText.value = JSON.stringify(cluster.metadata || {}, null, 2)
@@ -589,6 +643,8 @@ const submitCluster = async () => {
       namespaceId: (namespaceId as string) || props.namespace.namespace,
       clusterName: clusterForm.clusterName,
       healthChecker: clusterForm.healthChecker,
+      healthyCheckPort: clusterForm.healthyCheckPort,
+      useInstancePortForCheck: clusterForm.useInstancePortForCheck,
       metadata,
     })
     showClusterModal.value = false

@@ -91,6 +91,13 @@
                     <Pencil class="w-3.5 h-3.5" />
                   </button>
                   <button
+                    @click="handleClone(token)"
+                    class="btn btn-ghost btn-sm text-text-secondary"
+                    :title="t('cloneToken')"
+                  >
+                    <Copy class="w-3.5 h-3.5" />
+                  </button>
+                  <button
                     @click="handleDelete(token)"
                     class="btn btn-ghost btn-sm text-danger"
                     :title="t('delete')"
@@ -166,6 +173,68 @@
             </p>
           </div>
         </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('serviceIdentities') }}
+          </label>
+          <div class="space-y-2 border border-border rounded-xl p-3">
+            <div v-for="(si, idx) in serviceIdentities" :key="idx" class="flex items-center gap-2">
+              <input
+                v-model="si.ServiceName"
+                type="text"
+                class="input flex-1"
+                :placeholder="t('serviceIdentityName')"
+              />
+              <button
+                @click="serviceIdentities.splice(idx, 1)"
+                class="btn btn-ghost btn-sm text-danger"
+              >
+                <Trash2 class="w-3 h-3" />
+              </button>
+            </div>
+            <button
+              @click="serviceIdentities.push({ ServiceName: '' })"
+              class="btn btn-ghost btn-sm text-primary"
+            >
+              <Plus class="w-3 h-3" />
+              {{ t('addServiceIdentity') }}
+            </button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('nodeIdentities') }}
+          </label>
+          <div class="space-y-2 border border-border rounded-xl p-3">
+            <div v-for="(ni, idx) in nodeIdentities" :key="idx" class="flex items-center gap-2">
+              <input
+                v-model="ni.NodeName"
+                type="text"
+                class="input flex-1"
+                :placeholder="t('nodeIdentityName')"
+              />
+              <input
+                v-model="ni.Datacenter"
+                type="text"
+                class="input w-32"
+                :placeholder="t('nodeIdentityDc')"
+              />
+              <button
+                @click="nodeIdentities.splice(idx, 1)"
+                class="btn btn-ghost btn-sm text-danger"
+              >
+                <Trash2 class="w-3 h-3" />
+              </button>
+            </div>
+            <button
+              @click="nodeIdentities.push({ NodeName: '', Datacenter: '' })"
+              class="btn btn-ghost btn-sm text-primary"
+            >
+              <Plus class="w-3 h-3" />
+              {{ t('addNodeIdentity') }}
+            </button>
+          </div>
+        </div>
       </div>
     </FormModal>
 
@@ -187,7 +256,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Plus, RefreshCw, Trash2, Pencil, Loader2 } from 'lucide-vue-next'
+import { Plus, RefreshCw, Trash2, Pencil, Loader2, Copy } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
@@ -213,6 +282,8 @@ const selectedRoleIds = ref<string[]>([])
 const createForm = ref({
   Description: '',
 })
+const serviceIdentities = ref<Array<{ ServiceName: string }>>([])
+const nodeIdentities = ref<Array<{ NodeName: string; Datacenter: string }>>([])
 
 // Helpers
 function truncateId(id: string): string {
@@ -246,6 +317,8 @@ async function openCreateModal() {
   createForm.value.Description = ''
   selectedPolicyIds.value = []
   selectedRoleIds.value = []
+  serviceIdentities.value = []
+  nodeIdentities.value = []
   // Load policies and roles for the selector
   try {
     await Promise.all([store.fetchACLPolicies(), store.fetchACLRoles()])
@@ -264,6 +337,13 @@ async function handleEdit(token: ConsulACLToken) {
     createForm.value.Description = fullToken.Description || ''
     selectedPolicyIds.value = (fullToken.Policies || []).map((p) => p.ID)
     selectedRoleIds.value = (fullToken.Roles || []).map((r) => r.ID)
+    serviceIdentities.value = (fullToken.ServiceIdentities || []).map((si) => ({
+      ServiceName: si.ServiceName,
+    }))
+    nodeIdentities.value = (fullToken.NodeIdentities || []).map((ni) => ({
+      NodeName: ni.NodeName,
+      Datacenter: ni.Datacenter,
+    }))
     // Load policies and roles for the selector
     await Promise.all([store.fetchACLPolicies(), store.fetchACLRoles()])
     showCreateModal.value = true
@@ -285,18 +365,25 @@ async function submitCreate() {
       return { ID: id, Name: found?.Name || '' }
     })
 
+    const si = serviceIdentities.value
+      .filter((s) => s.ServiceName.trim())
+      .map((s) => ({ ServiceName: s.ServiceName.trim() }))
+    const ni = nodeIdentities.value
+      .filter((n) => n.NodeName.trim())
+      .map((n) => ({ NodeName: n.NodeName.trim(), Datacenter: n.Datacenter.trim() }))
+
+    const tokenData: Partial<ConsulACLToken> = {
+      Description: createForm.value.Description,
+      Policies: policies,
+      Roles: roles,
+      ServiceIdentities: si.length > 0 ? si : undefined,
+      NodeIdentities: ni.length > 0 ? ni : undefined,
+    }
+
     if (isEditing.value && editingToken.value) {
-      await consulApi.updateACLToken(editingToken.value.AccessorID, {
-        Description: createForm.value.Description,
-        Policies: policies,
-        Roles: roles,
-      })
+      await consulApi.updateACLToken(editingToken.value.AccessorID, tokenData)
     } else {
-      await consulApi.createACLToken({
-        Description: createForm.value.Description,
-        Policies: policies,
-        Roles: roles,
-      })
+      await consulApi.createACLToken(tokenData)
     }
     showCreateModal.value = false
     toast.success(t('success'))
@@ -306,6 +393,17 @@ async function submitCreate() {
     toast.apiError(error)
   } finally {
     saving.value = false
+  }
+}
+
+async function handleClone(token: ConsulACLToken) {
+  try {
+    await consulApi.cloneACLToken(token.AccessorID)
+    toast.success(t('success'))
+    await loadTokens()
+  } catch (error) {
+    logger.error('Failed to clone ACL token:', error)
+    toast.apiError(error)
   }
 }
 

@@ -395,7 +395,6 @@ class BatataApi {
     dataId?: string
     groupName?: string
     namespaceId?: string
-    ip?: string
     pageNo?: number
     pageSize?: number
   }) {
@@ -403,6 +402,12 @@ class BatataApi {
       '/cs/config/listener',
       { params },
     )
+  }
+
+  async getConfigListenersByIp(params: { ip: string; namespaceId?: string; all?: boolean }) {
+    return this.instance.get<
+      BatataResponse<{ queryType: string; listenersStatus: Record<string, string> }>
+    >('/cs/config/listener/ip', { params })
   }
 
   // ============================================
@@ -514,6 +519,8 @@ class BatataApi {
     namespaceId?: string
     clusterName: string
     healthChecker: { type: string; path?: string; headers?: string }
+    healthyCheckPort?: number
+    useInstancePortForCheck?: boolean
     metadata?: Record<string, string>
   }) {
     return this.instance.put<BatataResponse>('/ns/service/cluster', data)
@@ -942,13 +949,19 @@ class BatataApi {
     })
   }
 
-  // TODO: Backend does not yet support promoting beta config
-  async promoteBetaConfig(
-    _dataId: string,
-    _groupName: string,
-    _namespaceId?: string,
-  ): Promise<never> {
-    throw new ApiError(501, 'Promote beta config is not supported by the server')
+  async promoteBetaConfig(dataId: string, groupName: string, namespaceId?: string) {
+    // Nacos "stopBeta" = get beta content, publish as formal config, then delete beta
+    const betaResponse = await this.getBetaConfig(dataId, groupName, namespaceId)
+    const betaConfig = betaResponse.data.data
+    if (betaConfig && betaConfig.content) {
+      await this.publishConfig({
+        dataId,
+        groupName,
+        content: betaConfig.content,
+        namespaceId,
+      })
+    }
+    return this.deleteBetaConfig(dataId, groupName, namespaceId)
   }
 
   // ============================================

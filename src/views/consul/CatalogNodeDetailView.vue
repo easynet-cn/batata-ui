@@ -244,6 +244,60 @@
           </table>
         </div>
       </div>
+      <!-- Lock Sessions -->
+      <div class="card">
+        <div class="px-6 py-4 border-b border-border">
+          <h3 class="text-sm font-semibold text-text-primary">
+            {{ t('consulNodeSessions') }} ({{ nodeSessions.length }})
+          </h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>{{ t('sessionId') }}</th>
+                <th>{{ t('name') }}</th>
+                <th>{{ t('ttl') }}</th>
+                <th>{{ t('behavior') }}</th>
+                <th>{{ t('checks') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="nodeSessions.length === 0">
+                <td colspan="5" class="text-center py-4 text-text-secondary">
+                  {{ t('consulNoSessions') }}
+                </td>
+              </tr>
+              <tr v-for="session in nodeSessions" :key="session.ID" class="hover:bg-bg-secondary">
+                <td class="font-mono text-xs">{{ session.ID.substring(0, 8) }}...</td>
+                <td class="text-text-primary">{{ session.Name || '-' }}</td>
+                <td class="text-text-secondary">{{ session.TTL || '-' }}</td>
+                <td>
+                  <span
+                    :class="
+                      session.Behavior === 'release' ? 'badge badge-success' : 'badge badge-danger'
+                    "
+                  >
+                    {{ session.Behavior }}
+                  </span>
+                </td>
+                <td>
+                  <div class="flex flex-wrap gap-1">
+                    <span
+                      v-for="check in session.Checks || []"
+                      :key="check"
+                      class="badge badge-info text-[10px]"
+                    >
+                      {{ check }}
+                    </span>
+                    <span v-if="!session.Checks?.length" class="text-text-tertiary">-</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -260,6 +314,7 @@ import type {
   ConsulServiceNode,
   ConsulHealthCheck,
   ConsulHealthStatus,
+  ConsulSession,
 } from '@/types/consul'
 
 const { t } = useI18n()
@@ -271,6 +326,7 @@ const loading = ref(false)
 const nodeName = computed(() => (route.params.name as string) || '')
 const nodeData = ref<{ Node: ConsulNode; Services: Record<string, ConsulServiceNode> } | null>(null)
 const nodeHealthChecks = ref<ConsulHealthCheck[]>([])
+const nodeSessions = ref<ConsulSession[]>([])
 
 // Computed
 const serviceList = computed(() => {
@@ -313,8 +369,8 @@ const fetchNodeDetail = async () => {
     const response = await consulApi.getCatalogNode(nodeName.value)
     nodeData.value = response.data
 
-    // Fetch health checks for this node
-    await fetchNodeHealthChecks()
+    // Fetch health checks and sessions for this node
+    await Promise.all([fetchNodeHealthChecks(), fetchNodeSessions()])
   } catch (err) {
     logger.error('Failed to fetch node detail:', err)
   } finally {
@@ -328,6 +384,15 @@ const fetchNodeHealthChecks = async () => {
     const response = await consulApi.getHealthState('any')
     const allChecks = response.data || []
     nodeHealthChecks.value = allChecks.filter((check) => check.Node === nodeName.value)
+  } catch {
+    // Silently ignore
+  }
+}
+
+const fetchNodeSessions = async () => {
+  try {
+    const response = await consulApi.listSessions()
+    nodeSessions.value = (response.data || []).filter((s) => s.Node === nodeName.value)
   } catch {
     // Silently ignore
   }

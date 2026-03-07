@@ -346,6 +346,13 @@
                 class="absolute right-0 mt-1.5 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg py-1 z-50"
               >
                 <button
+                  @click="handleChangePassword"
+                  class="w-full text-left px-3 py-2 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center font-medium"
+                >
+                  <KeyRound :size="13" class="mr-2" />
+                  {{ t('changePassword') }}
+                </button>
+                <button
                   @click="handleLogout"
                   class="w-full text-left px-3 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center font-medium"
                 >
@@ -368,6 +375,53 @@
       </main>
     </div>
   </div>
+
+  <!-- Change Password Modal -->
+  <FormModal
+    v-model="showPasswordModal"
+    :title="t('changePassword')"
+    :loading="passwordSaving"
+    :submit-disabled="!newPassword || !confirmNewPassword"
+    @submit="submitChangePassword"
+  >
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-medium text-text-primary mb-1">
+          {{ t('username') }}
+        </label>
+        <input type="text" class="input" :value="user?.name || ''" disabled />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-text-primary mb-1">
+          {{ t('newPassword') }} <span class="text-danger">*</span>
+        </label>
+        <input
+          v-model="newPassword"
+          type="password"
+          class="input"
+          :placeholder="t('newPassword')"
+        />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-text-primary mb-1">
+          {{ t('confirmPassword') }} <span class="text-danger">*</span>
+        </label>
+        <input
+          v-model="confirmNewPassword"
+          type="password"
+          class="input"
+          :placeholder="t('confirmPassword')"
+          :class="{ 'border-red-500': confirmNewPassword && newPassword !== confirmNewPassword }"
+        />
+        <p
+          v-if="confirmNewPassword && newPassword !== confirmNewPassword"
+          class="text-xs text-red-500 mt-1"
+        >
+          {{ t('passwordMismatch') }}
+        </p>
+      </div>
+    </div>
+  </FormModal>
 </template>
 
 <script setup lang="ts">
@@ -417,6 +471,7 @@ import {
   ExternalLink,
   Zap,
   Wrench,
+  KeyRound,
 } from 'lucide-vue-next'
 import { useI18n, type Language } from '@/i18n'
 import type { Namespace } from '@/types'
@@ -429,6 +484,9 @@ import { useTheme } from '@/composables/useTheme'
 import { useProvider } from '@/composables/useProvider'
 import { switchProviderRoutes } from '@/router'
 import { storage } from '@/composables/useStorage'
+import FormModal from '@/components/common/FormModal.vue'
+import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
 
 const { t, language, setLanguage } = useI18n()
 const route = useRoute()
@@ -567,6 +625,46 @@ const handlerChangeLanguage = (lang: Language) => {
 const handleLogout = () => {
   batataStore.logout()
   router.push('/login')
+}
+
+// Change password
+const showPasswordModal = ref(false)
+const newPassword = ref('')
+const confirmNewPassword = ref('')
+const passwordSaving = ref(false)
+
+const handleChangePassword = () => {
+  showUserMenu.value = false
+  newPassword.value = ''
+  confirmNewPassword.value = ''
+  showPasswordModal.value = true
+}
+
+const submitChangePassword = async () => {
+  if (!newPassword.value || !confirmNewPassword.value) return
+  if (newPassword.value !== confirmNewPassword.value) {
+    toast.error(t('passwordMismatch'))
+    return
+  }
+  if (newPassword.value.length < 6) {
+    toast.error(t('passwordTooShort'))
+    return
+  }
+
+  const username = batataStore.currentUser?.username
+  if (!username) return
+
+  passwordSaving.value = true
+  try {
+    await batataApi.updateUser({ username, newPassword: newPassword.value })
+    toast.success(t('changePasswordSuccess'))
+    showPasswordModal.value = false
+  } catch (error) {
+    logger.error('Failed to change password:', error)
+    toast.apiError(error)
+  } finally {
+    passwordSaving.value = false
+  }
 }
 
 const switchNamespace = (ns: Namespace) => {

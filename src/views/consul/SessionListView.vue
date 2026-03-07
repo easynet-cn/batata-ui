@@ -6,10 +6,16 @@
         <h1 class="text-base font-semibold text-text-primary">{{ t('consulSessions') }}</h1>
         <p class="text-xs text-text-secondary mt-0.5">{{ t('consulSessionsDesc') }}</p>
       </div>
-      <button @click="loadSessions" class="btn btn-secondary btn-sm">
-        <RefreshCw class="w-3.5 h-3.5" />
-        {{ t('refresh') }}
-      </button>
+      <div class="flex items-center gap-2">
+        <button @click="loadSessions" class="btn btn-secondary btn-sm">
+          <RefreshCw class="w-3.5 h-3.5" />
+          {{ t('refresh') }}
+        </button>
+        <button @click="openCreateModal" class="btn btn-primary btn-sm">
+          <Plus class="w-3.5 h-3.5" />
+          {{ t('createSession') }}
+        </button>
+      </div>
     </div>
 
     <!-- Session List -->
@@ -90,6 +96,53 @@
       </div>
     </div>
 
+    <!-- Create Session Modal -->
+    <FormModal
+      v-model="showCreateModal"
+      :title="t('createSession')"
+      :submit-text="t('create')"
+      :loading="creating"
+      @submit="submitCreate"
+    >
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('sessionName') }}
+          </label>
+          <input v-model="createForm.Name" type="text" class="input" placeholder="my-session" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('sessionNode') }}
+          </label>
+          <input v-model="createForm.Node" type="text" class="input" placeholder="node-name" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-text-primary mb-1">
+              {{ t('sessionTTL') }}
+            </label>
+            <input v-model="createForm.TTL" type="text" class="input" placeholder="15s" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-text-primary mb-1">
+              {{ t('sessionLockDelay') }}
+            </label>
+            <input v-model="createForm.LockDelay" type="text" class="input" placeholder="15s" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('sessionBehavior') }}
+          </label>
+          <select v-model="createForm.Behavior" class="input">
+            <option value="release">{{ t('release') }}</option>
+            <option value="delete">{{ t('delete') }}</option>
+          </select>
+        </div>
+      </div>
+    </FormModal>
+
     <!-- Destroy Confirm Modal -->
     <ConfirmModal
       v-model="showDestroyModal"
@@ -112,13 +165,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { RefreshCw, Trash2, Loader2 } from 'lucide-vue-next'
+import { ref, reactive, onMounted } from 'vue'
+import { RefreshCw, Trash2, Loader2, Plus } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
 import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
+import FormModal from '@/components/common/FormModal.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import type { ConsulSession } from '@/types/consul'
 
@@ -128,6 +182,16 @@ const store = useConsulStore()
 // State
 const showDestroyModal = ref(false)
 const sessionToDestroy = ref<ConsulSession | null>(null)
+const showCreateModal = ref(false)
+const creating = ref(false)
+
+const createForm = reactive({
+  Name: '',
+  Node: '',
+  TTL: '15s',
+  LockDelay: '15s',
+  Behavior: 'release' as 'release' | 'delete',
+})
 
 // Helpers
 function truncateId(id: string): string {
@@ -142,6 +206,39 @@ async function loadSessions() {
   } catch (error) {
     logger.error('Failed to fetch sessions:', error)
     toast.apiError(error)
+  }
+}
+
+function openCreateModal() {
+  Object.assign(createForm, {
+    Name: '',
+    Node: '',
+    TTL: '15s',
+    LockDelay: '15s',
+    Behavior: 'release',
+  })
+  showCreateModal.value = true
+}
+
+async function submitCreate() {
+  creating.value = true
+  try {
+    const data: Record<string, unknown> = {
+      Behavior: createForm.Behavior,
+    }
+    if (createForm.Name) data.Name = createForm.Name
+    if (createForm.Node) data.Node = createForm.Node
+    if (createForm.TTL) data.TTL = createForm.TTL
+    if (createForm.LockDelay) data.LockDelay = createForm.LockDelay
+    await consulApi.createSession(data as Partial<ConsulSession>)
+    showCreateModal.value = false
+    toast.success(t('success'))
+    await loadSessions()
+  } catch (error) {
+    logger.error('Failed to create session:', error)
+    toast.apiError(error)
+  } finally {
+    creating.value = false
   }
 }
 

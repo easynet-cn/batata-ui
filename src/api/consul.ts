@@ -180,6 +180,12 @@ class ConsulApi {
     return this.instance.put<ConsulACLToken>(`/acl/token/${id}`, data)
   }
 
+  async cloneACLToken(id: string, description?: string) {
+    return this.instance.put<ConsulACLToken>(`/acl/token/${id}/clone`, {
+      Description: description || '',
+    })
+  }
+
   async deleteACLToken(id: string) {
     return this.instance.delete<boolean>(`/acl/token/${id}`)
   }
@@ -426,6 +432,33 @@ class ConsulApi {
 
   async getOperatorUsage() {
     return this.instance.get<ConsulOperatorUsage>('/operator/usage')
+  }
+
+  async getAutopilotHealth() {
+    return this.instance.get<{
+      Healthy: boolean
+      FailureTolerance: number
+      Servers: Array<{
+        ID: string
+        Name: string
+        Address: string
+        SerfStatus: string
+        Version: string
+        Leader: boolean
+        Voter: boolean
+        LastContact: string
+        LastTerm: number
+        LastIndex: number
+        Healthy: boolean
+        StableSince: string
+      }>
+    }>('/operator/autopilot/health')
+  }
+
+  async transferLeader(id?: string) {
+    return this.instance.post('/operator/raft/transfer-leader', null, {
+      params: id ? { id } : undefined,
+    })
   }
 
   // ============================================

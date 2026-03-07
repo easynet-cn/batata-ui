@@ -129,6 +129,107 @@
       </div>
     </div>
 
+    <!-- Autopilot Health -->
+    <div class="card">
+      <div class="px-6 py-4 border-b border-border flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-text-primary">{{ t('consulAutopilot') }}</h3>
+        <span
+          v-if="autopilotHealth"
+          :class="autopilotHealth.Healthy ? 'badge badge-success' : 'badge badge-danger'"
+        >
+          {{ autopilotHealth.Healthy ? t('consulAutopilotHealthy') : t('consulCritical') }}
+        </span>
+      </div>
+      <div v-if="autopilotHealth" class="p-6">
+        <div class="mb-4 text-xs text-text-secondary">
+          {{ t('consulAutopilotDesc') }}
+          <span class="ml-2 font-medium text-text-primary">
+            Failure Tolerance: {{ autopilotHealth.FailureTolerance }}
+          </span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>{{ t('node') }}</th>
+                <th>{{ t('address') }}</th>
+                <th>Version</th>
+                <th>{{ t('consulAutopilotHealthy') }}</th>
+                <th>{{ t('consulRaftLeader') }}</th>
+                <th>{{ t('consulRaftVoter') }}</th>
+                <th>Stable Since</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="server in autopilotHealth.Servers || []"
+                :key="server.ID"
+                class="hover:bg-bg-secondary"
+              >
+                <td class="font-medium text-text-primary">{{ server.Name }}</td>
+                <td class="font-mono text-xs text-text-secondary">{{ server.Address }}</td>
+                <td class="text-text-secondary text-xs">{{ server.Version }}</td>
+                <td>
+                  <span :class="server.Healthy ? 'badge badge-success' : 'badge badge-danger'">
+                    {{ server.Healthy ? t('yes') : t('no') }}
+                  </span>
+                </td>
+                <td>
+                  <span
+                    v-if="server.Leader"
+                    class="badge bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
+                  >
+                    {{ t('consulRaftLeader') }}
+                  </span>
+                  <span v-else class="text-xs text-text-tertiary">-</span>
+                </td>
+                <td>
+                  <span
+                    v-if="server.Voter"
+                    class="badge bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"
+                  >
+                    {{ t('consulRaftVoter') }}
+                  </span>
+                  <span v-else class="text-xs text-text-tertiary">-</span>
+                </td>
+                <td class="text-text-secondary text-xs">
+                  {{ server.StableSince ? new Date(server.StableSince).toLocaleString() : '-' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div v-else class="p-6 text-center text-text-tertiary text-xs">
+        {{ t('noData') }}
+      </div>
+    </div>
+
+    <!-- Leadership Transfer -->
+    <div class="card">
+      <div class="px-6 py-4 border-b border-border">
+        <h3 class="text-sm font-semibold text-text-primary">{{ t('consulTransferLeader') }}</h3>
+      </div>
+      <div class="p-6">
+        <p class="text-xs text-text-secondary mb-3">{{ t('consulTransferLeaderDesc') }}</p>
+        <div class="flex items-center gap-3">
+          <select v-model="transferTargetId" class="input w-64 text-xs">
+            <option value="">{{ t('consulTransferTarget') }}</option>
+            <option v-for="server in nonLeaderServers" :key="server.ID" :value="server.ID">
+              {{ server.Node }} ({{ server.Address }})
+            </option>
+          </select>
+          <button
+            @click="handleTransferLeader"
+            class="btn btn-primary btn-sm"
+            :disabled="transferring"
+          >
+            {{ t('consulTransferLeader') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Snapshot Actions -->
     <div class="card">
       <div class="px-6 py-4 border-b border-border">
@@ -149,7 +250,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { RefreshCw, Wrench, Loader2, Download } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
@@ -162,16 +263,43 @@ const { t } = useI18n()
 // State
 const loading = ref(false)
 const downloading = ref(false)
+const transferring = ref(false)
+const transferTargetId = ref('')
 const raftConfig = ref<ConsulRaftConfiguration | null>(null)
 const operatorUsage = ref<ConsulOperatorUsage | null>(null)
+const autopilotHealth = ref<{
+  Healthy: boolean
+  FailureTolerance: number
+  Servers: Array<{
+    ID: string
+    Name: string
+    Address: string
+    SerfStatus: string
+    Version: string
+    Leader: boolean
+    Voter: boolean
+    LastContact: string
+    LastTerm: number
+    LastIndex: number
+    Healthy: boolean
+    StableSince: string
+  }>
+} | null>(null)
+
+// Computed
+const nonLeaderServers = computed(() => {
+  if (!raftConfig.value?.Servers) return []
+  return raftConfig.value.Servers.filter((s) => !s.Leader)
+})
 
 // Actions
 async function loadData() {
   loading.value = true
   try {
-    const [raftRes, usageRes] = await Promise.allSettled([
+    const [raftRes, usageRes, autopilotRes] = await Promise.allSettled([
       consulApi.getRaftConfiguration(),
       consulApi.getOperatorUsage(),
+      consulApi.getAutopilotHealth(),
     ])
     if (raftRes.status === 'fulfilled') {
       raftConfig.value = raftRes.value.data
@@ -179,11 +307,29 @@ async function loadData() {
     if (usageRes.status === 'fulfilled') {
       operatorUsage.value = usageRes.value.data
     }
+    if (autopilotRes.status === 'fulfilled') {
+      autopilotHealth.value = autopilotRes.value.data
+    }
   } catch (error) {
     logger.error('Failed to fetch operator data:', error)
     toast.apiError(error)
   } finally {
     loading.value = false
+  }
+}
+
+async function handleTransferLeader() {
+  transferring.value = true
+  try {
+    await consulApi.transferLeader(transferTargetId.value || undefined)
+    toast.success(t('success'))
+    transferTargetId.value = ''
+    await loadData()
+  } catch (error) {
+    logger.error('Failed to transfer leader:', error)
+    toast.apiError(error)
+  } finally {
+    transferring.value = false
   }
 }
 

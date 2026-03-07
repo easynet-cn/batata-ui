@@ -265,6 +265,7 @@ const fetchConfig = async () => {
       group: config.groupName,
       appName: config.appName || '',
       type: config.type || 'text',
+      tags: config.configTags || '',
       desc: config.desc || '',
       content: config.content || '',
       encrypted: !!config.encryptedDataKey,

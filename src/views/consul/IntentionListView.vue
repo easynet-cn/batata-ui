@@ -148,6 +148,87 @@
             :placeholder="t('descriptionPlaceholder')"
           />
         </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('l7Permissions') }}
+          </label>
+          <div class="space-y-2 border border-border rounded-xl p-3">
+            <div
+              v-for="(perm, idx) in l7Permissions"
+              :key="idx"
+              class="p-2 border border-border rounded-lg space-y-2"
+            >
+              <div class="flex items-center justify-between">
+                <select v-model="perm.Action" class="input w-28">
+                  <option value="allow">{{ t('allow') }}</option>
+                  <option value="deny">{{ t('deny') }}</option>
+                </select>
+                <button
+                  @click="l7Permissions.splice(idx, 1)"
+                  class="btn btn-ghost btn-sm text-danger"
+                >
+                  <Trash2 class="w-3 h-3" />
+                </button>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] text-text-tertiary mb-0.5">{{
+                    t('httpPathMatch')
+                  }}</label>
+                  <select v-model="perm.HTTP.PathType" class="input text-xs">
+                    <option value="">-</option>
+                    <option value="PathExact">Exact</option>
+                    <option value="PathPrefix">Prefix</option>
+                    <option value="PathRegex">Regex</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[10px] text-text-tertiary mb-0.5">{{
+                    t('httpPath')
+                  }}</label>
+                  <input
+                    v-model="perm.HTTP.PathValue"
+                    type="text"
+                    class="input text-xs"
+                    placeholder="/"
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="block text-[10px] text-text-tertiary mb-0.5">{{
+                  t('httpMethods')
+                }}</label>
+                <div class="flex flex-wrap gap-1">
+                  <label
+                    v-for="method in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']"
+                    :key="method"
+                    class="flex items-center gap-1 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      :value="method"
+                      v-model="perm.HTTP.Methods"
+                      class="w-3 h-3 rounded"
+                    />
+                    <span class="text-[10px] text-text-primary">{{ method }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <button
+              @click="
+                l7Permissions.push({
+                  Action: 'allow',
+                  HTTP: { PathType: '', PathValue: '', Methods: [] },
+                })
+              "
+              class="btn btn-ghost btn-sm text-primary"
+            >
+              <Plus class="w-3 h-3" />
+              {{ t('addPermission') }}
+            </button>
+          </div>
+        </div>
       </div>
     </FormModal>
 
@@ -214,6 +295,16 @@ const createForm = reactive({
   Description: '',
 })
 
+interface L7Permission {
+  Action: 'allow' | 'deny'
+  HTTP: {
+    PathType: string
+    PathValue: string
+    Methods: string[]
+  }
+}
+const l7Permissions = ref<L7Permission[]>([])
+
 // Actions
 async function loadIntentions() {
   try {
@@ -231,6 +322,7 @@ function openCreateModal() {
   createForm.DestinationName = ''
   createForm.Action = 'allow'
   createForm.Description = ''
+  l7Permissions.value = []
   showCreateModal.value = true
 }
 
@@ -244,6 +336,31 @@ async function handleEdit(intention: ConsulIntention) {
     createForm.DestinationName = full.DestinationName
     createForm.Action = full.Action
     createForm.Description = full.Description || ''
+    // Load L7 permissions if present
+    const perms = (full as unknown as Record<string, unknown>).Permissions as
+      | Array<Record<string, unknown>>
+      | undefined
+    if (perms && perms.length > 0) {
+      l7Permissions.value = perms.map((p) => {
+        const http = (p.HTTP || {}) as Record<string, unknown>
+        return {
+          Action: (p.Action as string) === 'deny' ? ('deny' as const) : ('allow' as const),
+          HTTP: {
+            PathType: (http.PathExact
+              ? 'PathExact'
+              : http.PathPrefix
+                ? 'PathPrefix'
+                : http.PathRegex
+                  ? 'PathRegex'
+                  : '') as string,
+            PathValue: (http.PathExact || http.PathPrefix || http.PathRegex || '') as string,
+            Methods: (http.Methods || []) as string[],
+          },
+        }
+      })
+    } else {
+      l7Permissions.value = []
+    }
     showCreateModal.value = true
   } catch (error) {
     logger.error('Failed to fetch intention details:', error)
@@ -259,20 +376,35 @@ async function submitCreate() {
 
   saving.value = true
   try {
+    // Build L7 permissions
+    const permissions = l7Permissions.value
+      .filter((p) => p.HTTP.PathType || p.HTTP.Methods.length > 0)
+      .map((p) => {
+        const http: Record<string, unknown> = {}
+        if (p.HTTP.PathType === 'PathExact') http.PathExact = p.HTTP.PathValue
+        else if (p.HTTP.PathType === 'PathPrefix') http.PathPrefix = p.HTTP.PathValue
+        else if (p.HTTP.PathType === 'PathRegex') http.PathRegex = p.HTTP.PathValue
+        if (p.HTTP.Methods.length > 0) http.Methods = p.HTTP.Methods
+        return { Action: p.Action, HTTP: http }
+      })
+
+    const intentionData: Record<string, unknown> = {
+      SourceName: createForm.SourceName,
+      DestinationName: createForm.DestinationName,
+      Action: permissions.length > 0 ? undefined : createForm.Action,
+      Description: createForm.Description || undefined,
+    }
+    if (permissions.length > 0) {
+      intentionData.Permissions = permissions
+    }
+
     if (isEditing.value && editingIntention.value) {
-      await consulApi.updateIntention(editingIntention.value.ID, {
-        SourceName: createForm.SourceName,
-        DestinationName: createForm.DestinationName,
-        Action: createForm.Action,
-        Description: createForm.Description || undefined,
-      })
+      await consulApi.updateIntention(
+        editingIntention.value.ID,
+        intentionData as Partial<ConsulIntention>,
+      )
     } else {
-      await consulApi.createIntention({
-        SourceName: createForm.SourceName,
-        DestinationName: createForm.DestinationName,
-        Action: createForm.Action,
-        Description: createForm.Description || undefined,
-      })
+      await consulApi.createIntention(intentionData as Partial<ConsulIntention>)
     }
     showCreateModal.value = false
     toast.success(t('success'))

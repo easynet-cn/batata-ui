@@ -784,33 +784,11 @@ const confirmPromote = async () => {
   if (!configToPromote.value) return
   promoting.value = true
   try {
-    try {
-      await batataApi.promoteBetaConfig(
-        configToPromote.value.dataId,
-        configToPromote.value.groupName,
-        props.namespace.namespace,
-      )
-    } catch {
-      // Fallback: Get the current config content and publish as stable
-      const response = await batataApi.getConfig(
-        configToPromote.value.dataId,
-        configToPromote.value.groupName,
-        props.namespace.namespace,
-      )
-      const config = response.data.data
-
-      const stableDataId = config.dataId.replace('-beta', '').replace('.beta', '')
-
-      await batataApi.publishConfig({
-        dataId: stableDataId,
-        groupName: config.groupName,
-        content: config.content,
-        type: config.type,
-        namespaceId: props.namespace.namespace,
-        appName: config.appName,
-        desc: `Promoted from beta: ${config.dataId}`,
-      })
-    }
+    await batataApi.promoteBetaConfig(
+      configToPromote.value.dataId,
+      configToPromote.value.groupName,
+      props.namespace.namespace,
+    )
 
     showPromoteModal.value = false
     betaConfigMap.value.clear()

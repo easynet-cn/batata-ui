@@ -102,6 +102,8 @@ export interface ClusterInfo {
     path?: string
     headers?: string
   }
+  healthyCheckPort?: number
+  useInstancePortForCheck?: boolean
   metadata?: Record<string, string>
   instances?: InstanceInfo[]
 }

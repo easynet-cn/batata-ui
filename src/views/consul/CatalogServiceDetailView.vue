@@ -81,10 +81,16 @@
 
       <!-- Instances Table -->
       <div v-show="activeTab === 'instances'" class="card">
-        <div class="px-6 py-4 border-b border-border">
+        <div class="px-6 py-4 border-b border-border flex items-center justify-between">
           <h3 class="text-sm font-semibold text-text-primary">
-            {{ t('serviceInstances') }} ({{ serviceNodes.length }})
+            {{ t('serviceInstances') }} ({{ filteredServiceNodes.length }})
           </h3>
+          <select v-model="instanceStatusFilter" class="input w-40 text-xs">
+            <option value="all">{{ t('all') }}</option>
+            <option value="passing">{{ t('passing') }}</option>
+            <option value="warning">{{ t('warning') }}</option>
+            <option value="critical">{{ t('critical') }}</option>
+          </select>
         </div>
         <div class="overflow-x-auto">
           <table class="table">
@@ -99,12 +105,16 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-if="serviceNodes.length === 0">
+              <tr v-if="filteredServiceNodes.length === 0">
                 <td colspan="6" class="text-center py-6 text-text-secondary">
                   {{ t('noInstances') }}
                 </td>
               </tr>
-              <tr v-for="node in serviceNodes" :key="node.Service.ID" class="hover:bg-bg-secondary">
+              <tr
+                v-for="node in filteredServiceNodes"
+                :key="node.Service.ID"
+                class="hover:bg-bg-secondary"
+              >
                 <td class="font-medium text-text-primary">{{ node.Node.Node }}</td>
                 <td class="text-text-secondary font-mono text-xs">
                   {{ node.Service.Address || node.Node.Address }}
@@ -338,6 +348,7 @@ const loading = ref(false)
 const serviceName = computed(() => (route.params.name as string) || '')
 const serviceNodes = ref<ConsulServiceNode[]>([])
 const expandedNodes = ref<Set<string>>(new Set())
+const instanceStatusFilter = ref<'all' | 'passing' | 'warning' | 'critical'>('all')
 
 // Tabs
 type TabKey = 'instances' | 'health' | 'topology'
@@ -380,6 +391,14 @@ const serviceTags = computed(() => {
     }
   }
   return Array.from(tags)
+})
+
+const filteredServiceNodes = computed(() => {
+  if (instanceStatusFilter.value === 'all') return serviceNodes.value
+  return serviceNodes.value.filter((node) => {
+    if (!node.Checks || node.Checks.length === 0) return instanceStatusFilter.value === 'passing'
+    return node.Checks.some((c) => c.Status === instanceStatusFilter.value)
+  })
 })
 
 const allHealthChecks = computed<ConsulHealthCheck[]>(() => {

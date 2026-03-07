@@ -6,10 +6,36 @@
       <p class="text-xs text-text-secondary mt-0.5">{{ t('listeningQueryDesc') }}</p>
     </div>
 
-    <!-- Search Bar -->
+    <!-- Query Mode Tabs -->
     <div class="card">
-      <div class="p-3">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div class="p-3 space-y-3">
+        <div class="flex items-center gap-2 border-b border-border pb-2">
+          <button
+            @click="queryMode = 'config'"
+            :class="[
+              'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+              queryMode === 'config'
+                ? 'bg-primary text-white'
+                : 'text-text-secondary hover:bg-bg-secondary',
+            ]"
+          >
+            {{ t('queryByConfig') }}
+          </button>
+          <button
+            @click="queryMode = 'ip'"
+            :class="[
+              'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+              queryMode === 'ip'
+                ? 'bg-primary text-white'
+                : 'text-text-secondary hover:bg-bg-secondary',
+            ]"
+          >
+            {{ t('queryByIp') }}
+          </button>
+        </div>
+
+        <!-- Config Mode Search -->
+        <div v-if="queryMode === 'config'" class="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div>
             <label class="block text-xs font-medium text-text-secondary mb-1">{{
               t('dataId')
@@ -34,18 +60,33 @@
               @keyup.enter="handleSearch"
             />
           </div>
-          <div>
-            <label class="block text-xs font-medium text-text-secondary mb-1">IP</label>
+          <div class="md:col-span-2 flex items-end gap-2">
+            <button @click="handleSearch" class="btn btn-primary">
+              <Search class="w-3.5 h-3.5" />
+              {{ t('search') }}
+            </button>
+            <button @click="handleReset" class="btn btn-secondary">
+              <RotateCcw class="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        <!-- IP Mode Search -->
+        <div v-else class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div class="md:col-span-2">
+            <label class="block text-xs font-medium text-text-secondary mb-1">{{
+              t('clientIp')
+            }}</label>
             <input
               v-model="searchParams.ip"
               type="text"
               class="input"
-              placeholder="IP"
+              :placeholder="t('clientIpPlaceholder')"
               @keyup.enter="handleSearch"
             />
           </div>
-          <div class="flex items-end gap-2">
-            <button @click="handleSearch" class="btn btn-primary flex-1">
+          <div class="md:col-span-2 flex items-end gap-2">
+            <button @click="handleSearch" class="btn btn-primary">
               <Search class="w-3.5 h-3.5" />
               {{ t('search') }}
             </button>
@@ -57,8 +98,8 @@
       </div>
     </div>
 
-    <!-- Listener List -->
-    <div class="card">
+    <!-- Config Mode: Listener List -->
+    <div v-if="queryMode === 'config'" class="card">
       <div class="overflow-x-auto">
         <table class="table">
           <thead>
@@ -120,6 +161,40 @@
         </div>
       </div>
     </div>
+
+    <!-- IP Mode: Listener Status Map -->
+    <div v-else class="card">
+      <div class="overflow-x-auto">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>{{ t('dataId') }} (Group)</th>
+              <th>MD5</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="loading">
+              <td colspan="2" class="text-center py-6">
+                <Loader2 class="w-5 h-5 animate-spin mx-auto text-primary" />
+              </td>
+            </tr>
+            <tr v-else-if="ipListenerEntries.length === 0">
+              <td colspan="2" class="text-center py-6 text-text-secondary">
+                {{ t('noData') }}
+              </td>
+            </tr>
+            <tr
+              v-for="(entry, index) in ipListenerEntries"
+              :key="index"
+              class="hover:bg-bg-secondary"
+            >
+              <td class="font-medium">{{ entry.key }}</td>
+              <td class="font-mono text-sm text-text-secondary">{{ entry.md5 }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -139,10 +214,14 @@ const { t } = useI18n()
 
 // State
 const loading = ref(false)
+const queryMode = ref<'config' | 'ip'>('config')
 const listeners = ref<ConfigListenerInfo[]>([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
+
+// IP mode state
+const ipListenerEntries = ref<Array<{ key: string; md5: string }>>([])
 
 const searchParams = reactive({
   dataId: '',
@@ -157,14 +236,34 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
 const fetchListeners = async () => {
   loading.value = true
   try {
-    const response = await batataApi.getConfigListeners({
-      ...searchParams,
-      namespaceId: props.namespace.namespace,
-      pageNo: currentPage.value,
-      pageSize: pageSize.value,
-    })
-    listeners.value = response.data.data.pageItems || []
-    total.value = response.data.data.totalCount || 0
+    if (queryMode.value === 'ip' && searchParams.ip) {
+      // Query by IP mode
+      const response = await batataApi.getConfigListenersByIp({
+        ip: searchParams.ip,
+        namespaceId: props.namespace.namespace,
+      })
+      const data = response.data.data
+      // Convert listeners_status map to entries
+      if (data && data.listenersStatus) {
+        ipListenerEntries.value = Object.entries(data.listenersStatus).map(([key, md5]) => ({
+          key,
+          md5: md5 as string,
+        }))
+      } else {
+        ipListenerEntries.value = []
+      }
+    } else {
+      // Query by config mode
+      const response = await batataApi.getConfigListeners({
+        dataId: searchParams.dataId,
+        groupName: searchParams.groupName,
+        namespaceId: props.namespace.namespace,
+        pageNo: currentPage.value,
+        pageSize: pageSize.value,
+      })
+      listeners.value = response.data.data.pageItems || []
+      total.value = response.data.data.totalCount || 0
+    }
   } catch (error) {
     logger.error('Failed to fetch listeners:', error)
   } finally {
@@ -183,6 +282,9 @@ const handleReset = () => {
     groupName: '',
     ip: '',
   })
+  ipListenerEntries.value = []
+  listeners.value = []
+  total.value = 0
   handleSearch()
 }
 
