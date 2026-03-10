@@ -82,7 +82,7 @@
                     <Key class="w-3.5 h-3.5" />
                   </button>
                   <button
-                    v-if="user.username !== 'nacos'"
+                    v-if="user.username !== 'batata'"
                     @click="handleDelete(user)"
                     class="btn btn-ghost btn-sm text-danger"
                     :title="t('delete')"

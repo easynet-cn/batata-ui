@@ -1013,6 +1013,34 @@ export const translations = {
     exitFullscreen: 'Exit Fullscreen',
     searchByIp: 'Search by IP',
 
+    // Namespace Display Mode
+    namespaceDisplayMode: 'Namespace Display',
+    namespaceDisplayModeDesc: 'How namespaces appear in the selector',
+    nsDisplayName: 'Show Name',
+    nsDisplayId: 'Show ID',
+    nsDisplayBoth: 'Show Both',
+
+    // Gray Release
+    grayNameHint: 'Identifier for this gray release, e.g., beta, canary',
+    grayRuleType: 'Gray Rule Type',
+    grayRuleTypeIp: 'IP List',
+    grayRuleTypeTag: 'Tag Expression',
+    grayRuleExpression: 'Rule Expression',
+    grayRuleExpressionPlaceholder: 'e.g., tag.env=staging & tag.region=us-east',
+    grayRuleExpressionHint: 'Use tag expressions to select target instances',
+
+    // Cluster
+    leaveCluster: 'Leave Cluster',
+    confirmLeaveCluster: 'Confirm Leave Cluster',
+    confirmLeaveClusterDesc: 'Are you sure to remove this node from the cluster?',
+
+    // MCP Statistics
+    totalMcpServers: 'Total Servers',
+    serverTypes: 'Types',
+    importFromRegistry: 'Import from Registry',
+    registryUrl: 'Registry URL',
+    registrySearchPlaceholder: 'Search MCP servers in registry...',
+
     // 404 Not Found
     notFoundTitle: 'Page Not Found',
     notFoundDescription: 'The page you are looking for does not exist or has been moved.',
@@ -2031,6 +2059,34 @@ export const translations = {
     fullscreen: '全屏',
     exitFullscreen: '退出全屏',
     searchByIp: '按 IP 搜索',
+
+    // Namespace Display Mode
+    namespaceDisplayMode: '命名空间显示',
+    namespaceDisplayModeDesc: '命名空间在选择器中的显示方式',
+    nsDisplayName: '显示名称',
+    nsDisplayId: '显示 ID',
+    nsDisplayBoth: '显示两者',
+
+    // Gray Release
+    grayNameHint: '灰度发布标识，例如 beta、canary',
+    grayRuleType: '灰度规则类型',
+    grayRuleTypeIp: 'IP 列表',
+    grayRuleTypeTag: '标签表达式',
+    grayRuleExpression: '规则表达式',
+    grayRuleExpressionPlaceholder: '例如：tag.env=staging & tag.region=us-east',
+    grayRuleExpressionHint: '使用标签表达式选择目标实例',
+
+    // Cluster
+    leaveCluster: '离开集群',
+    confirmLeaveCluster: '确认离开集群',
+    confirmLeaveClusterDesc: '确定要将此节点从集群中移除吗？',
+
+    // MCP Statistics
+    totalMcpServers: '服务器总数',
+    serverTypes: '类型数',
+    importFromRegistry: '从注册表导入',
+    registryUrl: '注册表地址',
+    registrySearchPlaceholder: '在注册表中搜索 MCP 服务器...',
 
     // 404 Not Found
     notFoundTitle: '页面未找到',

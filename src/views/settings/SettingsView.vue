@@ -44,6 +44,18 @@
 
             <div class="flex items-center justify-between">
               <div>
+                <p class="font-medium text-text-primary">{{ t('namespaceDisplayMode') }}</p>
+                <p class="text-sm text-text-secondary">{{ t('namespaceDisplayModeDesc') }}</p>
+              </div>
+              <select v-model="settings.namespaceDisplayMode" class="input w-40">
+                <option value="name">{{ t('nsDisplayName') }}</option>
+                <option value="id">{{ t('nsDisplayId') }}</option>
+                <option value="both">{{ t('nsDisplayBoth') }}</option>
+              </select>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div>
                 <p class="font-medium text-text-primary">{{ t('sidebarCollapsed') }}</p>
                 <p class="text-sm text-text-secondary">{{ t('sidebarCollapsedDesc') }}</p>
               </div>
@@ -271,6 +283,7 @@ const settings = reactive({
   theme: 'light',
   language: 'zh-CN',
   sidebarCollapsed: false,
+  namespaceDisplayMode: 'name' as 'name' | 'id' | 'both',
   editorFontSize: 14,
   tabSize: 2,
   wordWrap: true,
@@ -310,6 +323,7 @@ const handleReset = () => {
     theme: 'light',
     language: 'zh-CN',
     sidebarCollapsed: false,
+    namespaceDisplayMode: 'name',
     editorFontSize: 14,
     tabSize: 2,
     wordWrap: true,

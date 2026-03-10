@@ -34,6 +34,62 @@
       </div>
     </div>
 
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="card p-3">
+        <div class="flex items-center gap-2">
+          <div
+            class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center"
+          >
+            <FileText class="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <p class="text-lg font-bold text-text-primary">{{ total }}</p>
+            <p class="text-[10px] text-text-tertiary">{{ t('totalConfigs') }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="card p-3">
+        <div class="flex items-center gap-2">
+          <div
+            class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center"
+          >
+            <Lock class="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div>
+            <p class="text-lg font-bold text-text-primary">{{ encryptedCount }}</p>
+            <p class="text-[10px] text-text-tertiary">{{ t('encrypted') }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="card p-3">
+        <div class="flex items-center gap-2">
+          <div
+            class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/30 flex items-center justify-center"
+          >
+            <FlaskConical class="w-4 h-4 text-purple-600 dark:text-purple-400" />
+          </div>
+          <div>
+            <p class="text-lg font-bold text-text-primary">{{ betaCount }}</p>
+            <p class="text-[10px] text-text-tertiary">{{ t('beta') }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="card p-3">
+        <div class="flex items-center gap-2">
+          <div
+            class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center"
+          >
+            <Tags class="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div>
+            <p class="text-lg font-bold text-text-primary">{{ groupCount }}</p>
+            <p class="text-[10px] text-text-tertiary">{{ t('groups') }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Search Bar -->
     <div class="card">
       <div class="p-3">
@@ -486,6 +542,8 @@ import {
   FlaskConical,
   ArrowUpCircle,
   Code,
+  FileText,
+  Tags,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
@@ -535,6 +593,19 @@ const showCloneModal = ref(false)
 const configToClone = ref<ConfigInfo | null>(null)
 const cloneTargetNs = ref('')
 const clonePolicy = ref<'ABORT' | 'SKIP' | 'OVERWRITE'>('ABORT')
+
+// Statistics computed
+const encryptedCount = computed(
+  () => configs.value.filter((c) => c.encryptedDataKey || c.dataId.startsWith('cipher-')).length,
+)
+const betaCount = computed(() => {
+  let count = 0
+  for (const [, val] of betaConfigMap.value) {
+    if (val) count++
+  }
+  return count
+})
+const groupCount = computed(() => new Set(configs.value.map((c) => c.groupName)).size)
 
 // Computed
 const isAllSelected = computed(

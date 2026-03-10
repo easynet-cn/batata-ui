@@ -6,10 +6,72 @@
         <h1 class="text-base font-semibold text-text-primary">{{ t('mcpServers') }}</h1>
         <p class="text-xs text-text-secondary mt-0.5">{{ t('mcpServersDesc') }}</p>
       </div>
-      <button @click="handleCreate" class="btn btn-primary btn-sm">
-        <Plus class="w-3.5 h-3.5" />
-        {{ t('addMcpServer') }}
-      </button>
+      <div class="flex items-center gap-2">
+        <button @click="showImportRegistryModal = true" class="btn btn-secondary btn-sm">
+          <Download class="w-3.5 h-3.5" />
+          {{ t('importFromRegistry') }}
+        </button>
+        <button @click="handleCreate" class="btn btn-primary btn-sm">
+          <Plus class="w-3.5 h-3.5" />
+          {{ t('addMcpServer') }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="card p-3">
+        <div class="flex items-center gap-2">
+          <div
+            class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center"
+          >
+            <ServerIcon class="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <p class="text-lg font-bold text-text-primary">{{ total }}</p>
+            <p class="text-[10px] text-text-tertiary">{{ t('totalMcpServers') }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="card p-3">
+        <div class="flex items-center gap-2">
+          <div
+            class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center"
+          >
+            <Power class="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div>
+            <p class="text-lg font-bold text-text-primary">{{ enabledCount }}</p>
+            <p class="text-[10px] text-text-tertiary">{{ t('enabled') }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="card p-3">
+        <div class="flex items-center gap-2">
+          <div
+            class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center"
+          >
+            <Wrench class="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div>
+            <p class="text-lg font-bold text-text-primary">{{ totalToolCount }}</p>
+            <p class="text-[10px] text-text-tertiary">{{ t('toolCount') }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="card p-3">
+        <div class="flex items-center gap-2">
+          <div
+            class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/30 flex items-center justify-center"
+          >
+            <Layers class="w-4 h-4 text-purple-600 dark:text-purple-400" />
+          </div>
+          <div>
+            <p class="text-lg font-bold text-text-primary">{{ typeCount }}</p>
+            <p class="text-[10px] text-text-tertiary">{{ t('serverTypes') }}</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Search Bar -->
@@ -129,18 +191,93 @@
       danger
       @confirm="confirmDelete"
     />
+
+    <!-- Import from Registry Modal -->
+    <FormModal
+      v-model="showImportRegistryModal"
+      :title="t('importFromRegistry')"
+      :submit-text="t('import')"
+      :submit-disabled="!registrySearchKeyword"
+      :loading="importingFromRegistry"
+      @submit="handleImportFromRegistry"
+    >
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-text-secondary mb-1">{{
+            t('registryUrl')
+          }}</label>
+          <input
+            v-model="registryUrl"
+            type="text"
+            class="input font-mono text-xs"
+            placeholder="https://registry.modelcontextprotocol.io/v0/servers"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-secondary mb-1">{{
+            t('searchMcpServer')
+          }}</label>
+          <input
+            v-model="registrySearchKeyword"
+            type="text"
+            class="input"
+            :placeholder="t('registrySearchPlaceholder')"
+          />
+        </div>
+        <div
+          v-if="registryResults.length > 0"
+          class="max-h-60 overflow-y-auto border border-border rounded-lg divide-y divide-border"
+        >
+          <label
+            v-for="item in registryResults"
+            :key="item.name"
+            class="flex items-center gap-2 p-2 hover:bg-bg-secondary cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              :checked="selectedRegistryItems.has(item.name)"
+              @change="toggleRegistryItem(item.name)"
+              class="w-3.5 h-3.5 rounded"
+            />
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-medium text-text-primary truncate">{{ item.name }}</p>
+              <p class="text-[10px] text-text-tertiary truncate">{{ item.description }}</p>
+            </div>
+          </label>
+        </div>
+        <div
+          v-if="registrySearched && registryResults.length === 0"
+          class="text-center py-4 text-text-tertiary text-xs"
+        >
+          {{ t('noData') }}
+        </div>
+      </div>
+    </FormModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Search, Pencil, Trash2, Loader2, Power, PowerOff } from 'lucide-vue-next'
+import {
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
+  Loader2,
+  Power,
+  PowerOff,
+  Download,
+  Server as ServerIcon,
+  Wrench,
+  Layers,
+} from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import FormModal from '@/components/common/FormModal.vue'
 import AppPagination from '@/components/common/AppPagination.vue'
 import type { McpServerInfo, Namespace } from '@/types'
 
@@ -159,9 +296,54 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const searchKeyword = ref('')
 
+// Statistics
+const enabledCount = computed(() => mcpServers.value.filter((s) => s.enabled).length)
+const totalToolCount = computed(() =>
+  mcpServers.value.reduce((sum, s) => sum + (s.toolCount || 0), 0),
+)
+const typeCount = computed(() => new Set(mcpServers.value.map((s) => s.type)).size)
+
 // Modals
 const showDeleteModal = ref(false)
 const serverToDelete = ref<McpServerInfo | null>(null)
+
+// Import from registry
+const showImportRegistryModal = ref(false)
+const registryUrl = ref('https://registry.modelcontextprotocol.io/v0/servers')
+const registrySearchKeyword = ref('')
+const registryResults = ref<Array<{ name: string; description: string }>>([])
+const selectedRegistryItems = ref<Set<string>>(new Set())
+const importingFromRegistry = ref(false)
+const registrySearched = ref(false)
+
+const toggleRegistryItem = (name: string) => {
+  if (selectedRegistryItems.value.has(name)) {
+    selectedRegistryItems.value.delete(name)
+  } else {
+    selectedRegistryItems.value.add(name)
+  }
+}
+
+const handleImportFromRegistry = async () => {
+  if (!registrySearchKeyword.value) return
+  importingFromRegistry.value = true
+  try {
+    await batataApi.executeMcpImport({
+      content: JSON.stringify({
+        registryUrl: registryUrl.value,
+        search: registrySearchKeyword.value,
+        selected: Array.from(selectedRegistryItems.value),
+      }),
+    })
+    showImportRegistryModal.value = false
+    fetchMcpServers()
+  } catch (error) {
+    logger.error('Failed to import from registry:', error)
+    toast.apiError(error)
+  } finally {
+    importingFromRegistry.value = false
+  }
+}
 
 // Methods
 const fetchMcpServers = async () => {

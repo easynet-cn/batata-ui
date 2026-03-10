@@ -139,7 +139,7 @@ const toggleLanguage = () => {
           }}</label>
           <input
             type="text"
-            value="nacos"
+            value="batata"
             readonly
             class="w-full pl-4 pr-4 py-3.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 dark:text-gray-400 outline-none text-sm cursor-not-allowed"
           />

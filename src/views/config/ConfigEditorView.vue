@@ -98,17 +98,49 @@
           </label>
         </div>
 
-        <!-- Beta IPs (shown when beta is enabled) -->
-        <div v-if="form.beta" class="space-y-2">
-          <label class="block text-xs font-medium text-text-primary">
-            {{ t('betaIps') }}
-          </label>
-          <textarea
-            v-model="form.betaIps"
-            class="input min-h-[80px] font-mono text-xs"
-            :placeholder="t('betaIpsPlaceholder')"
-          />
-          <p class="text-xs text-text-tertiary">{{ t('betaIpsHint') }}</p>
+        <!-- Gray Release Config (shown when beta is enabled) -->
+        <div
+          v-if="form.beta"
+          class="space-y-3 p-3 bg-purple-50/50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800/50"
+        >
+          <div>
+            <label class="block text-xs font-medium text-text-primary mb-1">
+              {{ t('grayName') }}
+            </label>
+            <input v-model="form.grayName" type="text" class="input" placeholder="beta" />
+            <p class="text-xs text-text-tertiary mt-1">{{ t('grayNameHint') }}</p>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-text-primary mb-1">
+              {{ t('grayRuleType') }}
+            </label>
+            <select v-model="form.grayRuleType" class="input">
+              <option value="ip">{{ t('grayRuleTypeIp') }}</option>
+              <option value="tag">{{ t('grayRuleTypeTag') }}</option>
+            </select>
+          </div>
+          <div v-if="form.grayRuleType === 'ip'">
+            <label class="block text-xs font-medium text-text-primary mb-1">
+              {{ t('betaIps') }}
+            </label>
+            <textarea
+              v-model="form.betaIps"
+              class="input min-h-[80px] font-mono text-xs"
+              :placeholder="t('betaIpsPlaceholder')"
+            />
+            <p class="text-xs text-text-tertiary mt-1">{{ t('betaIpsHint') }}</p>
+          </div>
+          <div v-else>
+            <label class="block text-xs font-medium text-text-primary mb-1">
+              {{ t('grayRuleExpression') }}
+            </label>
+            <textarea
+              v-model="form.grayRuleExpression"
+              class="input min-h-[80px] font-mono text-xs"
+              :placeholder="t('grayRuleExpressionPlaceholder')"
+            />
+            <p class="text-xs text-text-tertiary mt-1">{{ t('grayRuleExpressionHint') }}</p>
+          </div>
         </div>
 
         <!-- Encryption Toggle -->
@@ -128,7 +160,12 @@
             </div>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" v-model="form.encrypted" class="sr-only peer" />
+            <input
+              type="checkbox"
+              v-model="form.encrypted"
+              class="sr-only peer"
+              @change="handleEncryptionToggle"
+            />
             <div
               class="w-9 h-5 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"
             ></div>
@@ -243,6 +280,9 @@ const form = reactive({
   encrypted: false,
   beta: false,
   betaIps: '',
+  grayName: 'beta',
+  grayRuleType: 'ip' as 'ip' | 'tag',
+  grayRuleExpression: '',
 })
 
 // Methods
@@ -268,7 +308,7 @@ const fetchConfig = async () => {
       tags: config.configTags || '',
       desc: config.desc || '',
       content: config.content || '',
-      encrypted: !!config.encryptedDataKey,
+      encrypted: !!config.encryptedDataKey || config.dataId.startsWith('cipher-'),
     })
 
     // Check if there's a beta version
@@ -281,7 +321,22 @@ const fetchConfig = async () => {
       const betaConfig = betaResponse.data.data
       if (betaConfig) {
         form.beta = true
-        form.betaIps = betaConfig.grayRule || ''
+        form.grayName = betaConfig.grayName || 'beta'
+        // Parse gray rule
+        try {
+          const rule = JSON.parse(betaConfig.grayRule || '{}')
+          if (rule.type === 'tag') {
+            form.grayRuleType = 'tag'
+            form.grayRuleExpression = rule.expr || ''
+          } else {
+            form.grayRuleType = 'ip'
+            form.betaIps = rule.expr || betaConfig.grayRule || ''
+          }
+        } catch {
+          // Legacy format: plain IP list
+          form.grayRuleType = 'ip'
+          form.betaIps = betaConfig.grayRule || ''
+        }
         // Use beta content if available
         if (betaConfig.content) {
           form.content = betaConfig.content
@@ -292,6 +347,16 @@ const fetchConfig = async () => {
     }
   } catch (error) {
     logger.error('Failed to fetch config:', error)
+  }
+}
+
+const handleEncryptionToggle = () => {
+  if (!isEdit.value) {
+    if (form.encrypted && !form.dataId.startsWith('cipher-')) {
+      form.dataId = `cipher-${form.dataId}`
+    } else if (!form.encrypted && form.dataId.startsWith('cipher-')) {
+      form.dataId = form.dataId.replace(/^cipher-/, '')
+    }
   }
 }
 
@@ -327,14 +392,21 @@ const handleSubmit = async () => {
   saving.value = true
   try {
     if (form.beta) {
+      // Build gray rule based on type
+      const grayRule =
+        form.grayRuleType === 'ip'
+          ? JSON.stringify({ type: 'beta', expr: form.betaIps })
+          : JSON.stringify({ type: 'tag', expr: form.grayRuleExpression })
+
       // Publish as beta/gray config
       await batataApi.publishBetaConfig({
         dataId: form.dataId,
         groupName: form.group,
         content: form.content,
         namespaceId: props.namespace.namespace,
-        grayName: 'beta',
-        grayRule: form.betaIps,
+        grayName: form.grayName || 'beta',
+        grayRule,
+        betaIps: form.grayRuleType === 'ip' ? form.betaIps : undefined,
       })
     } else {
       // Publish as regular config

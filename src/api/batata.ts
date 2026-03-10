@@ -248,7 +248,7 @@ class BatataApi {
 
   async initAdmin(password: string) {
     const formData = new URLSearchParams()
-    formData.append('username', 'nacos')
+    formData.append('username', 'batata')
     formData.append('password', password)
     return this.getAuthInstance().post<LoginResponse>('/user/admin', formData, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -633,6 +633,11 @@ class BatataApi {
 
   async getClusterNodes(params?: { keyword?: string }) {
     return this.instance.get<BatataResponse<NodeInfo[]>>('/core/cluster/nodes', { params })
+  }
+
+  // Nacos V1/V2 defined leave/delete but returns 405 "not allow to use temporarily"; V3 removed it entirely
+  async leaveClusterNode(_address: string): Promise<never> {
+    throw new ApiError(501, 'Leave cluster node is not supported by the server')
   }
 
   // TODO: Backend does not yet support updating cluster nodes directly
