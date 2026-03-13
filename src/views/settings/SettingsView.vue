@@ -189,8 +189,22 @@
             </div>
             <template v-else>
               <div class="flex justify-between">
-                <span class="text-text-secondary">{{ t('version') }}</span>
-                <span class="font-mono text-text-primary">{{ serverInfo.version || '-' }}</span>
+                <span class="text-text-secondary">{{ t('nacosVersion') }}</span>
+                <span class="font-mono text-text-primary">{{
+                  serverInfo.nacosVersion || '-'
+                }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-text-secondary">{{ t('consulVersion') }}</span>
+                <span class="font-mono text-text-primary">{{
+                  serverInfo.consulVersion || '-'
+                }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-text-secondary">{{ t('batataVersion') }}</span>
+                <span class="font-mono text-text-primary">{{
+                  serverInfo.batataVersion || '-'
+                }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-text-secondary">{{ t('mode') }}</span>
@@ -267,6 +281,7 @@ import {
 import { useI18n } from '@/i18n'
 import { storage } from '@/composables/useStorage'
 import { logger } from '@/utils/logger'
+import batataApi from '@/api/batata'
 import type { Namespace } from '@/types'
 
 defineProps<{
@@ -294,6 +309,9 @@ const settings = reactive({
 
 const serverInfo = reactive({
   version: '',
+  nacosVersion: '',
+  consulVersion: '',
+  batataVersion: '',
   mode: '',
 })
 
@@ -336,9 +354,13 @@ const handleReset = () => {
 const fetchServerInfo = async () => {
   loadingServer.value = true
   try {
-    // This would normally call the server info API
-    serverInfo.version = '2.3.0'
-    serverInfo.mode = 'standalone'
+    const response = await batataApi.getServerState()
+    const state = response.data
+    serverInfo.version = state.version || ''
+    serverInfo.nacosVersion = state.nacos_version || ''
+    serverInfo.consulVersion = state.consul_version || ''
+    serverInfo.batataVersion = state.batata_version || ''
+    serverInfo.mode = state.startup_mode || 'standalone'
   } catch (error) {
     logger.error('Failed to fetch server info:', error)
   } finally {

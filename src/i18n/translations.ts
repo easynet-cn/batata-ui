@@ -495,10 +495,17 @@ export const translations = {
     resetToDefault: 'Reset to Default',
     about: 'About',
     uiVersion: 'UI Version',
+    nacosVersion: 'Nacos Version',
+    consulVersion: 'Consul Version',
+    batataVersion: 'Batata Version',
     license: 'License',
     viewOnGithub: 'View on GitHub',
     mode: 'Mode',
     running: 'Running',
+    consoleUiDisabled: 'Console UI is disabled',
+    consoleUiDisabledTitle: 'Console UI Disabled',
+    consoleUiDisabledDesc:
+      'The console UI has been disabled by the server configuration (nacos.console.ui.enabled=false).',
 
     // Register
     createAccount: 'Create Account',
@@ -1542,10 +1549,16 @@ export const translations = {
     resetToDefault: '恢复默认',
     about: '关于',
     uiVersion: 'UI 版本',
+    nacosVersion: 'Nacos 版本',
+    consulVersion: 'Consul 版本',
+    batataVersion: 'Batata 版本',
     license: '许可证',
     viewOnGithub: '在 GitHub 上查看',
     mode: '模式',
     running: '运行中',
+    consoleUiDisabled: '控制台 UI 已禁用',
+    consoleUiDisabledTitle: '控制台 UI 已禁用',
+    consoleUiDisabledDesc: '服务端配置已禁用控制台 UI（nacos.console.ui.enabled=false）。',
 
     // Register
     createAccount: '创建账户',

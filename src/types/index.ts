@@ -151,6 +151,9 @@ export interface Namespace {
 
 export interface ServerState {
   version?: string
+  nacos_version?: string
+  consul_version?: string
+  batata_version?: string
   function_mode?: string | null
   startup_mode?: string
   server_port?: string

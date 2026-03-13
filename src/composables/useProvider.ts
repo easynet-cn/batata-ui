@@ -6,6 +6,7 @@ const STORAGE_KEY = 'batata_provider'
 
 const provider = ref<ProviderType>((storage.get(STORAGE_KEY) as ProviderType) || 'batata')
 const consulEnabled = ref(false)
+const consoleUiEnabled = ref(true)
 
 // Provider change callbacks
 const onChangeCallbacks: Array<(p: ProviderType) => void> = []
@@ -84,6 +85,10 @@ export function useProvider() {
     consulEnabled.value = enabled
   }
 
+  function setConsoleUiEnabled(enabled: boolean) {
+    consoleUiEnabled.value = enabled
+  }
+
   function onProviderChange(callback: (p: ProviderType) => void) {
     onChangeCallbacks.push(callback)
   }
@@ -93,6 +98,7 @@ export function useProvider() {
     isBatata,
     isConsul,
     consulEnabled,
+    consoleUiEnabled,
     providerColor,
     providerBgClass,
     providerHoverBgClass,
@@ -101,6 +107,7 @@ export function useProvider() {
     providerLetter,
     setProvider,
     setConsulEnabled,
+    setConsoleUiEnabled,
     onProviderChange,
   }
 }

@@ -25,7 +25,13 @@
       </div>
 
       <nav class="flex-1 py-4 px-3 space-y-6 overflow-y-auto scrollbar-hide">
-        <div v-for="(group, groupIdx) in navGroups" :key="groupIdx" class="space-y-1">
+        <div
+          v-if="!consoleUiEnabled"
+          class="px-3 py-4 text-xs text-gray-400 dark:text-gray-500 text-center"
+        >
+          {{ t('consoleUiDisabled') }}
+        </div>
+        <div v-for="(group, groupIdx) in navGroups" v-else :key="groupIdx" class="space-y-1">
           <p
             v-if="isSidebarOpen && group.title"
             class="px-3 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2"
@@ -367,7 +373,16 @@
 
       <!-- Main Content Area -->
       <main class="flex-1 overflow-y-auto p-4 md:p-5 bg-gray-50 dark:bg-gray-950">
-        <div class="max-w-7xl mx-auto">
+        <div v-if="!consoleUiEnabled" class="flex items-center justify-center h-full">
+          <div class="text-center space-y-3">
+            <Settings2 class="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto" />
+            <h2 class="text-lg font-semibold text-gray-500 dark:text-gray-400">
+              {{ t('consoleUiDisabledTitle') }}
+            </h2>
+            <p class="text-sm text-gray-400 dark:text-gray-500">{{ t('consoleUiDisabledDesc') }}</p>
+          </div>
+        </div>
+        <div v-else class="max-w-7xl mx-auto">
           <RouterView v-slot="{ Component }">
             <component :is="Component" :namespace="currentNamespace" @switch="switchNamespace" />
           </RouterView>
@@ -502,6 +517,8 @@ const {
   providerLetter,
   setProvider,
   setConsulEnabled,
+  consoleUiEnabled,
+  setConsoleUiEnabled,
 } = useProvider()
 
 const isSidebarOpen = ref(true)
@@ -595,6 +612,8 @@ const fetchServerState = async () => {
     const state = response.data
     const consulOn = state?.consul_enabled === 'true'
     setConsulEnabled(consulOn)
+    // Set console UI enabled state (default to true if not specified)
+    setConsoleUiEnabled(state?.console_ui_enabled !== 'false')
     // If consul is not enabled but user was on consul provider, switch back to batata
     if (!consulOn && provider.value === 'consul') {
       setProvider('batata')
