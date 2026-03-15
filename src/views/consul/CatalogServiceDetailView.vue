@@ -321,6 +321,134 @@
           </div>
         </div>
       </div>
+
+      <!-- Tags Tab -->
+      <div v-show="activeTab === 'tags'" class="card">
+        <div class="px-6 py-4 border-b border-border">
+          <h3 class="text-sm font-semibold text-text-primary">
+            {{ t('consulServiceTags') }} ({{ serviceTags.length }})
+          </h3>
+        </div>
+        <div class="p-6">
+          <div v-if="serviceTags.length === 0" class="text-center py-6 text-text-tertiary">
+            <Tag class="w-6 h-6 mx-auto mb-2 opacity-50" />
+            <p class="text-xs">{{ t('noTags') }}</p>
+          </div>
+          <div v-else class="flex flex-wrap gap-2">
+            <span
+              v-for="tag in serviceTags"
+              :key="tag"
+              class="px-3 py-1.5 text-sm font-medium rounded-xl bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/30 dark:text-fuchsia-400"
+            >
+              {{ tag }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upstreams Tab -->
+      <div v-show="activeTab === 'upstreams'">
+        <div v-if="topologyLoading" class="card">
+          <div class="p-6 text-center">
+            <Loader2 class="w-6 h-6 animate-spin mx-auto text-fuchsia-600" />
+            <p class="text-sm text-text-secondary mt-2">{{ t('loading') }}</p>
+          </div>
+        </div>
+        <div v-else class="card">
+          <div class="px-6 py-4 border-b border-border">
+            <h3 class="text-sm font-semibold text-text-primary">
+              {{ t('consulUpstreamServices') }}
+              <span class="text-text-tertiary font-normal">
+                ({{ topology?.Upstreams?.length ?? 0 }})
+              </span>
+            </h3>
+          </div>
+          <div class="p-4 space-y-2">
+            <div
+              v-if="!topology?.Upstreams || topology.Upstreams.length === 0"
+              class="text-center py-6 text-text-tertiary"
+            >
+              <GitBranch class="w-6 h-6 mx-auto mb-2 opacity-50" />
+              <p class="text-xs">{{ t('consulNoUpstreams') }}</p>
+            </div>
+            <div
+              v-for="up in topology?.Upstreams"
+              :key="up.Name"
+              class="p-3 rounded-xl border border-border hover:bg-bg-secondary transition-colors"
+            >
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-text-primary">{{ up.Name }}</span>
+                <span :class="up.Intention?.Allowed ? 'badge badge-success' : 'badge badge-danger'">
+                  {{
+                    up.Intention?.Allowed ? t('consulIntentionAllowed') : t('consulIntentionDenied')
+                  }}
+                </span>
+              </div>
+              <span v-if="up.Datacenter" class="text-xs text-text-tertiary mt-1 inline-block">
+                {{ up.Datacenter }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Intentions Tab -->
+      <div v-show="activeTab === 'intentions'">
+        <div v-if="intentionsLoading" class="card">
+          <div class="p-6 text-center">
+            <Loader2 class="w-6 h-6 animate-spin mx-auto text-fuchsia-600" />
+            <p class="text-sm text-text-secondary mt-2">{{ t('loading') }}</p>
+          </div>
+        </div>
+        <div v-else class="card">
+          <div class="px-6 py-4 border-b border-border">
+            <h3 class="text-sm font-semibold text-text-primary">
+              {{ t('consulRelatedIntentions') }}
+              <span class="text-text-tertiary font-normal"> ({{ relatedIntentions.length }}) </span>
+            </h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>{{ t('sourceService') }}</th>
+                  <th>{{ t('destinationService') }}</th>
+                  <th>{{ t('action') }}</th>
+                  <th>{{ t('precedence') }}</th>
+                  <th>{{ t('description') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="relatedIntentions.length === 0">
+                  <td colspan="5" class="text-center py-6 text-text-secondary">
+                    <Link class="w-6 h-6 mx-auto mb-2 opacity-50" />
+                    <p class="text-xs">{{ t('consulNoRelatedIntentions') }}</p>
+                  </td>
+                </tr>
+                <tr
+                  v-for="intention in relatedIntentions"
+                  :key="intention.ID"
+                  class="hover:bg-bg-secondary"
+                >
+                  <td class="font-medium text-text-primary">{{ intention.SourceName }}</td>
+                  <td class="font-medium text-text-primary">{{ intention.DestinationName }}</td>
+                  <td>
+                    <span
+                      :class="
+                        intention.Action === 'allow' ? 'badge badge-success' : 'badge badge-danger'
+                      "
+                    >
+                      {{ intention.Action }}
+                    </span>
+                  </td>
+                  <td class="text-text-secondary">{{ intention.Precedence }}</td>
+                  <td class="text-text-secondary">{{ intention.Description || '-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -328,7 +456,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, RefreshCw, Loader2, ChevronDown, Server, GitBranch } from 'lucide-vue-next'
+import {
+  ArrowLeft,
+  RefreshCw,
+  Loader2,
+  ChevronDown,
+  Server,
+  GitBranch,
+  Link,
+  Tag,
+} from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
 import { logger } from '@/utils/logger'
@@ -337,6 +474,7 @@ import type {
   ConsulHealthCheck,
   ConsulHealthStatus,
   ConsulServiceTopology,
+  ConsulIntention,
 } from '@/types/consul'
 
 const { t } = useI18n()
@@ -351,18 +489,26 @@ const expandedNodes = ref<Set<string>>(new Set())
 const instanceStatusFilter = ref<'all' | 'passing' | 'warning' | 'critical'>('all')
 
 // Tabs
-type TabKey = 'instances' | 'health' | 'topology'
+type TabKey = 'instances' | 'health' | 'topology' | 'tags' | 'upstreams' | 'intentions'
 const activeTab = ref<TabKey>('instances')
 const tabs = computed(() => [
   { key: 'instances' as TabKey, label: t('serviceInstances') },
   { key: 'health' as TabKey, label: t('healthChecksList') },
   { key: 'topology' as TabKey, label: t('consulTopology') },
+  { key: 'tags' as TabKey, label: t('consulServiceTags') },
+  { key: 'upstreams' as TabKey, label: t('consulUpstreamServices') },
+  { key: 'intentions' as TabKey, label: t('consulServiceIntentions') },
 ])
 
 // Topology
 const topology = ref<ConsulServiceTopology | null>(null)
 const topologyLoading = ref(false)
 const topologyLoaded = ref(false)
+
+// Intentions
+const relatedIntentions = ref<ConsulIntention[]>([])
+const intentionsLoading = ref(false)
+const intentionsLoaded = ref(false)
 
 async function switchTab(tab: TabKey) {
   activeTab.value = tab
@@ -376,6 +522,38 @@ async function switchTab(tab: TabKey) {
       logger.error('Failed to fetch service topology:', err)
     } finally {
       topologyLoading.value = false
+    }
+  }
+  // Upstreams tab reuses topology data
+  if (tab === 'upstreams' && !topologyLoaded.value) {
+    topologyLoading.value = true
+    try {
+      const response = await consulApi.getServiceTopology(serviceName.value)
+      topology.value = response.data
+      topologyLoaded.value = true
+    } catch (err) {
+      logger.error('Failed to fetch service topology:', err)
+    } finally {
+      topologyLoading.value = false
+    }
+  }
+  if (tab === 'intentions' && !intentionsLoaded.value) {
+    intentionsLoading.value = true
+    try {
+      const response = await consulApi.listIntentions()
+      const all = response.data || []
+      relatedIntentions.value = all.filter(
+        (i) =>
+          i.SourceName === serviceName.value ||
+          i.DestinationName === serviceName.value ||
+          i.SourceName === '*' ||
+          i.DestinationName === '*',
+      )
+      intentionsLoaded.value = true
+    } catch (err) {
+      logger.error('Failed to fetch intentions:', err)
+    } finally {
+      intentionsLoading.value = false
     }
   }
 }

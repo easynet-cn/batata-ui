@@ -74,13 +74,13 @@ Batata 微服务管理平台是一款基于 Rust 高性能后端与 Vue 3 现代
 
 ### 2.1 服务端环境要求
 
-| 项目     | 要求                                              |
-| -------- | ------------------------------------------------- |
-| 操作系统 | Linux (x86_64/aarch64)、macOS、Windows            |
-| 内存     | 最低 256MB，推荐 512MB 以上                       |
-| 磁盘     | 最低 500MB 可用空间                               |
-| 数据库   | MySQL 5.7+/8.0+ 或 PostgreSQL（集群模式）         |
-| 网络端口 | 8848（主服务）、8081（控制台）、9848/9849（gRPC） |
+| 项目     | 要求                                                                                         |
+| -------- | -------------------------------------------------------------------------------------------- |
+| 操作系统 | Linux (x86_64/aarch64)、macOS、Windows                                                       |
+| 内存     | 最低 256MB，推荐 512MB 以上                                                                  |
+| 磁盘     | 最低 500MB 可用空间                                                                          |
+| 数据库   | MySQL 5.7+/8.0+ 或 PostgreSQL（集群模式）                                                    |
+| 网络端口 | 8848（主服务）、8081（控制台）、9848/9849（gRPC）、8500（Consul 兼容）、9080（MCP Registry） |
 
 ### 2.2 客户端浏览器要求
 
@@ -106,8 +106,11 @@ Batata 微服务管理平台是一款基于 Rust 高性能后端与 Vue 3 现代
 单机模式使用内嵌 RocksDB 存储，无需外部数据库，适合开发与测试环境。
 
 ```bash
-# 启动单机模式
-./start-embedded.sh
+# 单机模式（内嵌存储）- 推荐方式
+./scripts/startup.sh -m standalone -p embedded
+
+# 或使用旧版脚本
+./scripts/start-embedded.sh
 ```
 
 启动后访问控制台：`http://localhost:8081`
@@ -125,25 +128,57 @@ Batata 微服务管理平台是一款基于 Rust 高性能后端与 Vue 3 现代
 # 192.168.1.2:8848
 # 192.168.1.3:8848
 
-# 启动服务
-./start-server.sh
+# 集群模式启动 - 推荐方式
+./scripts/startup.sh
+
+# 使用 MySQL 数据库
+./scripts/startup.sh --db.url=mysql://user:pass@localhost:3306/batata
+
+# 或使用旧版脚本
+./scripts/start-server.sh
 ```
 
 ### 3.3 前后端分离部署
 
 ```bash
-# 启动后端主服务（端口 8848）
-./start-server.sh
+# 仅启动 Server（无控制台）- 推荐方式
+./scripts/startup.sh -d server
 
-# 启动控制台服务（端口 8081，连接远程主服务）
-./start-console.sh
+# 仅启动 Console（连接远程 Server）
+./scripts/startup.sh -d console
+
+# Server + MCP Registry
+./scripts/startup.sh -d serverWithMcp
+
+# 或使用旧版脚本
+./scripts/start-server.sh
+./scripts/start-console.sh
 ```
 
 ### 3.4 Docker 部署
 
 ```bash
-# 使用 Docker Compose 启动
-docker-compose up -d
+# 内嵌模式（无需数据库）
+docker compose up batata
+
+# 使用 MySQL
+docker compose --profile mysql up
+
+# 使用 PostgreSQL
+docker compose --profile postgres up
+
+# 完整监控栈（含 Prometheus + Grafana）
+docker compose --profile mysql --profile monitoring up
+```
+
+**停止服务：**
+
+```bash
+# 使用脚本停止
+./scripts/shutdown.sh
+
+# 或使用 Docker Compose 停止
+docker compose down
 ```
 
 ### 3.5 初始化管理员
@@ -335,11 +370,14 @@ Batata 支持配置内容的自动加密与解密：
 
 **路径：** 侧边栏 > 配置管理 > 配置同步
 
-在多个环境之间同步配置，支持：
+跨环境配置同步功能，支持将配置从当前环境同步到目标环境：
 
-- 选择目标环境
-- 选择需要同步的配置
-- 查看同步状态和历史
+- **目标环境管理**：在 `application.yml` 中配置 `batata.sync.targets` 指定目标环境地址
+- **同步策略**：
+  - **跳过** (SKIP)：目标已存在的配置不覆盖
+  - **覆盖** (OVERWRITE)：强制覆盖目标配置
+  - **中止** (ABORT)：遇到冲突时中止同步
+- **同步历史**：查看历史同步记录和结果
 
 ---
 
@@ -677,20 +715,29 @@ Batata 提供 99% 的 Consul API 兼容性，通过 Provider 切换可使用 Con
 
 **路径：** 侧边栏 > 审计日志
 
-### 14.1 日志查询
+记录所有配置变更操作的审计追踪，基于配置历史记录：
 
-提供操作审计记录的查询功能：
+### 14.1 日志查询
 
 **筛选条件：**
 
-- **资源类型**：CONFIG、SERVICE、INSTANCE、NAMESPACE、USER、ROLE、PERMISSION 等
-- **操作类型**：CREATE、UPDATE、DELETE、QUERY、LOGIN、LOGOUT、PUBLISH、ROLLBACK、IMPORT、EXPORT、CLONE
+- **操作类型**：CREATE（创建）、UPDATE（更新）、DELETE（删除）
+- **操作人**：按用户名搜索
 - **时间范围**：自定义起止时间
-- **执行结果**：成功/失败
+- **分页浏览**：支持自定义每页数量
 
 ### 14.2 日志详情
 
-查看单条审计记录的详细信息，包括操作人、操作时间、资源标识、变更内容等。
+查看单条审计记录的详细信息：
+
+- 操作人和操作 IP
+- 操作的资源（group/dataId）
+- 操作时间
+- 变更类型
+
+### 14.3 审计统计
+
+展示操作统计概览：总操作次数、今日操作、配置变更次数。
 
 ---
 
@@ -698,25 +745,36 @@ Batata 提供 99% 的 Consul API 兼容性，通过 Provider 切换可使用 Con
 
 **路径：** 侧边栏 > 链路追踪
 
-### 15.1 追踪查询
+提供分布式链路追踪集成能力。Batata 通过 OpenTelemetry (OTLP) 协议导出追踪数据到外部追踪系统。
 
-支持分布式链路追踪功能：
+### 15.1 配置追踪
 
-- **Trace ID 搜索**：按追踪 ID 查询完整调用链
-- **操作筛选**：按操作类型过滤
-- **时间范围**：自定义查询时间段
+在 `application.yml` 中启用 OpenTelemetry：
 
-### 15.2 服务依赖
+```yaml
+batata:
+  otel:
+    enabled: true
+    exporter:
+      otlp:
+        endpoint: http://jaeger:4317
+    service:
+      name: batata-server
+```
 
-以可视化方式展示服务间的调用依赖关系。
+### 15.2 追踪查询
 
-### 15.3 Span 时间线
+当 OTLP 已配置时，页面显示追踪后端信息和连接状态。完整追踪数据请查询 Jaeger/Tempo 等追踪后端。
 
-以时间线方式展示请求的各阶段耗时。
+### 15.3 服务依赖
+
+以可视化方式展示服务间的调用依赖关系（需追踪后端支持）。
 
 ---
 
 ## 16. 插件管理
+
+> **注意：** 按照 Nacos 3.x 架构方向，插件管理功能通过内置 SPI 机制实现，不提供运行时热加载界面。插件通过编译时注册的方式加入系统。
 
 **路径：** 侧边栏 > 插件管理
 

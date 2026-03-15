@@ -41,6 +41,9 @@ export function setupRetryInterceptor(instance: AxiosInstance, maxRetries: numbe
 
     // Exponential backoff: 1 s, 2 s, 4 s …
     const backoff = Math.pow(2, cfg.__retryCount - 1) * 1000
+    console.warn(
+      `[API Retry] Attempt ${cfg.__retryCount}/${maxRetries} for ${cfg.url} after ${backoff}ms`,
+    )
     await delay(backoff)
 
     return instance.request(cfg)

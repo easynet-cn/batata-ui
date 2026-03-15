@@ -214,12 +214,70 @@
                   </label>
                 </div>
               </div>
+              <div>
+                <label class="block text-[10px] text-text-tertiary mb-0.5">{{
+                  t('httpHeaders')
+                }}</label>
+                <div class="space-y-1.5">
+                  <div
+                    v-for="(hdr, hIdx) in perm.HTTP.Header"
+                    :key="hIdx"
+                    class="flex items-center gap-1.5"
+                  >
+                    <input
+                      v-model="hdr.Name"
+                      type="text"
+                      class="input text-xs flex-1"
+                      :placeholder="t('headerName')"
+                    />
+                    <select v-model="hdr.MatchType" class="input text-xs w-24">
+                      <option value="Exact">{{ t('headerMatchExact') }}</option>
+                      <option value="Prefix">{{ t('headerMatchPrefix') }}</option>
+                      <option value="Suffix">{{ t('headerMatchSuffix') }}</option>
+                      <option value="Contains">{{ t('headerMatchContains') }}</option>
+                      <option value="Regex">{{ t('headerMatchRegex') }}</option>
+                      <option value="Present">{{ t('headerMatchPresent') }}</option>
+                    </select>
+                    <input
+                      v-if="hdr.MatchType !== 'Present'"
+                      v-model="hdr.Value"
+                      type="text"
+                      class="input text-xs flex-1"
+                      :placeholder="t('headerValue')"
+                    />
+                    <label class="flex items-center gap-0.5 shrink-0 cursor-pointer">
+                      <input type="checkbox" v-model="hdr.Invert" class="w-3 h-3 rounded" />
+                      <span class="text-[10px] text-text-tertiary">{{ t('headerInvert') }}</span>
+                    </label>
+                    <button
+                      @click="perm.HTTP.Header.splice(hIdx, 1)"
+                      class="btn btn-ghost btn-sm text-danger shrink-0"
+                    >
+                      <Trash2 class="w-3 h-3" />
+                    </button>
+                  </div>
+                  <button
+                    @click="
+                      perm.HTTP.Header.push({
+                        Name: '',
+                        MatchType: 'Exact',
+                        Value: '',
+                        Invert: false,
+                      })
+                    "
+                    class="btn btn-ghost btn-sm text-primary"
+                  >
+                    <Plus class="w-3 h-3" />
+                    {{ t('addHeader') }}
+                  </button>
+                </div>
+              </div>
             </div>
             <button
               @click="
                 l7Permissions.push({
                   Action: 'allow',
-                  HTTP: { PathType: '', PathValue: '', Methods: [] },
+                  HTTP: { PathType: '', PathValue: '', Methods: [], Header: [] },
                 })
               "
               class="btn btn-ghost btn-sm text-primary"
@@ -295,12 +353,20 @@ const createForm = reactive({
   Description: '',
 })
 
+interface L7HeaderMatch {
+  Name: string
+  MatchType: 'Exact' | 'Prefix' | 'Suffix' | 'Contains' | 'Regex' | 'Present'
+  Value: string
+  Invert: boolean
+}
+
 interface L7Permission {
   Action: 'allow' | 'deny'
   HTTP: {
     PathType: string
     PathValue: string
     Methods: string[]
+    Header: L7HeaderMatch[]
   }
 }
 const l7Permissions = ref<L7Permission[]>([])
@@ -343,6 +409,35 @@ async function handleEdit(intention: ConsulIntention) {
     if (perms && perms.length > 0) {
       l7Permissions.value = perms.map((p) => {
         const http = (p.HTTP || {}) as Record<string, unknown>
+        const rawHeaders = (http.Header || []) as Array<Record<string, unknown>>
+        const headers: L7HeaderMatch[] = rawHeaders.map((h) => {
+          let matchType: L7HeaderMatch['MatchType'] = 'Exact'
+          let value = ''
+          if (h.Exact) {
+            matchType = 'Exact'
+            value = h.Exact as string
+          } else if (h.Prefix) {
+            matchType = 'Prefix'
+            value = h.Prefix as string
+          } else if (h.Suffix) {
+            matchType = 'Suffix'
+            value = h.Suffix as string
+          } else if (h.Contains) {
+            matchType = 'Contains'
+            value = h.Contains as string
+          } else if (h.Regex) {
+            matchType = 'Regex'
+            value = h.Regex as string
+          } else if (h.Present) {
+            matchType = 'Present'
+          }
+          return {
+            Name: (h.Name || '') as string,
+            MatchType: matchType,
+            Value: value,
+            Invert: !!h.Invert,
+          }
+        })
         return {
           Action: (p.Action as string) === 'deny' ? ('deny' as const) : ('allow' as const),
           HTTP: {
@@ -355,6 +450,7 @@ async function handleEdit(intention: ConsulIntention) {
                   : '') as string,
             PathValue: (http.PathExact || http.PathPrefix || http.PathRegex || '') as string,
             Methods: (http.Methods || []) as string[],
+            Header: headers,
           },
         }
       })
@@ -378,13 +474,26 @@ async function submitCreate() {
   try {
     // Build L7 permissions
     const permissions = l7Permissions.value
-      .filter((p) => p.HTTP.PathType || p.HTTP.Methods.length > 0)
+      .filter((p) => p.HTTP.PathType || p.HTTP.Methods.length > 0 || p.HTTP.Header.length > 0)
       .map((p) => {
         const http: Record<string, unknown> = {}
         if (p.HTTP.PathType === 'PathExact') http.PathExact = p.HTTP.PathValue
         else if (p.HTTP.PathType === 'PathPrefix') http.PathPrefix = p.HTTP.PathValue
         else if (p.HTTP.PathType === 'PathRegex') http.PathRegex = p.HTTP.PathValue
         if (p.HTTP.Methods.length > 0) http.Methods = p.HTTP.Methods
+        const validHeaders = p.HTTP.Header.filter((h) => h.Name.trim())
+        if (validHeaders.length > 0) {
+          http.Header = validHeaders.map((h) => {
+            const entry: Record<string, unknown> = { Name: h.Name.trim() }
+            if (h.MatchType === 'Present') {
+              entry.Present = true
+            } else {
+              entry[h.MatchType] = h.Value
+            }
+            if (h.Invert) entry.Invert = true
+            return entry
+          })
+        }
         return { Action: p.Action, HTTP: http }
       })
 

@@ -103,17 +103,36 @@ class BatataApi {
         if (!error.response) {
           throw new NetworkError()
         }
-        if (error.response?.status === 401 || error.response?.status === 403) {
+        const status = error.response?.status
+        const respData = error.response?.data
+        const message =
+          typeof respData === 'string' ? respData : respData?.message || error.message || ''
+
+        // Auth errors - use status code, not message matching
+        if (status === 401 || status === 403) {
+          // Clear stored credentials
           storage.remove(config.storage.tokenKey)
           storage.remove(config.storage.usernameKey)
-          window.location.href = '/login'
-          throw new AuthError()
+
+          // Redirect to login (avoid redirect loop if already on login page)
+          if (!window.location.pathname.includes('/login')) {
+            window.location.href = '/login'
+          }
+
+          throw new AuthError(message || 'Authentication failed. Please log in again.')
         }
-        const respData = error.response?.data
-        throw new ApiError(
-          respData?.code || error.response?.status || 500,
-          respData?.message || error.message,
-        )
+
+        // 503 Service Unavailable - server is in maintenance/draining mode
+        if (status === 503) {
+          throw new ApiError(503, 'Server is under maintenance. Please try again later.')
+        }
+
+        // 502 Bad Gateway - server may be restarting
+        if (status === 502) {
+          throw new ApiError(502, 'Server is temporarily unavailable. It may be restarting.')
+        }
+
+        throw new ApiError(respData?.code || status || 500, message)
       },
     )
   }
@@ -215,17 +234,36 @@ class BatataApi {
           if (!error.response) {
             throw new NetworkError()
           }
-          if (error.response?.status === 401 || error.response?.status === 403) {
+          const status = error.response?.status
+          const respData = error.response?.data
+          const message =
+            typeof respData === 'string' ? respData : respData?.message || error.message || ''
+
+          // Auth errors - use status code, not message matching
+          if (status === 401 || status === 403) {
+            // Clear stored credentials
             storage.remove(config.storage.tokenKey)
             storage.remove(config.storage.usernameKey)
-            window.location.href = '/login'
-            throw new AuthError()
+
+            // Redirect to login (avoid redirect loop if already on login page)
+            if (!window.location.pathname.includes('/login')) {
+              window.location.href = '/login'
+            }
+
+            throw new AuthError(message || 'Authentication failed. Please log in again.')
           }
-          const respData = error.response?.data
-          throw new ApiError(
-            respData?.code || error.response?.status || 500,
-            respData?.message || error.message,
-          )
+
+          // 503 Service Unavailable - server is in maintenance/draining mode
+          if (status === 503) {
+            throw new ApiError(503, 'Server is under maintenance. Please try again later.')
+          }
+
+          // 502 Bad Gateway - server may be restarting
+          if (status === 502) {
+            throw new ApiError(502, 'Server is temporarily unavailable. It may be restarting.')
+          }
+
+          throw new ApiError(respData?.code || status || 500, message)
         },
       )
     }
@@ -897,23 +935,16 @@ class BatataApi {
   // Audit Log API
   // ============================================
 
-  // TODO: Audit endpoints are not available in v3 console yet
-  async getAuditLogList(
-    _params: AuditLogSearch,
-  ): Promise<AxiosResponse<BatataResponse<PageResult<AuditLogItem>>>> {
-    throw new ApiError(501, 'Audit log is not supported by the server')
+  async getAuditLogList(params: AuditLogSearch) {
+    return this.instance.get<BatataResponse<PageResult<AuditLogItem>>>('/audit/logs', { params })
   }
 
-  async getAuditLog(_id: number): Promise<AxiosResponse<BatataResponse<AuditLogItem>>> {
-    throw new ApiError(501, 'Audit log is not supported by the server')
+  async getAuditLog(id: number) {
+    return this.instance.get<BatataResponse<AuditLogItem>>(`/audit/logs/${id}`)
   }
 
-  async getAuditStats(_params?: {
-    tenantId?: string
-    startTime?: string
-    endTime?: string
-  }): Promise<AxiosResponse<BatataResponse<unknown>>> {
-    throw new ApiError(501, 'Audit stats is not supported by the server')
+  async getAuditStats(params?: { tenantId?: string; startTime?: string; endTime?: string }) {
+    return this.instance.get<BatataResponse<unknown>>('/audit/stats', { params })
   }
 
   // ============================================
@@ -1009,32 +1040,29 @@ class BatataApi {
   // Config Sync API
   // ============================================
 
-  // TODO: Config sync endpoints are not available in the server yet
-  async getSyncEnvironments(): Promise<AxiosResponse<BatataResponse<SyncEnvironment[]>>> {
-    throw new ApiError(501, 'Config sync is not supported by the server')
+  async getSyncEnvironments() {
+    return this.instance.get<BatataResponse<SyncEnvironment[]>>('/sync/environments')
   }
 
-  async getSyncHistory(_tenant?: string): Promise<AxiosResponse<BatataResponse<SyncHistory[]>>> {
-    throw new ApiError(501, 'Config sync is not supported by the server')
+  async getSyncHistory(tenant?: string) {
+    return this.instance.get<BatataResponse<SyncHistory[]>>('/sync/history', {
+      params: { tenant },
+    })
   }
 
-  async syncConfigs(_data: SyncRequest): Promise<never> {
-    throw new ApiError(501, 'Config sync is not supported by the server')
+  async syncConfigs(data: SyncRequest) {
+    return this.instance.post<BatataResponse>('/sync/configs', data)
   }
 
-  async addSyncEnvironment(_data: {
-    name: string
-    endpoint: string
-    accessToken?: string
-  }): Promise<never> {
-    throw new ApiError(501, 'Config sync is not supported by the server')
+  async addSyncEnvironment(data: { name: string; endpoint: string; accessToken?: string }) {
+    return this.instance.post<BatataResponse>('/sync/environments', data)
   }
 
-  async deleteSyncEnvironment(_id: string): Promise<never> {
-    throw new ApiError(501, 'Config sync is not supported by the server')
+  async deleteSyncEnvironment(id: string) {
+    return this.instance.delete<BatataResponse>(`/sync/environments/${id}`)
   }
 
-  async getTraceList(_params: {
+  async getTraceList(params: {
     serviceName?: string
     operationName?: string
     traceId?: string
@@ -1045,12 +1073,12 @@ class BatataApi {
     rootSpansOnly?: boolean
     page?: number
     pageSize?: number
-  }): Promise<never> {
-    throw new ApiError(501, 'Tracing is not supported by the server')
+  }) {
+    return this.instance.get<BatataResponse<PageResult<unknown>>>('/trace/list', { params })
   }
 
-  async getTraceServices(): Promise<never> {
-    throw new ApiError(501, 'Tracing is not supported by the server')
+  async getTraceServices() {
+    return this.instance.get<BatataResponse<string[]>>('/trace/services')
   }
 }
 

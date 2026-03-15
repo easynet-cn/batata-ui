@@ -77,12 +77,21 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         }
       }
 
-      ws.onerror = (error) => {
-        logger.error('[WebSocket] Error:', error)
+      ws.onerror = (event) => {
+        console.error('[WebSocket Error]', {
+          url: ws!.url,
+          readyState: ws!.readyState,
+          event: event,
+        })
         status.value = 'error'
       }
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        console.warn('[WebSocket Closed]', {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+        })
         status.value = 'disconnected'
         logger.debug('[WebSocket] Disconnected')
 

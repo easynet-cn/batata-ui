@@ -365,7 +365,6 @@ import {
 import { useI18n } from '@/i18n'
 import { logger } from '@/utils/logger'
 import batataApi from '@/api/batata'
-import { ApiError } from '@/utils/error'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import AppPagination from '@/components/common/AppPagination.vue'
 import type { Namespace } from '@/types'
@@ -457,7 +456,7 @@ const getServiceColor = (serviceName: string, alpha: number): string => {
 const fetchTraces = async () => {
   loading.value = true
   try {
-    await batataApi.getTraceList({
+    const response = await batataApi.getTraceList({
       serviceName: filters.serviceName || undefined,
       operationName: filters.operationName || undefined,
       traceId: filters.traceId || undefined,
@@ -469,10 +468,11 @@ const fetchTraces = async () => {
       page: currentPage.value,
       pageSize: pageSize.value,
     })
+    const data = response.data.data
+    traces.value = (data.pageItems || []) as Trace[]
+    total.value = data.totalCount
   } catch (error) {
-    if (!(error instanceof ApiError && error.code === 501)) {
-      logger.error('Failed to fetch traces:', error)
-    }
+    logger.error('Failed to fetch traces:', error)
     traces.value = []
     total.value = 0
   } finally {
@@ -482,11 +482,10 @@ const fetchTraces = async () => {
 
 const fetchServices = async () => {
   try {
-    await batataApi.getTraceServices()
+    const response = await batataApi.getTraceServices()
+    services.value = response.data.data || []
   } catch (error) {
-    if (!(error instanceof ApiError && error.code === 501)) {
-      logger.error('Failed to fetch trace services:', error)
-    }
+    logger.error('Failed to fetch trace services:', error)
     services.value = []
   }
 }

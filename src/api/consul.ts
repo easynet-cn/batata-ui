@@ -28,6 +28,7 @@ import type {
   ConsulUserEvent,
   ConsulRaftConfiguration,
   ConsulOperatorUsage,
+  ConsulCoordinate,
 } from '@/types/consul'
 
 class ConsulApi {
@@ -475,6 +476,16 @@ class ConsulApi {
 
   async downloadSnapshot() {
     return this.instance.get('/snapshot', { responseType: 'blob' })
+  }
+
+  // ============================================
+  // Coordinate API
+  // ============================================
+
+  async getCoordinateNodes(dc?: string) {
+    return this.instance.get<ConsulCoordinate[]>('/coordinate/nodes', {
+      params: dc ? { dc } : undefined,
+    })
   }
 }
 

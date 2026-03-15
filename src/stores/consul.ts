@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { storage } from '@/composables/useStorage'
 import type {
   ConsulKVPair,
   ConsulNode,
@@ -84,7 +85,16 @@ export const useConsulStore = defineStore('consul', () => {
 
   // Cluster
   const datacenters = ref<string[]>([])
-  const currentDc = ref<string>('')
+  const savedDc = storage.get('consul_current_dc') || ''
+  const currentDc = ref<string>(savedDc)
+
+  // ACL
+  const aclEnabled = ref(true)
+
+  // Persist currentDc changes
+  watch(currentDc, (val) => {
+    storage.set('consul_current_dc', val)
+  })
 
   // ============================================
   // KV Store Actions
@@ -553,8 +563,11 @@ export const useConsulStore = defineStore('consul', () => {
       error.value = null
       const response = await consulApi.getDatacenters()
       datacenters.value = response.data || []
-      if (datacenters.value.length > 0 && !currentDc.value) {
-        currentDc.value = datacenters.value[0] ?? ''
+      // Restore saved DC or default to first
+      if (datacenters.value.length > 0) {
+        if (!currentDc.value || !datacenters.value.includes(currentDc.value)) {
+          currentDc.value = datacenters.value[0] ?? ''
+        }
       }
       return datacenters.value
     } catch (err: unknown) {
@@ -562,6 +575,33 @@ export const useConsulStore = defineStore('consul', () => {
       throw err
     } finally {
       loading.value = false
+    }
+  }
+
+  async function probeACLCapabilities() {
+    try {
+      const response = await consulApi.getAgentSelf()
+      const config = response.data?.Config
+      // If we can read agent/self, check ACL config
+      // ACL is enabled by default in Consul; check Stats for ACL
+      const stats = response.data?.Stats
+      const aclStats = stats?.['consul.acl']
+      if (aclStats && aclStats['enabled'] === 'false') {
+        aclEnabled.value = false
+      } else {
+        // Try listing tokens; if it fails with 401/403, ACL is disabled or no access
+        try {
+          await consulApi.listACLTokens()
+          aclEnabled.value = true
+        } catch {
+          aclEnabled.value = false
+        }
+      }
+      return { datacenter: config?.Datacenter, primaryDc: config?.PrimaryDatacenter }
+    } catch {
+      // If agent/self fails, assume ACL not available
+      aclEnabled.value = false
+      return null
     }
   }
 
@@ -599,6 +639,7 @@ export const useConsulStore = defineStore('consul', () => {
     operatorUsage.value = null
     datacenters.value = []
     currentDc.value = ''
+    aclEnabled.value = true
     error.value = null
   }
 
@@ -631,6 +672,7 @@ export const useConsulStore = defineStore('consul', () => {
     operatorUsage,
     datacenters,
     currentDc,
+    aclEnabled,
 
     // Actions
     fetchKVKeys,
@@ -661,6 +703,7 @@ export const useConsulStore = defineStore('consul', () => {
     fetchOperatorUsage,
     fetchDatacenters,
     setCurrentDc,
+    probeACLCapabilities,
     clearError,
     $reset,
   }

@@ -110,6 +110,81 @@
             <div class="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block" />
           </template>
 
+          <!-- Datacenter Selector (Consul only) -->
+          <div
+            v-if="provider === 'consul' && consulStore.datacenters.length > 0"
+            class="relative hidden sm:block"
+          >
+            <button
+              @click="showDcMenu = !showDcMenu"
+              class="flex items-center space-x-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors group"
+            >
+              <Globe :size="13" :class="providerTextClass" />
+              <span class="text-[11px] font-bold text-gray-700 dark:text-gray-300"
+                >{{ t('datacenter') }}:</span
+              >
+              <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400">{{
+                consulStore.currentDc
+              }}</span>
+              <span
+                v-if="
+                  consulAgentInfo?.primaryDc && consulStore.currentDc === consulAgentInfo.primaryDc
+                "
+                class="text-[9px] font-bold px-1 py-0.5 rounded bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-950/30 dark:text-fuchsia-400"
+              >
+                {{ t('consulPrimaryDc') }}
+              </span>
+              <ChevronDown
+                :size="12"
+                :class="['text-gray-400 transition-transform', showDcMenu && 'rotate-180']"
+              />
+            </button>
+
+            <template v-if="showDcMenu">
+              <div class="fixed inset-0 z-40" @click="showDcMenu = false" />
+              <div
+                class="absolute left-0 mt-1.5 w-52 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg py-1 z-50"
+              >
+                <div
+                  class="px-3 py-1.5 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800"
+                >
+                  {{ t('consulSelectDatacenter') }}
+                </div>
+                <button
+                  v-for="dc in consulStore.datacenters"
+                  :key="dc"
+                  @click="switchDatacenter(dc)"
+                  :class="[
+                    'w-full text-left px-3 py-2 text-xs flex items-center justify-between transition-colors',
+                    consulStore.currentDc === dc
+                      ? 'bg-fuchsia-50 dark:bg-fuchsia-950/30 text-fuchsia-600 dark:text-fuchsia-400 font-bold'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800',
+                  ]"
+                >
+                  <span class="flex items-center gap-1.5">
+                    {{ dc }}
+                    <span
+                      v-if="consulAgentInfo?.primaryDc === dc"
+                      class="text-[9px] font-bold px-1 py-0.5 rounded bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-950/30 dark:text-fuchsia-400"
+                    >
+                      {{ t('consulPrimaryDc') }}
+                    </span>
+                    <span
+                      v-if="consulAgentInfo?.datacenter === dc && consulAgentInfo?.primaryDc !== dc"
+                      class="text-[9px] font-bold px-1 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                    >
+                      {{ t('consulLocalDc') }}
+                    </span>
+                  </span>
+                  <div
+                    v-if="consulStore.currentDc === dc"
+                    class="w-1.5 h-1.5 rounded-full bg-fuchsia-600 dark:bg-fuchsia-400"
+                  />
+                </button>
+              </div>
+            </template>
+          </div>
+
           <!-- Namespace Selector (Nacos only) -->
           <div v-if="provider === 'batata'" class="relative hidden sm:block">
             <button
@@ -491,6 +566,7 @@ import {
 import { useI18n, type Language } from '@/i18n'
 import type { Namespace } from '@/types'
 import { useBatataStore } from '@/stores/batata'
+import { useConsulStore } from '@/stores/consul'
 import batataApi from '@/api/batata'
 import { useGlobalWebSocket } from '@/composables/useWebSocket'
 import { globalNotifications } from '@/composables/useNotifications'
@@ -507,6 +583,7 @@ const { t, language, setLanguage } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const batataStore = useBatataStore()
+const consulStore = useConsulStore()
 const { isDark, toggleTheme } = useTheme()
 const {
   provider,
@@ -526,6 +603,8 @@ const showUserMenu = ref(false)
 const showNamespaceMenu = ref(false)
 const showLangMenu = ref(false)
 const showNotifications = ref(false)
+const showDcMenu = ref(false)
+const consulAgentInfo = ref<{ datacenter?: string; primaryDc?: string } | null>(null)
 
 // WebSocket
 const wsEnabled = config.websocket.enabled
@@ -631,9 +710,12 @@ const fetchServerState = async () => {
   }
 }
 
-onMounted(() => {
-  fetchServerState()
+onMounted(async () => {
+  await fetchServerState()
   fetchNamespaces()
+  if (provider.value === 'consul') {
+    initConsul()
+  }
 })
 
 const handlerChangeLanguage = (lang: Language) => {
@@ -690,6 +772,23 @@ const switchNamespace = (ns: Namespace) => {
   currentNamespace.value = ns
   storage.setJSON('batata_current_ns', ns)
   showNamespaceMenu.value = false
+}
+
+const switchDatacenter = (dc: string) => {
+  consulStore.setCurrentDc(dc)
+  showDcMenu.value = false
+}
+
+const initConsul = async () => {
+  try {
+    await consulStore.fetchDatacenters()
+    const info = await consulStore.probeACLCapabilities()
+    if (info) {
+      consulAgentInfo.value = info
+    }
+  } catch {
+    // Silently ignore
+  }
 }
 
 const isActiveRoute = (path: string) => {
@@ -756,6 +855,7 @@ const handleSwitchProvider = (p: 'batata' | 'consul') => {
   switchProviderRoutes(p)
   switch (p) {
     case 'consul':
+      initConsul()
       router.push('/consul/dashboard')
       break
     default:
@@ -816,57 +916,71 @@ const nacosNavGroups = computed(() => [
   },
 ])
 
-const consulNavGroups = computed(() => [
-  {
-    title: t('overview'),
-    items: [{ path: '/consul/dashboard', label: t('dashboard'), icon: LayoutDashboard }],
-  },
-  {
-    title: t('catalog'),
-    items: [
-      { path: '/consul/catalog/services', label: t('services'), icon: Server },
-      { path: '/consul/catalog/nodes', label: t('nodes'), icon: HardDrive },
-      { path: '/consul/health', label: t('healthChecks'), icon: HeartPulse },
-    ],
-  },
-  {
-    title: t('kvStore'),
-    items: [{ path: '/consul/kv', label: t('kvStore'), icon: Database }],
-  },
-  {
-    title: t('serviceMesh'),
-    items: [
-      { path: '/consul/intentions', label: t('intentions'), icon: Link },
-      { path: '/consul/config-entries', label: t('configEntries'), icon: Settings2 },
-      { path: '/consul/exported-services', label: t('consulExportedServices'), icon: ExternalLink },
-    ],
-  },
-  {
-    title: t('peerings'),
-    items: [{ path: '/consul/peerings', label: t('peerings'), icon: GitBranch }],
-  },
-  {
-    title: t('acl'),
-    items: [
-      { path: '/consul/acl/tokens', label: t('aclTokens'), icon: Key },
-      { path: '/consul/acl/policies', label: t('aclPolicies'), icon: Shield },
-      { path: '/consul/acl/roles', label: t('roles'), icon: ShieldAlert },
-      { path: '/consul/acl/auth-methods', label: t('authMethods'), icon: Fingerprint },
-    ],
-  },
-  {
-    title: t('cluster'),
-    items: [
-      { path: '/consul/sessions', label: t('consulSessions'), icon: Timer },
-      { path: '/consul/events', label: t('consulEvents'), icon: Zap },
-      { path: '/consul/operator', label: t('consulOperator'), icon: Wrench },
-    ],
-  },
-  {
-    title: t('system'),
-    items: [{ path: '/consul/settings', label: t('settings'), icon: Cog }],
-  },
-])
+const consulNavGroups = computed(() => {
+  const groups = [
+    {
+      title: t('overview'),
+      items: [{ path: '/consul/dashboard', label: t('dashboard'), icon: LayoutDashboard }],
+    },
+    {
+      title: t('catalog'),
+      items: [
+        { path: '/consul/catalog/services', label: t('services'), icon: Server },
+        { path: '/consul/catalog/nodes', label: t('nodes'), icon: HardDrive },
+        { path: '/consul/health', label: t('healthChecks'), icon: HeartPulse },
+      ],
+    },
+    {
+      title: t('kvStore'),
+      items: [{ path: '/consul/kv', label: t('kvStore'), icon: Database }],
+    },
+    {
+      title: t('serviceMesh'),
+      items: [
+        { path: '/consul/intentions', label: t('intentions'), icon: Link },
+        { path: '/consul/config-entries', label: t('configEntries'), icon: Settings2 },
+        {
+          path: '/consul/exported-services',
+          label: t('consulExportedServices'),
+          icon: ExternalLink,
+        },
+      ],
+    },
+    {
+      title: t('peerings'),
+      items: [{ path: '/consul/peerings', label: t('peerings'), icon: GitBranch }],
+    },
+  ]
+
+  if (consulStore.aclEnabled) {
+    groups.push({
+      title: t('acl'),
+      items: [
+        { path: '/consul/acl/tokens', label: t('aclTokens'), icon: Key },
+        { path: '/consul/acl/policies', label: t('aclPolicies'), icon: Shield },
+        { path: '/consul/acl/roles', label: t('roles'), icon: ShieldAlert },
+        { path: '/consul/acl/auth-methods', label: t('authMethods'), icon: Fingerprint },
+      ],
+    })
+  }
+
+  groups.push(
+    {
+      title: t('cluster'),
+      items: [
+        { path: '/consul/sessions', label: t('consulSessions'), icon: Timer },
+        { path: '/consul/events', label: t('consulEvents'), icon: Zap },
+        { path: '/consul/operator', label: t('consulOperator'), icon: Wrench },
+      ],
+    },
+    {
+      title: t('system'),
+      items: [{ path: '/consul/settings', label: t('settings'), icon: Cog }],
+    },
+  )
+
+  return groups
+})
 
 const navGroups = computed(() => {
   switch (provider.value) {

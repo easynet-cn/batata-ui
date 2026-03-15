@@ -244,6 +244,53 @@
           </table>
         </div>
       </div>
+      <!-- Network Latency (RTT) -->
+      <div class="card">
+        <div class="px-6 py-4 border-b border-border">
+          <h3 class="text-sm font-semibold text-text-primary flex items-center gap-2">
+            <Wifi class="w-4 h-4 text-fuchsia-600" />
+            {{ t('consulRtt') }}
+          </h3>
+        </div>
+        <div class="p-6">
+          <div v-if="!rttStats" class="text-center py-4 text-text-tertiary">
+            <p class="text-xs">{{ t('consulNoCoordinateData') }}</p>
+          </div>
+          <div v-else class="grid grid-cols-3 gap-4">
+            <div class="text-center p-4 bg-bg-secondary rounded-xl">
+              <label
+                class="block text-[10px] font-bold uppercase tracking-wider text-text-tertiary mb-1"
+              >
+                {{ t('consulMinRtt') }}
+              </label>
+              <p class="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
+                {{ formatRtt(rttStats.min) }}
+              </p>
+            </div>
+            <div class="text-center p-4 bg-bg-secondary rounded-xl">
+              <label
+                class="block text-[10px] font-bold uppercase tracking-wider text-text-tertiary mb-1"
+              >
+                {{ t('consulMedianRtt') }}
+              </label>
+              <p class="text-lg font-extrabold text-fuchsia-600 dark:text-fuchsia-400">
+                {{ formatRtt(rttStats.median) }}
+              </p>
+            </div>
+            <div class="text-center p-4 bg-bg-secondary rounded-xl">
+              <label
+                class="block text-[10px] font-bold uppercase tracking-wider text-text-tertiary mb-1"
+              >
+                {{ t('consulMaxRtt') }}
+              </label>
+              <p class="text-lg font-extrabold text-amber-600 dark:text-amber-400">
+                {{ formatRtt(rttStats.max) }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Lock Sessions -->
       <div class="card">
         <div class="px-6 py-4 border-b border-border">
@@ -305,7 +352,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, RefreshCw, Loader2, Eye } from 'lucide-vue-next'
+import { ArrowLeft, RefreshCw, Loader2, Eye, Wifi } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
 import { logger } from '@/utils/logger'
@@ -315,6 +362,7 @@ import type {
   ConsulHealthCheck,
   ConsulHealthStatus,
   ConsulSession,
+  ConsulCoordinate,
 } from '@/types/consul'
 
 const { t } = useI18n()
@@ -327,6 +375,7 @@ const nodeName = computed(() => (route.params.name as string) || '')
 const nodeData = ref<{ Node: ConsulNode; Services: Record<string, ConsulServiceNode> } | null>(null)
 const nodeHealthChecks = ref<ConsulHealthCheck[]>([])
 const nodeSessions = ref<ConsulSession[]>([])
+const rttStats = ref<{ min: number; median: number; max: number } | null>(null)
 
 // Computed
 const serviceList = computed(() => {
@@ -362,6 +411,56 @@ const statusBadgeClass = (status: ConsulHealthStatus) => {
   }
 }
 
+// Vivaldi coordinate distance formula
+function computeRtt(a: ConsulCoordinate['Coord'], b: ConsulCoordinate['Coord']): number {
+  let sumsq = 0
+  const len = Math.min(a.Vec.length, b.Vec.length)
+  for (let i = 0; i < len; i++) {
+    const diff = (a.Vec[i] ?? 0) - (b.Vec[i] ?? 0)
+    sumsq += diff * diff
+  }
+  const dist = Math.sqrt(sumsq) + a.Height + b.Height
+  const adjusted = dist + a.Adjustment + b.Adjustment
+  return Math.max(adjusted, 0)
+}
+
+const fetchNodeCoordinates = async () => {
+  try {
+    const response = await consulApi.getCoordinateNodes()
+    const coords: ConsulCoordinate[] = response.data || []
+    const thisNode = coords.find((c) => c.Node === nodeName.value)
+    if (!thisNode || coords.length < 2) {
+      rttStats.value = null
+      return
+    }
+    const rtts: number[] = []
+    for (const other of coords) {
+      if (other.Node === nodeName.value) continue
+      const rtt = computeRtt(thisNode.Coord, other.Coord)
+      rtts.push(rtt)
+    }
+    if (rtts.length === 0) {
+      rttStats.value = null
+      return
+    }
+    rtts.sort((a, b) => a - b)
+    const mid = Math.floor(rtts.length / 2)
+    rttStats.value = {
+      min: rtts[0]!,
+      median: rtts.length % 2 !== 0 ? rtts[mid]! : (rtts[mid - 1]! + rtts[mid]!) / 2,
+      max: rtts[rtts.length - 1]!,
+    }
+  } catch {
+    rttStats.value = null
+  }
+}
+
+function formatRtt(seconds: number): string {
+  if (seconds < 0.001) return `${(seconds * 1_000_000).toFixed(0)} µs`
+  if (seconds < 1) return `${(seconds * 1_000).toFixed(2)} ms`
+  return `${seconds.toFixed(3)} s`
+}
+
 const fetchNodeDetail = async () => {
   if (!nodeName.value) return
   loading.value = true
@@ -369,8 +468,8 @@ const fetchNodeDetail = async () => {
     const response = await consulApi.getCatalogNode(nodeName.value)
     nodeData.value = response.data
 
-    // Fetch health checks and sessions for this node
-    await Promise.all([fetchNodeHealthChecks(), fetchNodeSessions()])
+    // Fetch health checks, sessions, and coordinates for this node
+    await Promise.all([fetchNodeHealthChecks(), fetchNodeSessions(), fetchNodeCoordinates()])
   } catch (err) {
     logger.error('Failed to fetch node detail:', err)
   } finally {

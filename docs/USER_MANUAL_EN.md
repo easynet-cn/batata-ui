@@ -74,13 +74,13 @@ Compared to the traditional Java-based Nacos implementation, Batata offers signi
 
 ### 2.1 Server Requirements
 
-| Item             | Requirement                                          |
-| ---------------- | ---------------------------------------------------- |
-| Operating System | Linux (x86_64/aarch64), macOS, Windows               |
-| Memory           | Minimum 256MB, recommended 512MB+                    |
-| Disk             | Minimum 500MB available space                        |
-| Database         | MySQL 5.7+/8.0+ or PostgreSQL (cluster mode)         |
-| Network Ports    | 8848 (main server), 8081 (console), 9848/9849 (gRPC) |
+| Item             | Requirement                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------------------- |
+| Operating System | Linux (x86_64/aarch64), macOS, Windows                                                          |
+| Memory           | Minimum 256MB, recommended 512MB+                                                               |
+| Disk             | Minimum 500MB available space                                                                   |
+| Database         | MySQL 5.7+/8.0+ or PostgreSQL (cluster mode)                                                    |
+| Network Ports    | 8848 (main server), 8081 (console), 9848/9849 (gRPC), 8500 (Consul compat), 9080 (MCP Registry) |
 
 ### 2.2 Browser Requirements
 
@@ -106,8 +106,11 @@ Compared to the traditional Java-based Nacos implementation, Batata offers signi
 Standalone mode uses embedded RocksDB storage with no external database required, suitable for development and testing.
 
 ```bash
-# Start standalone mode
-./start-embedded.sh
+# Standalone mode (embedded storage) - recommended
+./scripts/startup.sh -m standalone -p embedded
+
+# Or use the legacy script
+./scripts/start-embedded.sh
 ```
 
 Access the console at: `http://localhost:8081`
@@ -125,25 +128,57 @@ Cluster mode requires an external database (MySQL or PostgreSQL) and supports hi
 # 192.168.1.2:8848
 # 192.168.1.3:8848
 
-# Start the server
-./start-server.sh
+# Cluster mode startup - recommended
+./scripts/startup.sh
+
+# With MySQL database
+./scripts/startup.sh --db.url=mysql://user:pass@localhost:3306/batata
+
+# Or use the legacy script
+./scripts/start-server.sh
 ```
 
 ### 3.3 Separated Deployment
 
 ```bash
-# Start the backend main server (port 8848)
-./start-server.sh
+# Start Server only (no console) - recommended
+./scripts/startup.sh -d server
 
-# Start the console server (port 8081, connecting to remote main server)
-./start-console.sh
+# Start Console only (connects to remote Server)
+./scripts/startup.sh -d console
+
+# Server + MCP Registry
+./scripts/startup.sh -d serverWithMcp
+
+# Or use the legacy scripts
+./scripts/start-server.sh
+./scripts/start-console.sh
 ```
 
 ### 3.4 Docker Deployment
 
 ```bash
-# Start with Docker Compose
-docker-compose up -d
+# Embedded mode (no database required)
+docker compose up batata
+
+# With MySQL
+docker compose --profile mysql up
+
+# With PostgreSQL
+docker compose --profile postgres up
+
+# Full monitoring stack (with Prometheus + Grafana)
+docker compose --profile mysql --profile monitoring up
+```
+
+**Stop services:**
+
+```bash
+# Using the shutdown script
+./scripts/shutdown.sh
+
+# Or using Docker Compose
+docker compose down
 ```
 
 ### 3.5 Admin Initialization
@@ -335,11 +370,14 @@ Clone selected configurations to another namespace, ideal for cross-environment 
 
 **Path:** Sidebar > Configuration Management > Configuration Sync
 
-Synchronize configurations across multiple environments:
+Cross-environment configuration synchronization, supporting syncing configurations from the current environment to target environments:
 
-- Select target environment
-- Choose configurations to sync
-- View sync status and history
+- **Target Environment Management**: Configure `batata.sync.targets` in `application.yml` to specify target environment addresses
+- **Sync Policies**:
+  - **Skip** (SKIP): Do not overwrite configurations that already exist on the target
+  - **Overwrite** (OVERWRITE): Force overwrite target configurations
+  - **Abort** (ABORT): Abort synchronization when conflicts are encountered
+- **Sync History**: View historical sync records and results
 
 ---
 
@@ -677,20 +715,29 @@ Monitor cross-datacenter data synchronization progress and status.
 
 **Path:** Sidebar > Audit Logs
 
-### 14.1 Log Query
+Tracks all configuration change operations as an audit trail, based on configuration history records:
 
-Query operational audit records:
+### 14.1 Log Query
 
 **Filter Criteria:**
 
-- **Resource Type**: CONFIG, SERVICE, INSTANCE, NAMESPACE, USER, ROLE, PERMISSION, etc.
-- **Operation Type**: CREATE, UPDATE, DELETE, QUERY, LOGIN, LOGOUT, PUBLISH, ROLLBACK, IMPORT, EXPORT, CLONE
+- **Operation Type**: CREATE, UPDATE, DELETE
+- **Operator**: Search by username
 - **Time Range**: Custom start and end time
-- **Result**: Success / Failure
+- **Pagination**: Customizable items per page
 
 ### 14.2 Log Details
 
-View detailed information for individual audit records including operator, timestamp, resource identifier, and change details.
+View detailed information for individual audit records:
+
+- Operator and source IP
+- Affected resource (group/dataId)
+- Operation timestamp
+- Change type
+
+### 14.3 Audit Statistics
+
+Displays an operation statistics overview: total operations, today's operations, and configuration change count.
 
 ---
 
@@ -698,25 +745,36 @@ View detailed information for individual audit records including operator, times
 
 **Path:** Sidebar > Tracing
 
-### 15.1 Trace Query
+Provides distributed tracing integration capabilities. Batata exports trace data to external tracing systems via the OpenTelemetry (OTLP) protocol.
 
-Distributed tracing capabilities:
+### 15.1 Configure Tracing
 
-- **Trace ID Search**: Query complete call chains by trace ID
-- **Operation Filter**: Filter by operation type
-- **Time Range**: Custom query time range
+Enable OpenTelemetry in `application.yml`:
 
-### 15.2 Service Dependencies
+```yaml
+batata:
+  otel:
+    enabled: true
+    exporter:
+      otlp:
+        endpoint: http://jaeger:4317
+    service:
+      name: batata-server
+```
 
-Visualize inter-service call dependency relationships.
+### 15.2 Trace Query
 
-### 15.3 Span Timeline
+When OTLP is configured, the page displays tracing backend information and connection status. For full trace data, query the tracing backend such as Jaeger or Tempo.
 
-View request phase durations in a timeline format.
+### 15.3 Service Dependencies
+
+Visualize inter-service call dependency relationships (requires tracing backend support).
 
 ---
 
 ## 16. Plugin Management
+
+> **Note:** Following the Nacos 3.x architecture direction, plugin management is implemented through the built-in SPI mechanism and does not provide a runtime hot-loading interface. Plugins are registered at compile time.
 
 **Path:** Sidebar > Plugin Management
 

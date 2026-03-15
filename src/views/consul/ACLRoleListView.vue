@@ -142,6 +142,68 @@
             </p>
           </div>
         </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('serviceIdentities') }}
+          </label>
+          <div class="space-y-2 border border-border rounded-xl p-3">
+            <div v-for="(si, idx) in serviceIdentities" :key="idx" class="flex items-center gap-2">
+              <input
+                v-model="si.ServiceName"
+                type="text"
+                class="input flex-1"
+                :placeholder="t('serviceIdentityName')"
+              />
+              <button
+                @click="serviceIdentities.splice(idx, 1)"
+                class="btn btn-ghost btn-sm text-danger"
+              >
+                <Trash2 class="w-3 h-3" />
+              </button>
+            </div>
+            <button
+              @click="serviceIdentities.push({ ServiceName: '' })"
+              class="btn btn-ghost btn-sm text-primary"
+            >
+              <Plus class="w-3 h-3" />
+              {{ t('addServiceIdentity') }}
+            </button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('nodeIdentities') }}
+          </label>
+          <div class="space-y-2 border border-border rounded-xl p-3">
+            <div v-for="(ni, idx) in nodeIdentities" :key="idx" class="flex items-center gap-2">
+              <input
+                v-model="ni.NodeName"
+                type="text"
+                class="input flex-1"
+                :placeholder="t('nodeIdentityName')"
+              />
+              <input
+                v-model="ni.Datacenter"
+                type="text"
+                class="input w-32"
+                :placeholder="t('nodeIdentityDc')"
+              />
+              <button
+                @click="nodeIdentities.splice(idx, 1)"
+                class="btn btn-ghost btn-sm text-danger"
+              >
+                <Trash2 class="w-3 h-3" />
+              </button>
+            </div>
+            <button
+              @click="nodeIdentities.push({ NodeName: '', Datacenter: '' })"
+              class="btn btn-ghost btn-sm text-primary"
+            >
+              <Plus class="w-3 h-3" />
+              {{ t('addNodeIdentity') }}
+            </button>
+          </div>
+        </div>
       </div>
     </FormModal>
 
@@ -188,6 +250,8 @@ const editingRole = ref<ConsulACLRole | null>(null)
 const roleToDelete = ref<ConsulACLRole | null>(null)
 const selectedPolicyIds = ref<string[]>([])
 const availablePolicies = ref<{ ID: string; Name: string; Description: string }[]>([])
+const serviceIdentities = ref<Array<{ ServiceName: string }>>([])
+const nodeIdentities = ref<Array<{ NodeName: string; Datacenter: string }>>([])
 
 const createForm = reactive({
   Name: '',
@@ -210,6 +274,8 @@ async function openCreateModal() {
   createForm.Name = ''
   createForm.Description = ''
   selectedPolicyIds.value = []
+  serviceIdentities.value = []
+  nodeIdentities.value = []
   showCreateModal.value = true
   // Load available policies for the selector
   try {
@@ -233,6 +299,13 @@ async function handleEdit(role: ConsulACLRole) {
     createForm.Name = fullRole.Name
     createForm.Description = fullRole.Description || ''
     selectedPolicyIds.value = (fullRole.Policies || []).map((p) => p.ID)
+    serviceIdentities.value = (fullRole.ServiceIdentities || []).map((si) => ({
+      ServiceName: si.ServiceName,
+    }))
+    nodeIdentities.value = (fullRole.NodeIdentities || []).map((ni) => ({
+      NodeName: ni.NodeName,
+      Datacenter: ni.Datacenter,
+    }))
     // Load available policies for the selector
     await store.fetchACLPolicies()
     availablePolicies.value = store.aclPolicies.map((p) => ({
@@ -260,18 +333,25 @@ async function submitCreate() {
       return { ID: id, Name: found?.Name || '' }
     })
 
+    const si = serviceIdentities.value
+      .filter((s) => s.ServiceName.trim())
+      .map((s) => ({ ServiceName: s.ServiceName.trim() }))
+    const ni = nodeIdentities.value
+      .filter((n) => n.NodeName.trim())
+      .map((n) => ({ NodeName: n.NodeName.trim(), Datacenter: n.Datacenter.trim() }))
+
+    const payload = {
+      Name: createForm.Name,
+      Description: createForm.Description,
+      Policies: policies,
+      ServiceIdentities: si.length > 0 ? si : undefined,
+      NodeIdentities: ni.length > 0 ? ni : undefined,
+    }
+
     if (isEditing.value && editingRole.value) {
-      await consulApi.updateACLRole(editingRole.value.ID, {
-        Name: createForm.Name,
-        Description: createForm.Description,
-        Policies: policies,
-      })
+      await consulApi.updateACLRole(editingRole.value.ID, payload)
     } else {
-      await consulApi.createACLRole({
-        Name: createForm.Name,
-        Description: createForm.Description,
-        Policies: policies,
-      })
+      await consulApi.createACLRole(payload)
     }
     showCreateModal.value = false
     toast.success(t('success'))

@@ -479,3 +479,18 @@ export interface ConsulServiceUsage {
 export interface ConsulOperatorUsage {
   Usage: Record<string, ConsulServiceUsage>
 }
+
+// ============================================
+// Consul Coordinate Types
+// ============================================
+
+export interface ConsulCoordinate {
+  Node: string
+  Segment?: string
+  Coord: {
+    Adjustment: number
+    Error: number
+    Height: number
+    Vec: number[]
+  }
+}

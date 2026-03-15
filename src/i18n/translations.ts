@@ -1048,6 +1048,40 @@ export const translations = {
     registryUrl: 'Registry URL',
     registrySearchPlaceholder: 'Search MCP servers in registry...',
 
+    // Consul Datacenter Selector
+    consulSelectDatacenter: 'Select Datacenter',
+    consulAllDatacenters: 'All Datacenters',
+    consulPrimaryDc: 'Primary',
+    consulLocalDc: 'Local',
+
+    // Consul Intention HTTP Headers
+    httpHeaders: 'HTTP Headers',
+    addHeader: 'Add Header',
+    headerName: 'Header Name',
+    headerMatchType: 'Match Type',
+    headerValue: 'Value',
+    headerInvert: 'Invert',
+    headerMatchExact: 'Exact',
+    headerMatchPrefix: 'Prefix',
+    headerMatchSuffix: 'Suffix',
+    headerMatchContains: 'Contains',
+    headerMatchRegex: 'Regex',
+    headerMatchPresent: 'Present',
+
+    // Consul Service Detail Tabs
+    consulServiceTags: 'Tags',
+    consulUpstreamServices: 'Upstream Services',
+    consulServiceIntentions: 'Intentions',
+    consulRelatedIntentions: 'Related Intentions',
+    consulNoRelatedIntentions: 'No related intentions for this service',
+
+    // Consul Node RTT
+    consulRtt: 'Network Latency (RTT)',
+    consulMinRtt: 'Min RTT',
+    consulMedianRtt: 'Median RTT',
+    consulMaxRtt: 'Max RTT',
+    consulNoCoordinateData: 'No coordinate data available',
+
     // 404 Not Found
     notFoundTitle: 'Page Not Found',
     notFoundDescription: 'The page you are looking for does not exist or has been moved.',
@@ -2100,6 +2134,40 @@ export const translations = {
     importFromRegistry: '从注册表导入',
     registryUrl: '注册表地址',
     registrySearchPlaceholder: '在注册表中搜索 MCP 服务器...',
+
+    // Consul Datacenter Selector
+    consulSelectDatacenter: '选择数据中心',
+    consulAllDatacenters: '所有数据中心',
+    consulPrimaryDc: '主数据中心',
+    consulLocalDc: '本地',
+
+    // Consul Intention HTTP Headers
+    httpHeaders: 'HTTP 头匹配',
+    addHeader: '添加头',
+    headerName: '头名称',
+    headerMatchType: '匹配类型',
+    headerValue: '值',
+    headerInvert: '反转',
+    headerMatchExact: '精确匹配',
+    headerMatchPrefix: '前缀匹配',
+    headerMatchSuffix: '后缀匹配',
+    headerMatchContains: '包含',
+    headerMatchRegex: '正则匹配',
+    headerMatchPresent: '存在',
+
+    // Consul Service Detail Tabs
+    consulServiceTags: '标签',
+    consulUpstreamServices: '上游服务',
+    consulServiceIntentions: '意图',
+    consulRelatedIntentions: '相关意图',
+    consulNoRelatedIntentions: '此服务没有相关意图',
+
+    // Consul Node RTT
+    consulRtt: '网络延迟 (RTT)',
+    consulMinRtt: '最小 RTT',
+    consulMedianRtt: '中位 RTT',
+    consulMaxRtt: '最大 RTT',
+    consulNoCoordinateData: '无坐标数据',
 
     // 404 Not Found
     notFoundTitle: '页面未找到',
