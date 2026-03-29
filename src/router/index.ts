@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import { useBatataStore } from '@/stores/batata'
+import { useAuthStore } from '@/stores/auth'
 import BatataLayout from '@/layout/BatataLayout.vue'
 import { storage } from '@/composables/useStorage'
 import type { ProviderType } from '@/types'
@@ -55,6 +55,18 @@ const nacosChildren: RouteRecordRaw[] = [
     name: 'config-sync',
     component: () => import('../views/config/ConfigSyncView.vue'),
     meta: { titleKey: 'routeConfigSync' },
+  },
+  {
+    path: 'config/history/detail',
+    name: 'config-history-detail',
+    component: () => import('../views/config/ConfigHistoryDetailView.vue'),
+    meta: { titleKey: 'routeConfigHistoryDetail' },
+  },
+  {
+    path: 'config/rollback',
+    name: 'config-rollback',
+    component: () => import('../views/config/ConfigRollbackView.vue'),
+    meta: { titleKey: 'routeConfigRollback' },
   },
   // Service Management
   {
@@ -151,6 +163,69 @@ const nacosChildren: RouteRecordRaw[] = [
     component: () => import('../views/ai/AgentEditorView.vue'),
     meta: { titleKey: 'routeEditAgent' },
   },
+  {
+    path: 'agent/detail',
+    name: 'agent-detail',
+    component: () => import('../views/ai/AgentDetailView.vue'),
+    meta: { titleKey: 'routeAgentDetail' },
+  },
+  // Skill Management
+  {
+    path: 'skills',
+    name: 'skills',
+    component: () => import('../views/ai/SkillListView.vue'),
+    meta: { titleKey: 'routeSkills' },
+  },
+  {
+    path: 'skill/new',
+    name: 'skill-new',
+    component: () => import('../views/ai/SkillEditorView.vue'),
+    meta: { titleKey: 'routeNewSkill' },
+  },
+  {
+    path: 'skill/detail',
+    name: 'skill-detail',
+    component: () => import('../views/ai/SkillDetailView.vue'),
+    meta: { titleKey: 'routeSkillDetail' },
+  },
+  // AgentSpec Management
+  {
+    path: 'agentspecs',
+    name: 'agentspecs',
+    component: () => import('../views/ai/AgentSpecListView.vue'),
+    meta: { titleKey: 'routeAgentSpecs' },
+  },
+  {
+    path: 'agentspec/new',
+    name: 'agentspec-new',
+    component: () => import('../views/ai/AgentSpecEditorView.vue'),
+    meta: { titleKey: 'routeNewAgentSpec' },
+  },
+  {
+    path: 'agentspec/detail',
+    name: 'agentspec-detail',
+    component: () => import('../views/ai/AgentSpecDetailView.vue'),
+    meta: { titleKey: 'routeAgentSpecDetail' },
+  },
+  // Prompt Management
+  {
+    path: 'prompts',
+    name: 'prompts',
+    component: () => import('../views/ai/PromptListView.vue'),
+    meta: { titleKey: 'routePrompts' },
+  },
+  {
+    path: 'prompt/new',
+    name: 'prompt-new',
+    component: () => import('../views/ai/PromptEditorView.vue'),
+    meta: { titleKey: 'routeNewPrompt' },
+  },
+  {
+    path: 'prompt/detail',
+    name: 'prompt-detail',
+    component: () => import('../views/ai/PromptDetailView.vue'),
+    meta: { titleKey: 'routePromptDetail' },
+  },
   // Multi-datacenter
   {
     path: 'datacenters',
@@ -185,6 +260,13 @@ const nacosChildren: RouteRecordRaw[] = [
     name: 'settings',
     component: () => import('../views/settings/SettingsView.vue'),
     meta: { titleKey: 'routeSettings' },
+  },
+  // Copilot Settings
+  {
+    path: 'copilot-settings',
+    name: 'copilotSettings',
+    component: () => import('../views/settings/CopilotSettingsView.vue'),
+    meta: { titleKey: 'routeCopilotSettings' },
   },
 ]
 
@@ -438,24 +520,22 @@ export function switchProviderRoutes(provider: ProviderType) {
 
 // Auth guard
 router.beforeEach((to, _from, next) => {
-  const batataStore = useBatataStore()
+  const authStore = useAuthStore()
 
   // Restore user session from localStorage if not already in store
-  batataStore.restoreSession()
+  authStore.restoreSession()
 
   // Auto-switch provider based on path for direct links
   const provider = storage.get('batata_provider') || 'batata'
   const normalizedProvider = provider === 'null' || !provider ? 'batata' : (provider as string)
 
   if (to.path.startsWith('/consul') && normalizedProvider !== 'consul') {
-    // Switch to consul routes and continue
     switchProviderRoutes('consul')
   }
 
-  if (to.meta.requiresAuth !== false && !batataStore.isAuthenticated) {
+  if (to.meta.requiresAuth !== false && !authStore.isAuthenticated) {
     next('/login')
-  } else if (to.path === '/login' && batataStore.isAuthenticated) {
-    // Redirect to appropriate dashboard based on provider
+  } else if (to.path === '/login' && authStore.isAuthenticated) {
     switch (normalizedProvider) {
       case 'consul':
         next('/consul/dashboard')

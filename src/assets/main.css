@@ -464,4 +464,41 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Flex center shorthand */
+  .flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Card grid layout for list views */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 768px) {
+    .card-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .card-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  /* Loading skeleton */
+  .loading-skeleton {
+    @apply bg-gray-200 rounded animate-pulse;
+    @apply dark:bg-gray-800;
+  }
+
+  /* Empty state container */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-12 text-center text-text-secondary;
+  }
 }

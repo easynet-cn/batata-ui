@@ -11,6 +11,7 @@ declare global {
   const EffectScope: typeof import('vue').EffectScope
   const NetworkError: typeof import('./utils/error').NetworkError
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
+  const buildSSEUrl: typeof import('./utils/sse').buildSSEUrl
   const computed: typeof import('vue').computed
   const createApp: typeof import('vue').createApp
   const createPinia: typeof import('pinia').createPinia
@@ -21,6 +22,7 @@ declare global {
   const defineStore: typeof import('pinia').defineStore
   const effectScope: typeof import('vue').effectScope
   const encodeBase64: typeof import('./utils/base64').encodeBase64
+  const filterSkillMdFromResources: typeof import('./utils/sse').filterSkillMdFromResources
   const formatContent: typeof import('./utils/formatters').formatContent
   const formatDateTime: typeof import('./utils/date').formatDateTime
   const formatTimestamp: typeof import('./utils/date').formatTimestamp
@@ -64,6 +66,7 @@ declare global {
   const onUnmounted: typeof import('vue').onUnmounted
   const onUpdated: typeof import('vue').onUpdated
   const onWatcherCleanup: typeof import('vue').onWatcherCleanup
+  const parseJsonFromContent: typeof import('./utils/sse').parseJsonFromContent
   const provide: typeof import('vue').provide
   const reactive: typeof import('vue').reactive
   const readonly: typeof import('vue').readonly
@@ -75,6 +78,7 @@ declare global {
   const shallowReactive: typeof import('vue').shallowReactive
   const shallowReadonly: typeof import('vue').shallowReadonly
   const shallowRef: typeof import('vue').shallowRef
+  const startSSEStream: typeof import('./utils/sse').startSSEStream
   const storeToRefs: typeof import('pinia').storeToRefs
   const toRaw: typeof import('vue').toRaw
   const toRef: typeof import('vue').toRef
@@ -131,6 +135,9 @@ declare global {
   // @ts-ignore
   export type { FormatResult, ValidateResult } from './utils/formatters'
   import('./utils/formatters')
+  // @ts-ignore
+  export type { SSEStreamOptions, SSEStreamHandle } from './utils/sse'
+  import('./utils/sse')
 }
 
 // for vue template auto import
@@ -143,6 +150,7 @@ declare module 'vue' {
     readonly EffectScope: UnwrapRef<(typeof import('vue'))['EffectScope']>
     readonly NetworkError: UnwrapRef<(typeof import('./utils/error'))['NetworkError']>
     readonly acceptHMRUpdate: UnwrapRef<(typeof import('pinia'))['acceptHMRUpdate']>
+    readonly buildSSEUrl: UnwrapRef<(typeof import('./utils/sse'))['buildSSEUrl']>
     readonly computed: UnwrapRef<(typeof import('vue'))['computed']>
     readonly createApp: UnwrapRef<(typeof import('vue'))['createApp']>
     readonly createPinia: UnwrapRef<(typeof import('pinia'))['createPinia']>
@@ -153,6 +161,9 @@ declare module 'vue' {
     readonly defineStore: UnwrapRef<(typeof import('pinia'))['defineStore']>
     readonly effectScope: UnwrapRef<(typeof import('vue'))['effectScope']>
     readonly encodeBase64: UnwrapRef<(typeof import('./utils/base64'))['encodeBase64']>
+    readonly filterSkillMdFromResources: UnwrapRef<
+      (typeof import('./utils/sse'))['filterSkillMdFromResources']
+    >
     readonly formatContent: UnwrapRef<(typeof import('./utils/formatters'))['formatContent']>
     readonly formatDateTime: UnwrapRef<(typeof import('./utils/date'))['formatDateTime']>
     readonly formatTimestamp: UnwrapRef<(typeof import('./utils/date'))['formatTimestamp']>
@@ -196,6 +207,7 @@ declare module 'vue' {
     readonly onUnmounted: UnwrapRef<(typeof import('vue'))['onUnmounted']>
     readonly onUpdated: UnwrapRef<(typeof import('vue'))['onUpdated']>
     readonly onWatcherCleanup: UnwrapRef<(typeof import('vue'))['onWatcherCleanup']>
+    readonly parseJsonFromContent: UnwrapRef<(typeof import('./utils/sse'))['parseJsonFromContent']>
     readonly provide: UnwrapRef<(typeof import('vue'))['provide']>
     readonly reactive: UnwrapRef<(typeof import('vue'))['reactive']>
     readonly readonly: UnwrapRef<(typeof import('vue'))['readonly']>
@@ -209,6 +221,7 @@ declare module 'vue' {
     readonly shallowReactive: UnwrapRef<(typeof import('vue'))['shallowReactive']>
     readonly shallowReadonly: UnwrapRef<(typeof import('vue'))['shallowReadonly']>
     readonly shallowRef: UnwrapRef<(typeof import('vue'))['shallowRef']>
+    readonly startSSEStream: UnwrapRef<(typeof import('./utils/sse'))['startSSEStream']>
     readonly storeToRefs: UnwrapRef<(typeof import('pinia'))['storeToRefs']>
     readonly toRaw: UnwrapRef<(typeof import('vue'))['toRaw']>
     readonly toRef: UnwrapRef<(typeof import('vue'))['toRef']>

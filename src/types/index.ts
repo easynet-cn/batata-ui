@@ -474,3 +474,210 @@ export interface SyncHistory {
   status: 'success' | 'failed' | 'running'
   error?: string
 }
+
+// ============================================
+// Skill Types
+// ============================================
+
+export type SkillVersionStatus = 'draft' | 'reviewing' | 'online' | 'offline'
+
+export interface SkillListItem {
+  namespaceId: string
+  name: string
+  description: string
+  enable: boolean
+  scope: string
+  bizTags: string
+  from: string
+  labels: Record<string, string>
+  editingVersion: string | null
+  reviewingVersion: string | null
+  onlineCnt: number
+  updateTime: number
+  downloadCount: number
+}
+
+export interface SkillVersionSummary {
+  version: string
+  status: SkillVersionStatus
+  author: string
+  description: string
+  createTime: number
+  updateTime: number
+  publishPipelineInfo: string | null
+  downloadCount: number
+}
+
+export interface SkillResource {
+  name: string
+  type: string
+  content: string
+  metadata: Record<string, unknown> | null
+}
+
+export interface SkillDocument {
+  namespaceId: string
+  name: string
+  description: string
+  skillMd: string
+  resource: Record<string, SkillResource>
+}
+
+export interface SkillAdminDetail {
+  enable: boolean
+  scope: string
+  bizTags: string
+  from: string
+  editingVersion: string | null
+  reviewingVersion: string | null
+  labels: Record<string, string>
+  onlineCnt: number
+  updateTime: number
+  versions: SkillVersionSummary[]
+  downloadCount: number
+}
+
+// Pipeline types (shared by Skill and AgentSpec)
+
+export type PipelineExecutionStatus = 'IN_PROGRESS' | 'APPROVED' | 'REJECTED'
+
+export interface PipelineCheckpoint {
+  title: string
+  passed: boolean
+}
+
+export interface PipelineNode {
+  nodeId: string
+  executedAt?: string
+  passed: boolean
+  message?: string
+  messageType?: string
+  checkpoints?: PipelineCheckpoint[]
+  durationMs?: number
+}
+
+export interface PublishPipelineInfo {
+  executionId: string
+  status: PipelineExecutionStatus
+  pipeline: PipelineNode[]
+}
+
+// ============================================
+// AgentSpec Types
+// ============================================
+
+export type AgentSpecVersionStatus = 'draft' | 'reviewing' | 'online' | 'offline'
+
+export interface AgentSpecListItem {
+  namespaceId: string
+  name: string
+  description: string
+  enable: boolean
+  scope: string
+  bizTags: string
+  from: string
+  labels: Record<string, string>
+  editingVersion: string | null
+  reviewingVersion: string | null
+  onlineCnt: number
+  updateTime: number
+  downloadCount: number
+}
+
+export interface AgentSpecVersionSummary {
+  version: string
+  status: AgentSpecVersionStatus
+  author: string
+  description: string
+  createTime: number
+  updateTime: number
+  publishPipelineInfo: string | null
+  downloadCount: number
+}
+
+export interface AgentSpecResource {
+  name: string
+  type: string
+  content: string
+  metadata: Record<string, unknown> | null
+}
+
+export interface AgentSpecDocument {
+  namespaceId: string
+  name: string
+  description: string
+  content: string
+  resource: Record<string, AgentSpecResource>
+}
+
+export interface AgentSpecDetail {
+  enable: boolean
+  scope: string
+  bizTags: string
+  from: string
+  editingVersion: string | null
+  reviewingVersion: string | null
+  labels: Record<string, string>
+  onlineCnt: number
+  updateTime: number
+  versions: AgentSpecVersionSummary[]
+  downloadCount: number
+}
+
+// ============================================
+// Prompt Types
+// ============================================
+
+export type PromptSearchMode = 'accurate' | 'blur'
+
+export interface PromptVariable {
+  name: string
+  defaultValue: string
+  description: string
+}
+
+export interface PromptMetaSummary {
+  schemaVersion: number
+  promptKey: string
+  description: string
+  bizTags: string[]
+  latestVersion: string
+  gmtModified: number
+}
+
+export interface PromptMetaInfo extends PromptMetaSummary {
+  versions: string[]
+  labels: Record<string, string>
+}
+
+export interface PromptVersionSummary {
+  promptKey: string
+  version: string
+  commitMsg: string
+  srcUser: string
+  gmtModified: number
+}
+
+export interface PromptVersionInfo extends PromptVersionSummary {
+  template: string
+  md5: string
+  variables: PromptVariable[]
+}
+
+export interface PromptPublishData {
+  promptKey: string
+  version: string
+  template: string
+  commitMsg?: string
+  description?: string
+  bizTags?: string
+  variables?: string
+  namespaceId?: string
+}
+
+export interface PromptLabelBindData {
+  promptKey: string
+  label: string
+  version: string
+  namespaceId?: string
+}

@@ -1,11 +1,17 @@
 <template>
   <Teleport to="body">
-    <div v-if="modelValue" class="modal-backdrop" @click="handleClose">
-      <div class="modal" @click.stop>
+    <div v-if="modelValue" class="modal-backdrop" @click="handleClose" role="presentation">
+      <div
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="'confirm-title'"
+        @click.stop
+      >
         <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ title }}</h3>
-          <button @click="handleClose" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
+          <h3 id="confirm-title" class="text-sm font-semibold text-text-primary">{{ title }}</h3>
+          <button @click="handleClose" class="btn btn-ghost btn-sm" :aria-label="t('close')">
+            <X class="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </div>
         <div class="modal-body">

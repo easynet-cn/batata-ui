@@ -84,7 +84,7 @@ describe('batata store', () => {
       const result = await store.login('admin', 'password')
 
       expect(result).toBe(false)
-      expect(store.error).toBe('loginFailedGeneric')
+      expect(store.error).toBe('Login failed')
     })
   })
 

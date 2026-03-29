@@ -1,24 +1,28 @@
 <template>
-  <div class="flex items-center justify-between p-3 border-t border-border">
+  <nav class="flex items-center justify-between p-3 border-t border-border" aria-label="Pagination">
     <div class="text-xs text-text-secondary">{{ t('total') }}: {{ total }} {{ t('items') }}</div>
     <div class="flex items-center gap-1.5">
       <button
         @click="emit('change', currentPage - 1)"
         :disabled="currentPage <= 1"
         class="btn btn-secondary btn-sm"
+        aria-label="Previous page"
       >
-        <ChevronLeft class="w-3.5 h-3.5" />
+        <ChevronLeft class="w-3.5 h-3.5" aria-hidden="true" />
       </button>
-      <span class="text-xs text-text-primary px-2"> {{ currentPage }} / {{ totalPages }} </span>
+      <span class="text-xs text-text-primary px-2" aria-current="page">
+        {{ currentPage }} / {{ totalPages }}
+      </span>
       <button
         @click="emit('change', currentPage + 1)"
         :disabled="currentPage >= totalPages"
         class="btn btn-secondary btn-sm"
+        aria-label="Next page"
       >
-        <ChevronRight class="w-3.5 h-3.5" />
+        <ChevronRight class="w-3.5 h-3.5" aria-hidden="true" />
       </button>
     </div>
-  </div>
+  </nav>
 </template>
 
 <script setup lang="ts">

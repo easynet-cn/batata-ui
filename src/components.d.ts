@@ -18,9 +18,14 @@ declare module 'vue' {
     DiffEditor: typeof import('./components/common/DiffEditor.vue')['default']
     FilterBar: typeof import('./components/common/FilterBar.vue')['default']
     FormModal: typeof import('./components/common/FormModal.vue')['default']
+    McpToolSelector: typeof import('./components/ai/McpToolSelector.vue')['default']
+    PipelineStatusDisplay: typeof import('./components/ai/PipelineStatusDisplay.vue')['default']
+    PromptDebugPanel: typeof import('./components/ai/PromptDebugPanel.vue')['default']
+    PromptOptimizeDialog: typeof import('./components/ai/PromptOptimizeDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ShowCodeDialog: typeof import('./components/common/ShowCodeDialog.vue')['default']
+    SkillOptimizeDialog: typeof import('./components/ai/SkillOptimizeDialog.vue')['default']
     ToastMessage: typeof import('./components/feedback/ToastMessage.vue')['default']
   }
 }

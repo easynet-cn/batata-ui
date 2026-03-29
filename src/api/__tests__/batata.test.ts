@@ -297,7 +297,7 @@ describe('BatataApi', () => {
       await BatataApi.default.deleteConfig('test.yaml', 'DEFAULT_GROUP', 'public')
 
       expect(mockAxiosInstance.delete).toHaveBeenCalledWith('/cs/config', {
-        params: { dataId: 'test.yaml', groupName: 'DEFAULT_GROUP', tenant: 'public' },
+        params: { dataId: 'test.yaml', groupName: 'DEFAULT_GROUP', namespaceId: 'public' },
       })
     })
 

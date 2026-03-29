@@ -30,6 +30,18 @@ import type {
   SyncEnvironment,
   SyncHistory,
   SyncRequest,
+  SkillListItem,
+  SkillAdminDetail,
+  SkillDocument,
+  AgentSpecListItem,
+  AgentSpecDetail,
+  AgentSpecDocument,
+  PromptMetaSummary,
+  PromptMetaInfo,
+  PromptVersionInfo,
+  PromptVersionSummary,
+  PromptPublishData,
+  PromptLabelBindData,
 } from '@/types'
 import { config } from '@/config'
 import { ApiError, AuthError, NetworkError } from '@/utils/error'
@@ -348,9 +360,9 @@ class BatataApi {
     })
   }
 
-  async deleteConfig(dataId: string, groupName: string, tenant?: string) {
+  async deleteConfig(dataId: string, groupName: string, namespaceId?: string) {
     return this.instance.delete<BatataResponse>('/cs/config', {
-      params: { dataId, groupName, tenant },
+      params: { dataId, groupName, namespaceId },
     })
   }
 
@@ -1054,14 +1066,6 @@ class BatataApi {
     return this.instance.post<BatataResponse>('/sync/configs', data)
   }
 
-  async addSyncEnvironment(data: { name: string; endpoint: string; accessToken?: string }) {
-    return this.instance.post<BatataResponse>('/sync/environments', data)
-  }
-
-  async deleteSyncEnvironment(id: string) {
-    return this.instance.delete<BatataResponse>(`/sync/environments/${id}`)
-  }
-
   async getTraceList(params: {
     serviceName?: string
     operationName?: string
@@ -1079,6 +1083,420 @@ class BatataApi {
 
   async getTraceServices() {
     return this.instance.get<BatataResponse<string[]>>('/trace/services')
+  }
+
+  // ============================================
+  // Skill Management API (/v3/console/ai/skills)
+  // ============================================
+
+  async getSkillList(params?: {
+    pageNo?: number
+    pageSize?: number
+    namespaceId?: string
+    skillName?: string
+    search?: string
+    orderBy?: string
+  }) {
+    return this.instance.get<BatataResponse<PageResult<SkillListItem>>>('/ai/skills/list', {
+      params,
+    })
+  }
+
+  async getSkillDetail(namespaceId: string, skillName: string) {
+    return this.instance.get<BatataResponse<SkillAdminDetail>>('/ai/skills', {
+      params: { namespaceId, skillName },
+    })
+  }
+
+  async getSkillVersion(namespaceId: string, skillName: string, version: string) {
+    return this.instance.get<BatataResponse<SkillDocument>>('/ai/skills/version', {
+      params: { namespaceId, skillName, version },
+    })
+  }
+
+  async downloadSkillVersion(namespaceId: string, skillName: string, version: string) {
+    return this.instance.get<Blob>('/ai/skills/version/download', {
+      params: { namespaceId, skillName, version },
+      responseType: 'blob',
+    })
+  }
+
+  async uploadSkill(formData: FormData) {
+    return this.instance.post<BatataResponse<string>>('/ai/skills/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  }
+
+  async deleteSkill(namespaceId: string, skillName: string) {
+    return this.instance.delete<BatataResponse<string>>('/ai/skills', {
+      params: { namespaceId, skillName },
+    })
+  }
+
+  async createSkillDraft(data: {
+    namespaceId?: string
+    skillName: string
+    basedOnVersion?: string
+    targetVersion?: string
+    skillCard?: string
+  }) {
+    return this.instance.post<BatataResponse<string>>('/ai/skills/draft', data)
+  }
+
+  async updateSkillDraft(data: {
+    namespaceId?: string
+    skillCard: SkillDocument
+    setAsLatest?: boolean
+  }) {
+    return this.instance.put<BatataResponse<string>>('/ai/skills/draft', data)
+  }
+
+  async deleteSkillDraft(namespaceId: string, skillName: string) {
+    return this.instance.delete<BatataResponse<string>>('/ai/skills/draft', {
+      params: { namespaceId, skillName },
+    })
+  }
+
+  async submitSkill(namespaceId: string, skillName: string, version?: string) {
+    return this.instance.post<BatataResponse<string>>('/ai/skills/submit', null, {
+      params: { namespaceId, skillName, version },
+    })
+  }
+
+  async publishSkill(data: {
+    namespaceId?: string
+    skillName: string
+    version: string
+    updateLatestLabel?: boolean
+  }) {
+    return this.instance.post<BatataResponse<string>>('/ai/skills/publish', null, { params: data })
+  }
+
+  async updateSkillLabels(namespaceId: string, skillName: string, labels: Record<string, string>) {
+    return this.instance.put<BatataResponse<string>>(
+      '/ai/skills/labels',
+      { labels },
+      {
+        params: { namespaceId, skillName },
+      },
+    )
+  }
+
+  async updateSkillBizTags(namespaceId: string, skillName: string, bizTags: string) {
+    return this.instance.put<BatataResponse<string>>('/ai/skills/biz-tags', null, {
+      params: { namespaceId, skillName, bizTags },
+    })
+  }
+
+  async onlineSkill(params: {
+    namespaceId?: string
+    skillName: string
+    scope?: string
+    version?: string
+  }) {
+    return this.instance.post<BatataResponse<string>>('/ai/skills/online', null, { params })
+  }
+
+  async offlineSkill(params: {
+    namespaceId?: string
+    skillName: string
+    scope?: string
+    version?: string
+  }) {
+    return this.instance.post<BatataResponse<string>>('/ai/skills/offline', null, { params })
+  }
+
+  async updateSkillScope(namespaceId: string, skillName: string, scope: string) {
+    return this.instance.put<BatataResponse<string>>('/ai/skills/scope', null, {
+      params: { namespaceId, skillName, scope },
+    })
+  }
+
+  // ============================================
+  // AgentSpec Management API (/v3/console/ai/agentspecs)
+  // ============================================
+
+  async getAgentSpecList(params?: {
+    pageNo?: number
+    pageSize?: number
+    namespaceId?: string
+    agentSpecName?: string
+    search?: string
+  }) {
+    return this.instance.get<BatataResponse<PageResult<AgentSpecListItem>>>('/ai/agentspecs/list', {
+      params,
+    })
+  }
+
+  async getAgentSpecDetail(namespaceId: string, agentSpecName: string) {
+    return this.instance.get<BatataResponse<AgentSpecDetail>>('/ai/agentspecs', {
+      params: { namespaceId, agentSpecName },
+    })
+  }
+
+  async getAgentSpecVersion(namespaceId: string, agentSpecName: string, version: string) {
+    return this.instance.get<BatataResponse<AgentSpecDocument>>('/ai/agentspecs/version', {
+      params: { namespaceId, agentSpecName, version },
+    })
+  }
+
+  async deleteAgentSpec(namespaceId: string, agentSpecName: string) {
+    return this.instance.delete<BatataResponse<string>>('/ai/agentspecs', {
+      params: { namespaceId, agentSpecName },
+    })
+  }
+
+  async uploadAgentSpec(formData: FormData) {
+    return this.instance.post<BatataResponse<string>>('/ai/agentspecs/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  }
+
+  async createAgentSpecDraft(data: {
+    namespaceId?: string
+    agentSpecName: string
+    basedOnVersion?: string
+  }) {
+    return this.instance.post<BatataResponse<string>>('/ai/agentspecs/draft', null, {
+      params: data,
+    })
+  }
+
+  async updateAgentSpecDraft(data: {
+    namespaceId?: string
+    agentSpecCard: AgentSpecDocument
+    setAsLatest?: boolean
+  }) {
+    return this.instance.put<BatataResponse<string>>('/ai/agentspecs/draft', data)
+  }
+
+  async deleteAgentSpecDraft(namespaceId: string, agentSpecName: string) {
+    return this.instance.delete<BatataResponse<string>>('/ai/agentspecs/draft', {
+      params: { namespaceId, agentSpecName },
+    })
+  }
+
+  async submitAgentSpec(namespaceId: string, agentSpecName: string, version: string) {
+    return this.instance.post<BatataResponse<string>>('/ai/agentspecs/submit', null, {
+      params: { namespaceId, agentSpecName, version },
+    })
+  }
+
+  async publishAgentSpec(data: {
+    namespaceId?: string
+    agentSpecName: string
+    version: string
+    updateLatestLabel?: boolean
+  }) {
+    return this.instance.post<BatataResponse<string>>('/ai/agentspecs/publish', null, {
+      params: data,
+    })
+  }
+
+  async updateAgentSpecLabels(
+    namespaceId: string,
+    agentSpecName: string,
+    labels: Record<string, string>,
+  ) {
+    return this.instance.put<BatataResponse<string>>(
+      '/ai/agentspecs/labels',
+      { labels },
+      {
+        params: { namespaceId, agentSpecName },
+      },
+    )
+  }
+
+  async updateAgentSpecBizTags(namespaceId: string, agentSpecName: string, bizTags: string) {
+    return this.instance.put<BatataResponse<string>>('/ai/agentspecs/biz-tags', null, {
+      params: { namespaceId, agentSpecName, bizTags },
+    })
+  }
+
+  async updateAgentSpecScope(namespaceId: string, agentSpecName: string, scope: string) {
+    return this.instance.put<BatataResponse<string>>('/ai/agentspecs/scope', null, {
+      params: { namespaceId, agentSpecName, scope },
+    })
+  }
+
+  async onlineAgentSpec(params: {
+    namespaceId?: string
+    agentSpecName: string
+    scope?: string
+    version?: string
+  }) {
+    return this.instance.post<BatataResponse<string>>('/ai/agentspecs/online', null, { params })
+  }
+
+  async offlineAgentSpec(params: {
+    namespaceId?: string
+    agentSpecName: string
+    scope?: string
+    version?: string
+  }) {
+    return this.instance.post<BatataResponse<string>>('/ai/agentspecs/offline', null, { params })
+  }
+
+  // ============================================
+  // Prompt Management API (/v3/console/ai/prompt)
+  // ============================================
+
+  async getPromptList(params?: {
+    promptKey?: string
+    namespaceId?: string
+    search?: PromptMetaSummary extends { bizTags: string[] } ? 'accurate' | 'blur' : string
+    pageNo?: number
+    pageSize?: number
+  }) {
+    return this.instance.get<BatataResponse<PageResult<PromptMetaSummary>>>('/ai/prompt/list', {
+      params,
+    })
+  }
+
+  async getPromptMetadata(promptKey: string, namespaceId?: string) {
+    return this.instance.get<BatataResponse<PromptMetaInfo>>('/ai/prompt/metadata', {
+      params: { promptKey, namespaceId },
+    })
+  }
+
+  async getPromptDetail(params: {
+    promptKey: string
+    version?: string
+    label?: string
+    namespaceId?: string
+  }) {
+    return this.instance.get<BatataResponse<PromptVersionInfo>>('/ai/prompt/detail', { params })
+  }
+
+  async getPromptVersions(params: {
+    promptKey: string
+    namespaceId?: string
+    pageNo?: number
+    pageSize?: number
+  }) {
+    return this.instance.get<BatataResponse<PageResult<PromptVersionSummary>>>(
+      '/ai/prompt/versions',
+      { params },
+    )
+  }
+
+  async publishPrompt(data: PromptPublishData) {
+    const formData = new URLSearchParams()
+    formData.append('promptKey', data.promptKey)
+    formData.append('version', data.version)
+    formData.append('template', data.template)
+    if (data.commitMsg) formData.append('commitMsg', data.commitMsg)
+    if (data.description) formData.append('description', data.description)
+    if (data.bizTags) formData.append('bizTags', data.bizTags)
+    if (data.variables) formData.append('variables', data.variables)
+    if (data.namespaceId) formData.append('namespaceId', data.namespaceId)
+    return this.instance.post<BatataResponse<boolean>>('/ai/prompt', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
+  }
+
+  async updatePromptMetadata(data: {
+    promptKey: string
+    description?: string
+    bizTags?: string
+    namespaceId?: string
+  }) {
+    const formData = new URLSearchParams()
+    formData.append('promptKey', data.promptKey)
+    if (data.description) formData.append('description', data.description)
+    if (data.bizTags) formData.append('bizTags', data.bizTags)
+    if (data.namespaceId) formData.append('namespaceId', data.namespaceId)
+    return this.instance.put<BatataResponse<boolean>>('/ai/prompt/metadata', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
+  }
+
+  async bindPromptLabel(data: PromptLabelBindData) {
+    const formData = new URLSearchParams()
+    formData.append('promptKey', data.promptKey)
+    formData.append('label', data.label)
+    formData.append('version', data.version)
+    if (data.namespaceId) formData.append('namespaceId', data.namespaceId)
+    return this.instance.put<BatataResponse<boolean>>('/ai/prompt/label', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
+  }
+
+  async unbindPromptLabel(promptKey: string, label: string, namespaceId?: string) {
+    return this.instance.delete<BatataResponse<boolean>>('/ai/prompt/label', {
+      params: { promptKey, label, namespaceId },
+    })
+  }
+
+  async deletePrompt(promptKey: string, namespaceId?: string) {
+    return this.instance.delete<BatataResponse<boolean>>('/ai/prompt', {
+      params: { promptKey, namespaceId },
+    })
+  }
+
+  // ============================================
+  // Config History Detail API
+  // ============================================
+
+  async getConfigHistoryDetail(nid: string, dataId: string, groupName: string) {
+    return this.instance.get<BatataResponse<ConfigHistoryInfo>>('/cs/history', {
+      params: { nid, dataId, groupName },
+    })
+  }
+  // ============================================
+  // Copilot API
+  // ============================================
+
+  /**
+   * Get Copilot configuration
+   */
+  async getCopilotConfig() {
+    return this.instance.get<BatataResponse<import('@/types/copilot').CopilotConfig>>(
+      '/copilot/config',
+    )
+  }
+
+  /**
+   * Save Copilot configuration
+   */
+  async saveCopilotConfig(config: import('@/types/copilot').CopilotConfigUpdate) {
+    return this.instance.post<BatataResponse<boolean>>('/copilot/config', config)
+  }
+
+  // Note: Copilot streaming endpoints (skill/optimize, skill/generate,
+  // prompt/optimize, prompt/debug) use SSE via fetch API directly,
+  // not through axios. See @/utils/sse.ts for the streaming utility.
+  // Full paths:
+  //   POST /v3/console/copilot/skill/optimize  (SSE)
+  //   POST /v3/console/copilot/skill/generate  (SSE)
+  //   POST /v3/console/copilot/prompt/optimize (SSE)
+  //   POST /v3/console/copilot/prompt/debug    (SSE)
+
+  // ============================================
+  // Pipeline API
+  // ============================================
+
+  /**
+   * Get pipeline execution by ID
+   */
+  async getPipelineExecution(executionId: string) {
+    return this.instance.get<BatataResponse<import('@/types/copilot').StreamChunk>>(
+      `/ai/pipelines/${executionId}`,
+    )
+  }
+
+  /**
+   * List pipeline executions
+   */
+  async listPipelineExecutions(params: {
+    resourceType: string
+    resourceName?: string
+    namespaceId?: string
+    version?: string
+    pageNo?: number
+    pageSize?: number
+  }) {
+    return this.instance.get<BatataResponse<unknown>>('/ai/pipelines', { params })
   }
 }
 

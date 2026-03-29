@@ -24,7 +24,10 @@
         >
       </div>
 
-      <nav class="flex-1 py-4 px-3 space-y-6 overflow-y-auto scrollbar-hide">
+      <nav
+        class="flex-1 py-4 px-3 space-y-6 overflow-y-auto scrollbar-hide"
+        aria-label="Main navigation"
+      >
         <div
           v-if="!consoleUiEnabled"
           class="px-3 py-4 text-xs text-gray-400 dark:text-gray-500 text-center"
@@ -562,6 +565,9 @@ import {
   Zap,
   Wrench,
   KeyRound,
+  Sparkles,
+  MessageSquare,
+  Package,
 } from 'lucide-vue-next'
 import { useI18n, type Language } from '@/i18n'
 import type { Namespace } from '@/types'
@@ -885,12 +891,14 @@ const nacosNavGroups = computed(() => [
     ],
   },
   {
-    title: t('aiControl'),
-    items: [{ path: '/mcp', label: t('mcpServers'), icon: Cpu }],
-  },
-  {
-    title: t('agentManagement'),
-    items: [{ path: '/agents', label: t('agents'), icon: Bot }],
+    title: t('aiRegistry'),
+    items: [
+      { path: '/skills', label: t('skills'), icon: Sparkles },
+      { path: '/prompts', label: t('prompts'), icon: MessageSquare },
+      { path: '/agents', label: t('agents'), icon: Bot },
+      { path: '/agentspecs', label: t('agentSpecs'), icon: Package },
+      { path: '/mcp', label: t('mcpServers'), icon: Cpu },
+    ],
   },
   {
     title: t('pluginManagement'),
@@ -912,6 +920,7 @@ const nacosNavGroups = computed(() => [
       { path: '/datacenters', label: t('multiDatacenter'), icon: Globe2 },
       { path: '/tracing', label: t('tracing'), icon: Activity },
       { path: '/settings', label: t('settingCenter'), icon: Cog },
+      { path: '/copilot-settings', label: t('copilotSettings'), icon: Sparkles },
     ],
   },
 ])

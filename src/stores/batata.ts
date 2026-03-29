@@ -1,93 +1,86 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { ServiceInfo, ConfigInfo, Namespace, NodeInfo } from '@/types'
+import type { ServiceInfo, ConfigInfo, NodeInfo } from '@/types'
 import batataApi from '@/api/batata'
-import { config } from '@/config'
-import { storage } from '@/composables/useStorage'
 import { useI18n } from '@/i18n'
+import { useAuthStore } from './auth'
+import { useNamespaceStore } from './namespace'
 
 export const useBatataStore = defineStore('batata', () => {
   const { t } = useI18n()
-
-  // State
-  const loading = ref(false)
-  const error = ref<string | null>(null)
-  const currentUser = ref<{ username: string; token: string } | null>(null)
+  const authStore = useAuthStore()
+  const namespaceStore = useNamespaceStore()
 
   // Service state
   const services = ref<ServiceInfo[]>([])
   const serviceTotal = ref(0)
   const currentService = ref<ServiceInfo | null>(null)
+  const serviceLoading = ref(false)
 
   // Config state
   const configs = ref<ConfigInfo[]>([])
   const configTotal = ref(0)
   const currentConfig = ref<ConfigInfo | null>(null)
-
-  // Namespace state
-  const namespaces = ref<Namespace[]>([])
-  const currentNamespace = ref<string>('public')
+  const configLoading = ref(false)
 
   // Cluster state
   const clusterNodes = ref<NodeInfo[]>([])
+  const clusterLoading = ref(false)
 
-  // Computed
-  const isAuthenticated = computed(() => !!currentUser.value)
+  // Backward-compatible loading/error (delegates to auth store)
+  const loading = computed(
+    () => authStore.loading || serviceLoading.value || configLoading.value || clusterLoading.value,
+  )
+  const error = computed({
+    get: () => authStore.error,
+    set: (val) => {
+      authStore.error = val
+    },
+  })
+
+  // Backward-compatible delegates
+  const currentUser = computed(() => authStore.currentUser)
+  const isAuthenticated = computed(() => authStore.isAuthenticated)
+  const namespaces = computed(() => namespaceStore.namespaces)
+  const currentNamespace = computed({
+    get: () => namespaceStore.currentNamespace,
+    set: (val) => namespaceStore.selectNamespace(val),
+  })
+
   const healthyServicesCount = computed(
     () => services.value.filter((s) => s.healthyInstanceCount > 0).length,
   )
   const totalInstancesCount = computed(() => services.value.reduce((sum, s) => sum + s.ipCount, 0))
 
-  // Actions
-
-  /**
-   * Restore session from localStorage.
-   * Called once from the router guard — no other component should duplicate this.
-   */
-  function restoreSession(): boolean {
-    if (currentUser.value) return true
-
-    const savedUser = storage.getJSON<{ name: string }>(config.storage.userKey)
-    const savedToken = storage.get(config.storage.tokenKey)
-    if (savedUser?.name && savedToken) {
-      currentUser.value = { username: savedUser.name, token: savedToken }
-      return true
-    }
-    return false
+  // Delegate auth actions
+  function restoreSession() {
+    return authStore.restoreSession()
   }
-
   async function login(username: string, password: string) {
-    try {
-      loading.value = true
-      error.value = null
-
-      const response = await batataApi.login(username, password)
-      const { accessToken } = response.data
-
-      currentUser.value = { username, token: accessToken }
-      storage.set(config.storage.tokenKey, accessToken)
-      storage.set(config.storage.usernameKey, username)
-      storage.setJSON(config.storage.userKey, { name: username })
-
-      return true
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : t('loginFailedGeneric')
-      return false
-    } finally {
-      loading.value = false
-    }
+    return authStore.login(username, password)
   }
-
   function logout() {
-    currentUser.value = null
-    storage.remove(config.storage.tokenKey)
-    storage.remove(config.storage.usernameKey)
-    storage.remove(config.storage.userKey)
+    authStore.logout()
     services.value = []
     configs.value = []
-    namespaces.value = []
   }
 
+  // Delegate namespace actions
+  async function fetchNamespaces() {
+    return namespaceStore.fetchNamespaces()
+  }
+  async function createNamespace(data: {
+    namespaceId?: string
+    namespaceName: string
+    namespaceDesc?: string
+  }) {
+    return namespaceStore.createNamespace(data)
+  }
+  async function deleteNamespace(namespaceId: string) {
+    return namespaceStore.deleteNamespace(namespaceId)
+  }
+
+  // Service actions (with local loading)
   async function fetchServices(params?: {
     pageNo?: number
     pageSize?: number
@@ -95,10 +88,8 @@ export const useBatataStore = defineStore('batata', () => {
     serviceName?: string
     namespaceId?: string
   }) {
+    serviceLoading.value = true
     try {
-      loading.value = true
-      error.value = null
-
       const response = await batataApi.getServiceList({
         pageNo: params?.pageNo ?? 1,
         pageSize: params?.pageSize ?? 20,
@@ -109,129 +100,41 @@ export const useBatataStore = defineStore('batata', () => {
       })
       services.value = response.data.data.pageItems || []
       serviceTotal.value = response.data.data.totalCount || 0
-
       return response.data.data
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t('fetchServiceListFailed')
-      error.value = message
+      authStore.error = message
       throw err
     } finally {
-      loading.value = false
+      serviceLoading.value = false
     }
   }
 
   async function fetchServiceDetail(serviceName: string, groupName: string, namespaceId?: string) {
+    serviceLoading.value = true
     try {
-      loading.value = true
-      error.value = null
-
       const response = await batataApi.getServiceDetail(serviceName, groupName, namespaceId)
       return response.data.data
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t('fetchServiceDetailFailed')
-      error.value = message
+      authStore.error = message
       throw err
     } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchConfigs(params?: {
-    pageNo?: number
-    pageSize?: number
-    dataId?: string
-    group?: string
-    tenant?: string
-  }) {
-    try {
-      loading.value = true
-      error.value = null
-
-      const response = await batataApi.getConfigList({
-        pageNo: params?.pageNo ?? 1,
-        pageSize: params?.pageSize ?? 20,
-        dataId: params?.dataId,
-        groupName: params?.group,
-        namespaceId: params?.tenant,
-      })
-      configs.value = response.data.data.pageItems
-      configTotal.value = response.data.data.totalCount
-
-      return response.data.data
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : t('fetchConfigListFailed')
-      error.value = message
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchConfigContent(dataId: string, group: string, tenant?: string) {
-    try {
-      loading.value = true
-      error.value = null
-
-      const response = await batataApi.getConfig(dataId, group, tenant)
-      return response.data.data
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : t('fetchConfigContentFailed')
-      error.value = message
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchNamespaces() {
-    try {
-      loading.value = true
-      error.value = null
-
-      const response = await batataApi.getNamespaceList()
-      namespaces.value = response.data.data
-
-      return response.data.data
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : t('fetchNamespacesFailed')
-      error.value = message
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchClusterNodes() {
-    try {
-      loading.value = true
-      error.value = null
-
-      const response = await batataApi.getClusterNodes()
-      clusterNodes.value = response.data.data
-
-      return response.data.data
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : t('fetchClusterNodesFailed')
-      error.value = message
-      throw err
-    } finally {
-      loading.value = false
+      serviceLoading.value = false
     }
   }
 
   async function deleteService(serviceName: string, groupName: string, namespaceId?: string) {
+    serviceLoading.value = true
     try {
-      loading.value = true
-      error.value = null
-
       await batataApi.deleteService(serviceName, groupName, namespaceId)
       return true
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t('deleteServiceFailed')
-      error.value = message
+      authStore.error = message
       throw err
     } finally {
-      loading.value = false
+      serviceLoading.value = false
     }
   }
 
@@ -242,34 +145,73 @@ export const useBatataStore = defineStore('batata', () => {
     protectThreshold?: number
     metadata?: Record<string, string>
   }) {
+    serviceLoading.value = true
     try {
-      loading.value = true
-      error.value = null
-
       await batataApi.createService(data)
       return true
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t('createServiceFailed')
-      error.value = message
+      authStore.error = message
       throw err
     } finally {
-      loading.value = false
+      serviceLoading.value = false
     }
   }
 
-  async function deleteConfig(dataId: string, group: string, tenant?: string) {
+  // Config actions (with local loading)
+  async function fetchConfigs(params?: {
+    pageNo?: number
+    pageSize?: number
+    dataId?: string
+    group?: string
+    tenant?: string
+  }) {
+    configLoading.value = true
     try {
-      loading.value = true
-      error.value = null
+      const response = await batataApi.getConfigList({
+        pageNo: params?.pageNo ?? 1,
+        pageSize: params?.pageSize ?? 20,
+        dataId: params?.dataId,
+        groupName: params?.group,
+        namespaceId: params?.tenant,
+      })
+      configs.value = response.data.data.pageItems
+      configTotal.value = response.data.data.totalCount
+      return response.data.data
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t('fetchConfigListFailed')
+      authStore.error = message
+      throw err
+    } finally {
+      configLoading.value = false
+    }
+  }
 
-      await batataApi.deleteConfig(dataId, group, tenant)
+  async function fetchConfigContent(dataId: string, group: string, tenant?: string) {
+    configLoading.value = true
+    try {
+      const response = await batataApi.getConfig(dataId, group, tenant)
+      return response.data.data
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t('fetchConfigContentFailed')
+      authStore.error = message
+      throw err
+    } finally {
+      configLoading.value = false
+    }
+  }
+
+  async function deleteConfig(dataId: string, group: string, namespaceId?: string) {
+    configLoading.value = true
+    try {
+      await batataApi.deleteConfig(dataId, group, namespaceId)
       return true
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t('deleteConfigFailed')
-      error.value = message
+      authStore.error = message
       throw err
     } finally {
-      loading.value = false
+      configLoading.value = false
     }
   }
 
@@ -281,60 +223,39 @@ export const useBatataStore = defineStore('batata', () => {
     namespaceId?: string
     appName?: string
     desc?: string
+    configTags?: string
   }) {
+    configLoading.value = true
     try {
-      loading.value = true
-      error.value = null
-
       await batataApi.publishConfig(data)
       return true
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t('publishConfigFailed')
-      error.value = message
+      authStore.error = message
       throw err
     } finally {
-      loading.value = false
+      configLoading.value = false
     }
   }
 
-  async function deleteNamespace(namespaceId: string) {
+  // Cluster actions (with local loading)
+  async function fetchClusterNodes() {
+    clusterLoading.value = true
     try {
-      loading.value = true
-      error.value = null
-
-      await batataApi.deleteNamespace(namespaceId)
-      return true
+      const response = await batataApi.getClusterNodes()
+      clusterNodes.value = response.data.data
+      return response.data.data
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : t('deleteNamespaceFailed')
-      error.value = message
+      const message = err instanceof Error ? err.message : t('fetchClusterNodesFailed')
+      authStore.error = message
       throw err
     } finally {
-      loading.value = false
-    }
-  }
-
-  async function createNamespace(data: {
-    namespaceId?: string
-    namespaceName: string
-    namespaceDesc?: string
-  }) {
-    try {
-      loading.value = true
-      error.value = null
-
-      await batataApi.createNamespace(data)
-      return true
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : t('createNamespaceFailed')
-      error.value = message
-      throw err
-    } finally {
-      loading.value = false
+      clusterLoading.value = false
     }
   }
 
   function clearError() {
-    error.value = null
+    authStore.clearError()
   }
 
   return {
