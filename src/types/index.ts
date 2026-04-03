@@ -18,7 +18,7 @@ export interface ListResult<T> {
 // 配置管理类型
 // ============================================
 
-export type ConfigType = 'text' | 'json' | 'xml' | 'yaml' | 'html' | 'properties' | 'toml'
+export type ConfigType = 'text' | 'json' | 'xml' | 'yaml' | 'html' | 'properties' | 'toml' | 'hcl'
 
 export interface ConfigInfo {
   id: string
@@ -662,6 +662,28 @@ export interface PromptVersionInfo extends PromptVersionSummary {
   template: string
   md5: string
   variables: PromptVariable[]
+}
+
+export type PromptVersionStatus = 'draft' | 'reviewing' | 'online' | 'offline'
+
+export interface PromptVersionSummaryV2 {
+  promptKey: string
+  version: string
+  status: PromptVersionStatus
+  commitMsg: string
+  srcUser: string
+  gmtModified: number
+  publishPipelineInfo: string | null
+}
+
+export interface PromptGovernanceDetail extends PromptMetaSummary {
+  enable: boolean
+  scope: string
+  editingVersion: string | null
+  reviewingVersion: string | null
+  onlineCnt: number
+  versions: PromptVersionSummaryV2[]
+  labels: Record<string, string>
 }
 
 export interface PromptPublishData {

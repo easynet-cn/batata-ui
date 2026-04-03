@@ -22,17 +22,9 @@
           <Pencil class="w-3.5 h-3.5" />
           {{ t('skillEditDraft') }}
         </button>
-        <button v-else @click="handleCreateDraft" class="btn btn-secondary btn-sm">
+        <button v-else @click="handleCreateDraft()" class="btn btn-secondary btn-sm">
           <FilePlus class="w-3.5 h-3.5" />
           {{ t('skillCreateDraft') }}
-        </button>
-        <button v-if="detail.onlineCnt > 0" @click="handleOffline" class="btn btn-secondary btn-sm">
-          <PowerOff class="w-3.5 h-3.5" />
-          {{ t('skillOfflineAction') }}
-        </button>
-        <button v-else @click="handleOnline" class="btn btn-primary btn-sm">
-          <Power class="w-3.5 h-3.5" />
-          {{ t('skillOnlineAction') }}
         </button>
         <button @click="showOptimizeDialog = true" class="btn btn-secondary btn-sm">
           <Sparkles class="w-3.5 h-3.5" />
@@ -40,7 +32,6 @@
         </button>
         <button @click="showDeleteModal = true" class="btn btn-ghost btn-sm text-danger">
           <Trash2 class="w-3.5 h-3.5" />
-          {{ t('delete') }}
         </button>
       </div>
     </div>
@@ -64,17 +55,20 @@
           <h3 class="text-sm font-medium text-text-primary mb-4">{{ t('basicInfo') }}</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div>
-              <span class="text-sm text-text-secondary">{{ t('skillScope') }}</span>
-              <p>
+              <span class="text-xs text-text-secondary">{{ t('skillScope') }}</span>
+              <div class="flex items-center gap-2 mt-1">
                 <span
                   :class="detail.scope === 'public' ? 'badge badge-success' : 'badge badge-info'"
                 >
                   {{ detail.scope === 'public' ? t('skillScopePublic') : t('skillScopePrivate') }}
                 </span>
-              </p>
+                <button @click="toggleScope" class="btn btn-ghost btn-sm" :title="t('edit')">
+                  <ArrowLeftRight class="w-3 h-3" />
+                </button>
+              </div>
             </div>
             <div>
-              <span class="text-sm text-text-secondary">{{ t('status') }}</span>
+              <span class="text-xs text-text-secondary">{{ t('status') }}</span>
               <p>
                 <span :class="detail.enable ? 'badge badge-success' : 'badge badge-danger'">
                   {{ detail.enable ? t('enabled') : t('disabled') }}
@@ -82,15 +76,15 @@
               </p>
             </div>
             <div>
-              <span class="text-sm text-text-secondary">{{ t('skillOnline') }}</span>
+              <span class="text-xs text-text-secondary">{{ t('skillOnline') }}</span>
               <p class="font-medium text-text-primary">{{ detail.onlineCnt }}</p>
             </div>
             <div>
-              <span class="text-sm text-text-secondary">{{ t('skillDownload') }}</span>
+              <span class="text-xs text-text-secondary">{{ t('skillDownload') }}</span>
               <p class="font-medium text-text-primary">{{ detail.downloadCount }}</p>
             </div>
             <div>
-              <span class="text-sm text-text-secondary">{{ t('modifyTime') }}</span>
+              <span class="text-xs text-text-secondary">{{ t('modifyTime') }}</span>
               <p class="font-medium text-text-primary">
                 {{ new Date(detail.updateTime).toLocaleString() }}
               </p>
@@ -186,67 +180,126 @@
         <div class="p-4 border-b border-border">
           <h3 class="text-sm font-medium text-text-primary">{{ t('skillVersions') }}</h3>
         </div>
-        <div class="divide-y divide-border">
+        <div v-if="detail.versions.length === 0" class="p-6 text-center text-text-secondary">
+          {{ t('noVersions') }}
+        </div>
+        <div v-else class="divide-y divide-border">
           <div
             v-for="ver in detail.versions"
             :key="ver.version"
-            class="p-4 flex items-center justify-between hover:bg-bg-secondary"
+            class="p-4 hover:bg-bg-secondary transition-colors"
           >
-            <div class="flex items-center gap-3">
-              <div class="flex flex-col items-center">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <!-- Status dot -->
+                <div
+                  class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                  :class="statusDotClass(ver.status)"
+                />
                 <span class="text-sm font-semibold text-text-primary">{{ ver.version }}</span>
                 <span :class="getStatusClass(ver.status)">
                   {{ getStatusLabel(ver.status) }}
                 </span>
               </div>
-              <div class="text-xs text-text-tertiary">
-                <p>{{ ver.author }}</p>
-                <p>{{ new Date(ver.createTime).toLocaleString() }}</p>
+              <div class="flex items-center gap-1">
+                <button
+                  @click="handleViewVersion(ver.version)"
+                  class="btn btn-ghost btn-sm"
+                  :title="t('details')"
+                >
+                  <Eye class="w-3.5 h-3.5" />
+                </button>
+                <button
+                  @click="handleDownloadVersion(ver.version)"
+                  class="btn btn-ghost btn-sm"
+                  :title="t('skillDownload')"
+                >
+                  <Download class="w-3.5 h-3.5" />
+                </button>
+                <!-- Draft actions -->
+                <template v-if="ver.status === 'draft'">
+                  <button
+                    @click="handleSubmitVersion(ver.version)"
+                    class="btn btn-ghost btn-sm text-blue-600"
+                    :title="t('skillSubmitReview')"
+                  >
+                    <Send class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click="handleDeleteDraft"
+                    class="btn btn-ghost btn-sm text-danger"
+                    :title="t('deleteDraft')"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </template>
+                <!-- Reviewing actions -->
+                <template v-if="ver.status === 'reviewing'">
+                  <button
+                    @click="handlePublishVersion(ver.version)"
+                    class="btn btn-ghost btn-sm text-emerald-600"
+                    :title="t('skillPublish')"
+                  >
+                    <Rocket class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click="handleForcePublish(ver.version)"
+                    class="btn btn-ghost btn-sm text-orange-600"
+                    :title="t('forcePublish')"
+                  >
+                    <Zap class="w-3.5 h-3.5" />
+                  </button>
+                </template>
+                <!-- Online: Offline -->
+                <button
+                  v-if="ver.status === 'online'"
+                  @click="handleOfflineVersion(ver.version)"
+                  class="btn btn-ghost btn-sm"
+                  :title="t('skillOfflineAction')"
+                >
+                  <WifiOff class="w-3.5 h-3.5" />
+                </button>
+                <!-- Offline: Online -->
+                <button
+                  v-if="ver.status === 'offline'"
+                  @click="handleOnlineVersion(ver.version)"
+                  class="btn btn-ghost btn-sm"
+                  :title="t('skillOnlineAction')"
+                >
+                  <Wifi class="w-3.5 h-3.5" />
+                </button>
+                <!-- Create Draft From (for online/offline, when no editing version) -->
+                <button
+                  v-if="
+                    (ver.status === 'online' || ver.status === 'offline') &&
+                    !detail.editingVersion &&
+                    !detail.reviewingVersion
+                  "
+                  @click="handleCreateDraft(ver.version)"
+                  class="btn btn-ghost btn-sm"
+                  :title="t('createDraftFromVersion')"
+                >
+                  <FilePlus class="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
-            <div class="flex items-center gap-1">
-              <button
-                @click="handleViewVersion(ver.version)"
-                class="btn btn-ghost btn-sm"
-                :title="t('details')"
-              >
-                <Eye class="w-3.5 h-3.5" />
-              </button>
-              <button
-                @click="handleDownloadVersion(ver.version)"
-                class="btn btn-ghost btn-sm"
-                :title="t('skillDownload')"
-              >
-                <Download class="w-3.5 h-3.5" />
-              </button>
-              <button
-                v-if="ver.status === 'draft'"
-                @click="handleSubmitVersion(ver.version)"
-                class="btn btn-ghost btn-sm"
-                :title="t('skillSubmitReview')"
-              >
-                <Send class="w-3.5 h-3.5" />
-              </button>
-              <button
-                v-if="ver.status === 'reviewing'"
-                @click="handlePublishVersion(ver.version)"
-                class="btn btn-ghost btn-sm"
-                :title="t('skillPublish')"
-              >
-                <Rocket class="w-3.5 h-3.5" />
-              </button>
+            <!-- Version meta -->
+            <div class="flex items-center gap-4 mt-2 text-xs text-text-tertiary ml-5">
+              <span>{{ ver.author }}</span>
+              <span>{{ new Date(ver.createTime).toLocaleString() }}</span>
+              <span v-if="ver.description" class="truncate max-w-[200px]">{{
+                ver.description
+              }}</span>
             </div>
-          </div>
-          <div
-            v-if="detail.versions.length === 0"
-            class="p-4 text-center text-text-secondary text-sm"
-          >
-            {{ t('noData') }}
+            <!-- Pipeline Status -->
+            <div v-if="ver.publishPipelineInfo" class="mt-3 ml-5">
+              <PipelineStatusDisplay :publish-pipeline-info="ver.publishPipelineInfo" />
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Draft Content Display -->
+      <!-- Version Content Display -->
       <div v-if="selectedVersion" class="card">
         <div class="p-4 border-b border-border">
           <div class="flex items-center justify-between">
@@ -262,6 +315,26 @@
         <div class="p-4">
           <CodeEditor :model-value="selectedVersion.skillMd" language="text" :readonly="true" />
         </div>
+        <!-- Resources -->
+        <div
+          v-if="selectedVersion.resource && Object.keys(selectedVersion.resource).length > 0"
+          class="p-4 border-t border-border"
+        >
+          <h4 class="text-xs font-medium text-text-secondary mb-2">{{ t('skillResources') }}</h4>
+          <div class="space-y-2">
+            <div
+              v-for="(res, resName) in selectedVersion.resource"
+              :key="resName"
+              class="p-2 rounded-lg bg-bg-secondary"
+            >
+              <div class="flex items-center gap-2 text-xs">
+                <FileCode class="w-3 h-3 text-text-tertiary" />
+                <span class="font-mono text-text-primary">{{ resName }}</span>
+                <span class="badge badge-default">{{ res.type }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </template>
 
@@ -274,6 +347,25 @@
       danger
       @confirm="confirmDelete"
     />
+
+    <!-- Delete Draft Confirm Modal -->
+    <ConfirmModal
+      v-model="showDeleteDraftModal"
+      :title="t('deleteDraft')"
+      :message="t('deleteDraftConfirm')"
+      :confirm-text="t('delete')"
+      danger
+      @confirm="confirmDeleteDraft"
+    />
+
+    <!-- Force Publish Confirm Modal -->
+    <ConfirmModal
+      v-model="showForcePublishModal"
+      :title="t('forcePublish')"
+      :message="t('forcePublishConfirm')"
+      :confirm-text="t('forcePublish')"
+      @confirm="confirmForcePublish"
+    />
   </div>
 </template>
 
@@ -282,25 +374,27 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ArrowLeft,
+  ArrowLeftRight,
   Pencil,
   FilePlus,
   Trash2,
   Loader2,
-  Power,
-  PowerOff,
   Eye,
   Download,
   Send,
   Rocket,
   Sparkles,
   X,
+  Wifi,
+  WifiOff,
+  Zap,
+  FileCode,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import SkillOptimizeDialog from '@/components/ai/SkillOptimizeDialog.vue'
-
-const showOptimizeDialog = ref(false)
+import PipelineStatusDisplay from '@/components/ai/PipelineStatusDisplay.vue'
 import { logger } from '@/utils/logger'
 import { useDetailView } from '@/composables/useDetailView'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
@@ -309,6 +403,7 @@ import type { SkillAdminDetail, SkillDocument, SkillVersionStatus } from '@/type
 
 const router = useRouter()
 const { t } = useI18n()
+const showOptimizeDialog = ref(false)
 
 // Use detail view composable
 const {
@@ -337,7 +432,7 @@ const {
   updateBizTagsFn: (ns, name, tags) => batataApi.updateSkillBizTags(ns, name, tags),
 })
 
-// Local computed: biz tags list
+// Biz tags list
 const bizTagsList = computed(() => {
   if (!detail.value?.bizTags) return []
   return detail.value.bizTags
@@ -346,11 +441,26 @@ const bizTagsList = computed(() => {
     .filter(Boolean)
 })
 
-// Local state: version viewing
+// Version viewing
 const selectedVersion = ref<SkillDocument | null>(null)
 const selectedVersionId = ref('')
 
-// Local methods: version status helpers
+// Additional modals
+const showDeleteDraftModal = ref(false)
+const showForcePublishModal = ref(false)
+const forcePublishVersion = ref('')
+
+// Status helpers
+const statusDotClass = (status: SkillVersionStatus) => {
+  const map: Record<SkillVersionStatus, string> = {
+    draft: 'bg-amber-500',
+    reviewing: 'bg-blue-500',
+    online: 'bg-emerald-500',
+    offline: 'bg-gray-400',
+  }
+  return map[status] || 'bg-gray-400'
+}
+
 const getStatusClass = (status: SkillVersionStatus) => {
   const map: Record<SkillVersionStatus, string> = {
     draft: 'badge badge-warning',
@@ -388,17 +498,19 @@ const handleOptimizeApplied = () => {
   toast.success('Optimization applied')
 }
 
-// Local methods: draft management
+// Draft management
 const handleEditDraft = () => {
   router.push(`/skills/draft?skillName=${encodeURIComponent(itemName.value)}`)
 }
 
-const handleCreateDraft = async () => {
+const handleCreateDraft = async (basedOnVersion?: string) => {
   try {
     await batataApi.createSkillDraft({
       namespaceId: namespace.value,
       skillName: itemName.value,
+      basedOnVersion,
     })
+    toast.success(t('skillCreateDraft'))
     fetchDetail()
   } catch (error) {
     logger.error('Failed to create draft:', error)
@@ -406,13 +518,44 @@ const handleCreateDraft = async () => {
   }
 }
 
-// Local methods: online/offline
-const handleOnline = async () => {
+const handleDeleteDraft = () => {
+  showDeleteDraftModal.value = true
+}
+
+const confirmDeleteDraft = async () => {
+  try {
+    await batataApi.deleteSkillDraft(namespace.value, itemName.value)
+    showDeleteDraftModal.value = false
+    toast.success(t('deleteDraft'))
+    fetchDetail()
+  } catch (error) {
+    logger.error('Failed to delete draft:', error)
+    toast.apiError(error)
+  }
+}
+
+// Scope toggle
+const toggleScope = async () => {
+  if (!detail.value) return
+  const newScope = detail.value.scope === 'public' ? 'private' : 'public'
+  try {
+    await batataApi.updateSkillScope(namespace.value, itemName.value, newScope)
+    fetchDetail()
+  } catch (error) {
+    logger.error('Failed to update scope:', error)
+    toast.apiError(error)
+  }
+}
+
+// Online/offline per version
+const handleOnlineVersion = async (version: string) => {
   try {
     await batataApi.onlineSkill({
       namespaceId: namespace.value,
       skillName: itemName.value,
+      version,
     })
+    toast.success(t('skillOnlineAction'))
     fetchDetail()
   } catch (error) {
     logger.error('Failed to online skill:', error)
@@ -420,12 +563,14 @@ const handleOnline = async () => {
   }
 }
 
-const handleOffline = async () => {
+const handleOfflineVersion = async (version: string) => {
   try {
     await batataApi.offlineSkill({
       namespaceId: namespace.value,
       skillName: itemName.value,
+      version,
     })
+    toast.success(t('skillOfflineAction'))
     fetchDetail()
   } catch (error) {
     logger.error('Failed to offline skill:', error)
@@ -433,7 +578,7 @@ const handleOffline = async () => {
   }
 }
 
-// Local methods: version management
+// Version management
 const handleViewVersion = async (version: string) => {
   try {
     const response = await batataApi.getSkillVersion(namespace.value, itemName.value, version)
@@ -465,6 +610,7 @@ const handleDownloadVersion = async (version: string) => {
 const handleSubmitVersion = async (version: string) => {
   try {
     await batataApi.submitSkill(namespace.value, itemName.value, version)
+    toast.success(t('skillSubmitReview'))
     fetchDetail()
   } catch (error) {
     logger.error('Failed to submit skill:', error)
@@ -479,9 +625,31 @@ const handlePublishVersion = async (version: string) => {
       skillName: itemName.value,
       version,
     })
+    toast.success(t('skillPublish'))
     fetchDetail()
   } catch (error) {
     logger.error('Failed to publish skill:', error)
+    toast.apiError(error)
+  }
+}
+
+const handleForcePublish = (version: string) => {
+  forcePublishVersion.value = version
+  showForcePublishModal.value = true
+}
+
+const confirmForcePublish = async () => {
+  try {
+    await batataApi.forcePublishSkill({
+      namespaceId: namespace.value,
+      skillName: itemName.value,
+      version: forcePublishVersion.value,
+    })
+    showForcePublishModal.value = false
+    toast.success(t('forcePublish'))
+    fetchDetail()
+  } catch (error) {
+    logger.error('Failed to force publish skill:', error)
     toast.apiError(error)
   }
 }

@@ -38,6 +38,7 @@ import type {
   AgentSpecDocument,
   PromptMetaSummary,
   PromptMetaInfo,
+  PromptGovernanceDetail,
   PromptVersionInfo,
   PromptVersionSummary,
   PromptPublishData,
@@ -1172,6 +1173,17 @@ class BatataApi {
     return this.instance.post<BatataResponse<string>>('/ai/skills/publish', null, { params: data })
   }
 
+  async forcePublishSkill(data: {
+    namespaceId?: string
+    skillName: string
+    version: string
+    updateLatestLabel?: boolean
+  }) {
+    return this.instance.post<BatataResponse<string>>('/ai/skills/force-publish', null, {
+      params: data,
+    })
+  }
+
   async updateSkillLabels(namespaceId: string, skillName: string, labels: Record<string, string>) {
     return this.instance.put<BatataResponse<string>>(
       '/ai/skills/labels',
@@ -1222,6 +1234,7 @@ class BatataApi {
     namespaceId?: string
     agentSpecName?: string
     search?: string
+    orderBy?: string
   }) {
     return this.instance.get<BatataResponse<PageResult<AgentSpecListItem>>>('/ai/agentspecs/list', {
       params,
@@ -1290,6 +1303,24 @@ class BatataApi {
   }) {
     return this.instance.post<BatataResponse<string>>('/ai/agentspecs/publish', null, {
       params: data,
+    })
+  }
+
+  async forcePublishAgentSpec(data: {
+    namespaceId?: string
+    agentSpecName: string
+    version: string
+    updateLatestLabel?: boolean
+  }) {
+    return this.instance.post<BatataResponse<string>>('/ai/agentspecs/force-publish', null, {
+      params: data,
+    })
+  }
+
+  async downloadAgentSpecVersion(namespaceId: string, agentSpecName: string, version: string) {
+    return this.instance.get<Blob>('/ai/agentspecs/version/download', {
+      params: { namespaceId, agentSpecName, version },
+      responseType: 'blob',
     })
   }
 
@@ -1432,6 +1463,112 @@ class BatataApi {
     return this.instance.delete<BatataResponse<boolean>>('/ai/prompt', {
       params: { promptKey, namespaceId },
     })
+  }
+
+  // Prompt governance detail (with version lifecycle info)
+  async getPromptGovernance(promptKey: string, namespaceId?: string) {
+    return this.instance.get<BatataResponse<PromptGovernanceDetail>>('/ai/prompt/governance', {
+      params: { promptKey, namespaceId },
+    })
+  }
+
+  // Prompt draft lifecycle
+  async createPromptDraft(data: {
+    promptKey: string
+    template: string
+    commitMsg?: string
+    description?: string
+    bizTags?: string
+    variables?: string
+    namespaceId?: string
+  }) {
+    const formData = new URLSearchParams()
+    formData.append('promptKey', data.promptKey)
+    formData.append('template', data.template)
+    if (data.commitMsg) formData.append('commitMsg', data.commitMsg)
+    if (data.description) formData.append('description', data.description)
+    if (data.bizTags) formData.append('bizTags', data.bizTags)
+    if (data.variables) formData.append('variables', data.variables)
+    if (data.namespaceId) formData.append('namespaceId', data.namespaceId)
+    return this.instance.post<BatataResponse<boolean>>('/ai/prompt/draft', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
+  }
+
+  async updatePromptDraft(data: {
+    promptKey: string
+    template: string
+    commitMsg?: string
+    variables?: string
+    namespaceId?: string
+  }) {
+    const formData = new URLSearchParams()
+    formData.append('promptKey', data.promptKey)
+    formData.append('template', data.template)
+    if (data.commitMsg) formData.append('commitMsg', data.commitMsg)
+    if (data.variables) formData.append('variables', data.variables)
+    if (data.namespaceId) formData.append('namespaceId', data.namespaceId)
+    return this.instance.put<BatataResponse<boolean>>('/ai/prompt/draft', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
+  }
+
+  async deletePromptDraft(promptKey: string, namespaceId?: string) {
+    return this.instance.delete<BatataResponse<boolean>>('/ai/prompt/draft', {
+      params: { promptKey, namespaceId },
+    })
+  }
+
+  async submitPrompt(promptKey: string, namespaceId?: string) {
+    return this.instance.post<BatataResponse<boolean>>('/ai/prompt/submit', null, {
+      params: { promptKey, namespaceId },
+    })
+  }
+
+  async forcePublishPrompt(data: { promptKey: string; version?: string; namespaceId?: string }) {
+    return this.instance.post<BatataResponse<boolean>>('/ai/prompt/force-publish', null, {
+      params: data,
+    })
+  }
+
+  async onlinePrompt(params: { promptKey: string; version?: string; namespaceId?: string }) {
+    return this.instance.post<BatataResponse<boolean>>('/ai/prompt/online', null, { params })
+  }
+
+  async offlinePrompt(params: { promptKey: string; version?: string; namespaceId?: string }) {
+    return this.instance.post<BatataResponse<boolean>>('/ai/prompt/offline', null, { params })
+  }
+
+  async updatePromptDescription(data: {
+    promptKey: string
+    description: string
+    namespaceId?: string
+  }) {
+    const formData = new URLSearchParams()
+    formData.append('promptKey', data.promptKey)
+    formData.append('description', data.description)
+    if (data.namespaceId) formData.append('namespaceId', data.namespaceId)
+    return this.instance.put<BatataResponse<boolean>>('/ai/prompt/description', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
+  }
+
+  async updatePromptBizTags(data: { promptKey: string; bizTags: string; namespaceId?: string }) {
+    return this.instance.put<BatataResponse<boolean>>('/ai/prompt/biz-tags', null, {
+      params: data,
+    })
+  }
+
+  async updatePromptLabels(data: {
+    promptKey: string
+    labels: Record<string, string>
+    namespaceId?: string
+  }) {
+    return this.instance.put<BatataResponse<boolean>>(
+      '/ai/prompt/labels',
+      { labels: data.labels },
+      { params: { promptKey: data.promptKey, namespaceId: data.namespaceId } },
+    )
   }
 
   // ============================================

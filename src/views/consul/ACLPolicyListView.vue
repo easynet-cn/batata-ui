@@ -112,15 +112,52 @@
             :placeholder="t('descriptionPlaceholder')"
           />
         </div>
+        <!-- Policy Template Selector -->
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('policyTemplate') }}
+          </label>
+          <div class="flex items-center gap-2">
+            <button
+              v-for="tmpl in policyTemplates"
+              :key="tmpl.value"
+              @click="selectTemplate(tmpl.value)"
+              :class="[
+                'btn btn-sm',
+                createForm.template === tmpl.value ? 'btn-primary' : 'btn-secondary',
+              ]"
+            >
+              {{ tmpl.label }}
+            </button>
+          </div>
+        </div>
+        <!-- Template fields -->
+        <div v-if="createForm.template !== 'custom'" class="space-y-2">
+          <div>
+            <label class="block text-xs font-medium text-text-primary mb-1">
+              {{ createForm.template === 'service-identity' ? t('serviceName') : t('nodeName') }}
+              <span class="text-danger">*</span>
+            </label>
+            <input
+              v-model="createForm.templateName"
+              type="text"
+              class="input"
+              :placeholder="createForm.template === 'service-identity' ? 'my-service' : 'my-node'"
+              @input="generateTemplateRules"
+            />
+          </div>
+        </div>
         <div>
           <label class="block text-xs font-medium text-text-primary mb-1">
             {{ t('rules') }} <span class="text-danger">*</span>
           </label>
-          <textarea
+          <CodeEditor
             v-model="createForm.Rules"
-            class="input min-h-[160px] font-mono text-xs"
+            language="hcl"
+            :readonly="createForm.template !== 'custom'"
+            min-height="200px"
             :placeholder="t('rulesPlaceholder')"
-          ></textarea>
+          />
         </div>
       </div>
     </FormModal>
@@ -154,6 +191,7 @@ import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
 import FormModal from '@/components/common/FormModal.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import CodeEditor from '@/components/common/CodeEditor.vue'
 import type { ConsulACLPolicy } from '@/types/consul'
 
 const { t } = useI18n()
@@ -167,11 +205,41 @@ const isEditing = ref(false)
 const editingPolicy = ref<ConsulACLPolicy | null>(null)
 const policyToDelete = ref<ConsulACLPolicy | null>(null)
 
+type PolicyTemplate = 'custom' | 'service-identity' | 'node-identity'
+
 const createForm = reactive({
   Name: '',
   Description: '',
   Rules: '',
+  template: 'custom' as PolicyTemplate,
+  templateName: '',
 })
+
+const policyTemplates = [
+  { value: 'custom' as PolicyTemplate, label: t('policyTemplateCustom') },
+  { value: 'service-identity' as PolicyTemplate, label: t('policyTemplateServiceIdentity') },
+  { value: 'node-identity' as PolicyTemplate, label: t('policyTemplateNodeIdentity') },
+]
+
+function selectTemplate(tmpl: PolicyTemplate) {
+  createForm.template = tmpl
+  if (tmpl === 'custom') {
+    createForm.templateName = ''
+  } else {
+    generateTemplateRules()
+  }
+}
+
+function generateTemplateRules() {
+  const name = createForm.templateName || '<name>'
+  if (createForm.template === 'service-identity') {
+    createForm.Rules = `service "${name}" {\n  policy = "write"\n}\nservice "${name}-sidecar-proxy" {\n  policy = "write"\n}\nservice_prefix "" {\n  policy = "read"\n}\nnode_prefix "" {\n  policy = "read"\n}`
+    if (!createForm.Name) createForm.Name = `${name}-service-identity`
+  } else if (createForm.template === 'node-identity') {
+    createForm.Rules = `node "${name}" {\n  policy = "write"\n}\nservice_prefix "" {\n  policy = "read"\n}`
+    if (!createForm.Name) createForm.Name = `${name}-node-identity`
+  }
+}
 
 // Actions
 async function loadPolicies() {
@@ -189,6 +257,8 @@ function openCreateModal() {
   createForm.Name = ''
   createForm.Description = ''
   createForm.Rules = ''
+  createForm.template = 'custom'
+  createForm.templateName = ''
   showCreateModal.value = true
 }
 
@@ -201,6 +271,8 @@ async function handleEdit(policy: ConsulACLPolicy) {
     createForm.Name = fullPolicy.Name
     createForm.Description = fullPolicy.Description || ''
     createForm.Rules = fullPolicy.Rules || ''
+    createForm.template = 'custom'
+    createForm.templateName = ''
     showCreateModal.value = true
   } catch (error) {
     logger.error('Failed to fetch policy details:', error)

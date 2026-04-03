@@ -26,6 +26,7 @@ import { json } from '@codemirror/lang-json'
 import { xml } from '@codemirror/lang-xml'
 import { html } from '@codemirror/lang-html'
 import { yaml } from '@codemirror/lang-yaml'
+import { StreamLanguage, type StringStream } from '@codemirror/language'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { defaultKeymap } from '@codemirror/commands'
 import { Maximize2, Minimize2 } from 'lucide-vue-next'
@@ -81,6 +82,39 @@ const handleKeydown = (e: KeyboardEvent) => {
   }
 }
 
+// Simple HCL tokenizer for syntax highlighting
+const hclLanguage = StreamLanguage.define({
+  token(stream: StringStream) {
+    if (stream.match(/\/\/.*/)) return 'comment'
+    if (stream.match(/\/\*/)) {
+      while (!stream.match(/\*\//)) {
+        if (!stream.next()) break
+      }
+      return 'comment'
+    }
+    if (stream.match(/#.*/)) return 'comment'
+    if (stream.match(/"(?:[^"\\]|\\.)*"/)) return 'string'
+    if (stream.match(/<<-?\w+/)) return 'string'
+    if (stream.match(/\b(true|false|null)\b/)) return 'atom'
+    if (stream.match(/\b\d+(\.\d+)?\b/)) return 'number'
+    if (
+      stream.match(
+        /\b(resource|data|variable|output|locals|module|provider|terraform|backend|service|service_prefix|node|node_prefix|agent|agent_prefix|key|key_prefix|session|session_prefix|event|event_prefix|query|query_prefix|keyring|operator|acl|mesh|peering)\b/,
+      )
+    )
+      return 'keyword'
+    if (stream.match(/\b(policy|read|write|deny|list|intentions)\b/)) return 'def'
+    if (stream.match(/[{}()\[\]]/)) return 'bracket'
+    if (stream.match(/[=]/)) return 'operator'
+    if (stream.match(/\w+/)) return 'variableName'
+    stream.next()
+    return null
+  },
+  startState() {
+    return {}
+  },
+})
+
 function getLanguageExtension(lang: ConfigType): Extension {
   switch (lang) {
     case 'json':
@@ -91,6 +125,8 @@ function getLanguageExtension(lang: ConfigType): Extension {
       return html()
     case 'yaml':
       return yaml()
+    case 'hcl':
+      return hclLanguage
     default:
       return []
   }

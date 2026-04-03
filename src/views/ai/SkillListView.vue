@@ -7,14 +7,27 @@
         <p class="text-xs text-text-secondary mt-0.5">{{ t('skillsDesc') }}</p>
       </div>
       <div class="flex items-center gap-2">
-        <button @click="showUploadModal = true" class="btn btn-secondary btn-sm">
-          <Upload class="w-3.5 h-3.5" />
-          {{ t('uploadSkill') }}
-        </button>
-        <button @click="router.push('/skill/new')" class="btn btn-primary btn-sm">
-          <Plus class="w-3.5 h-3.5" />
-          {{ t('createSkill') }}
-        </button>
+        <!-- Batch Delete -->
+        <template v-if="selectedNames.size > 0">
+          <span class="text-xs text-text-secondary">{{ selectedNames.size }} {{ t('items') }}</span>
+          <button @click="showBatchDeleteModal = true" class="btn btn-danger btn-sm">
+            <Trash2 class="w-3.5 h-3.5" />
+            {{ t('batchDelete') }}
+          </button>
+          <button @click="selectedNames.clear()" class="btn btn-secondary btn-sm">
+            {{ t('cancel') }}
+          </button>
+        </template>
+        <template v-else>
+          <button @click="showUploadModal = true" class="btn btn-secondary btn-sm">
+            <Upload class="w-3.5 h-3.5" />
+            {{ t('uploadSkill') }}
+          </button>
+          <button @click="router.push('/skill/new')" class="btn btn-primary btn-sm">
+            <Plus class="w-3.5 h-3.5" />
+            {{ t('createSkill') }}
+          </button>
+        </template>
       </div>
     </div>
 
@@ -44,7 +57,7 @@
       </div>
     </div>
 
-    <!-- Search Bar -->
+    <!-- Search & Filters -->
     <div class="card">
       <div class="p-3">
         <div class="flex items-center gap-3">
@@ -57,85 +70,153 @@
               @keyup.enter="handleSearch"
             />
           </div>
+          <!-- Scope Filter -->
+          <select v-model="scopeFilter" class="input w-32" @change="handleSearch">
+            <option value="">{{ t('scopeAll') }}</option>
+            <option value="public">{{ t('skillScopePublic') }}</option>
+            <option value="private">{{ t('skillScopePrivate') }}</option>
+          </select>
+          <!-- Sort -->
+          <select v-model="sortOrder" class="input w-32" @change="handleSearch">
+            <option value="">{{ t('sortDefault') }}</option>
+            <option value="downloadCount">{{ t('sortDownloads') }}</option>
+          </select>
           <button @click="handleSearch" class="btn btn-primary">
             <Search class="w-3.5 h-3.5" />
             {{ t('search') }}
           </button>
-          <button @click="handleReset" class="btn btn-secondary">
-            {{ t('refresh') }}
+          <button
+            v-if="searchKeyword || scopeFilter || sortOrder"
+            @click="handleResetAll"
+            class="btn btn-secondary"
+          >
+            <RotateCcw class="w-3.5 h-3.5" />
+            {{ t('reset') }}
           </button>
         </div>
       </div>
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="card p-8 flex-center">
-      <Loader2 class="w-8 h-8 animate-spin text-primary" />
+    <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      <div v-for="i in 8" :key="i" class="card p-4 animate-pulse">
+        <div class="h-10 bg-bg-secondary rounded-lg mb-3" />
+        <div class="h-4 bg-bg-secondary rounded w-3/4 mb-2" />
+        <div class="h-4 bg-bg-secondary rounded w-1/2" />
+      </div>
     </div>
 
     <!-- Empty State -->
     <div v-else-if="items.length === 0" class="card empty-state">
-      {{ t('noData') }}
+      <Sparkles class="w-10 h-10 mx-auto text-text-tertiary mb-2" />
+      <p class="text-sm text-text-secondary">{{ t('noData') }}</p>
+      <button @click="router.push('/skill/new')" class="btn btn-primary btn-sm mt-3">
+        <Plus class="w-3.5 h-3.5" />
+        {{ t('createSkill') }}
+      </button>
     </div>
 
     <!-- Card Grid -->
     <template v-else>
-      <div class="card-grid">
-        <div v-for="skill in items" :key="skill.name" class="card p-4 flex flex-col gap-3">
-          <div class="flex items-start justify-between">
-            <div class="flex-1 min-w-0">
-              <h3 class="text-sm font-semibold text-text-primary truncate">{{ skill.name }}</h3>
-              <p class="text-xs text-text-secondary mt-0.5 line-clamp-2">
-                {{ skill.description || '-' }}
-              </p>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        <div
+          v-for="skill in items"
+          :key="skill.name"
+          class="card hover:shadow-sm transition-all cursor-pointer"
+          :class="{
+            'ring-2 ring-primary border-primary/40': selectedNames.has(skill.name),
+          }"
+          @click="router.push(`/skill/detail?skillName=${encodeURIComponent(skill.name)}`)"
+        >
+          <div class="p-3">
+            <!-- Card Header -->
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <input
+                  type="checkbox"
+                  :checked="selectedNames.has(skill.name)"
+                  @click.stop
+                  @change.stop="toggleSelect(skill.name)"
+                  class="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary flex-shrink-0"
+                />
+                <div
+                  class="w-9 h-9 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center flex-shrink-0"
+                >
+                  <Sparkles class="w-4 h-4 text-white" />
+                </div>
+                <h3 class="font-medium text-text-primary truncate text-sm">{{ skill.name }}</h3>
+              </div>
             </div>
-            <span :class="skill.scope === 'public' ? 'badge badge-success' : 'badge badge-info'">
-              {{ skill.scope === 'public' ? t('skillScopePublic') : t('skillScopePrivate') }}
-            </span>
-          </div>
 
-          <div class="flex items-center gap-4 text-xs text-text-tertiary">
-            <span class="flex items-center gap-1">
-              <Globe class="w-3 h-3" />
-              {{ skill.onlineCnt }}
-            </span>
-            <span class="flex items-center gap-1">
-              <Download class="w-3 h-3" />
-              {{ skill.downloadCount }}
-            </span>
-            <span class="flex items-center gap-1">
-              <Clock class="w-3 h-3" />
-              {{ new Date(skill.updateTime).toLocaleString() }}
-            </span>
-          </div>
+            <!-- Status Row -->
+            <div class="flex items-center gap-1.5 mb-2">
+              <span :class="skill.enable ? 'badge badge-success' : 'badge badge-secondary'">
+                {{ skill.enable ? t('enabled') : t('disabled') }}
+              </span>
+              <span :class="skill.scope === 'public' ? 'badge badge-info' : 'badge badge-warning'">
+                {{ skill.scope === 'public' ? t('skillScopePublic') : t('skillScopePrivate') }}
+              </span>
+              <span v-if="skill.editingVersion" class="badge badge-warning">
+                {{ t('hasDraft') }}
+              </span>
+            </div>
 
-          <div
-            v-if="skill.labels && Object.keys(skill.labels).length > 0"
-            class="flex flex-wrap gap-1"
-          >
-            <span v-for="(value, key) in skill.labels" :key="key" class="badge badge-info">
-              {{ key }}={{ value }}
-            </span>
-          </div>
+            <!-- Description -->
+            <p class="text-xs text-text-secondary mb-2 line-clamp-2">
+              {{ skill.description || '-' }}
+            </p>
 
-          <div v-if="skill.bizTags" class="flex flex-wrap gap-1">
-            <span v-for="tag in skill.bizTags.split(',')" :key="tag" class="badge">
-              {{ tag.trim() }}
-            </span>
-          </div>
+            <!-- Meta -->
+            <div class="flex items-center flex-wrap gap-2 text-xs text-text-tertiary mb-2">
+              <span
+                class="flex items-center gap-1"
+                :class="skill.onlineCnt > 0 ? 'text-emerald-600 dark:text-emerald-400' : ''"
+              >
+                <Globe class="w-3 h-3" />
+                {{ skill.onlineCnt }}
+              </span>
+              <span class="flex items-center gap-1">
+                <Download class="w-3 h-3" />
+                {{ skill.downloadCount }}
+              </span>
+              <span class="flex items-center gap-1">
+                <Clock class="w-3 h-3" />
+                {{ new Date(skill.updateTime).toLocaleString() }}
+              </span>
+            </div>
 
-          <div class="flex items-center gap-1 mt-auto pt-2 border-t border-border">
-            <button
-              @click="router.push(`/skill/detail?skillName=${encodeURIComponent(skill.name)}`)"
-              class="btn btn-ghost btn-sm flex-1"
-            >
-              <Eye class="w-3.5 h-3.5" />
-              {{ t('details') }}
-            </button>
-            <button @click="handleDelete(skill)" class="btn btn-ghost btn-sm text-danger">
-              <Trash2 class="w-3.5 h-3.5" />
-              {{ t('delete') }}
-            </button>
+            <!-- Biz Tags -->
+            <div v-if="skill.bizTags" class="flex flex-wrap gap-1 mb-2">
+              <span
+                v-for="tag in skill.bizTags.split(',').slice(0, 2)"
+                :key="tag"
+                class="px-1.5 py-0.5 text-[10px] rounded bg-gray-100 dark:bg-gray-800 text-text-secondary"
+              >
+                {{ tag.trim() }}
+              </span>
+              <span
+                v-if="skill.bizTags.split(',').length > 2"
+                class="text-[10px] text-text-tertiary"
+              >
+                +{{ skill.bizTags.split(',').length - 2 }}
+              </span>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex items-center justify-end gap-1 pt-2 border-t border-border">
+              <button
+                @click.stop="
+                  router.push(`/skill/detail?skillName=${encodeURIComponent(skill.name)}`)
+                "
+                class="btn btn-ghost btn-sm"
+              >
+                <ExternalLink class="w-3.5 h-3.5" />
+                {{ t('details') }}
+              </button>
+              <button @click.stop="handleDelete(skill)" class="btn btn-ghost btn-sm text-danger">
+                <Trash2 class="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -157,6 +238,15 @@
       @confirm="confirmDelete"
     />
 
+    <ConfirmModal
+      v-model="showBatchDeleteModal"
+      :title="t('batchDelete')"
+      :message="`${t('batchDelete')} ${selectedNames.size} ${t('items')}?`"
+      :confirm-text="t('delete')"
+      danger
+      @confirm="confirmBatchDelete"
+    />
+
     <FormModal
       v-model="showUploadModal"
       :title="t('uploadSkill')"
@@ -174,22 +264,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Plus,
   Search,
-  Eye,
+  RotateCcw,
   Trash2,
-  Loader2,
   Upload,
   Download,
   Globe,
   Clock,
   Sparkles,
+  ExternalLink,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
+import { toast } from '@/utils/error'
+import { logger } from '@/utils/logger'
 import { useListView } from '@/composables/useListView'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import FormModal from '@/components/common/FormModal.vue'
@@ -199,6 +291,10 @@ import type { SkillListItem } from '@/types'
 const router = useRouter()
 const { t } = useI18n()
 
+// Filters
+const scopeFilter = ref('')
+const sortOrder = ref('')
+
 const {
   loading,
   items,
@@ -206,6 +302,7 @@ const {
   currentPage,
   pageSize,
   searchKeyword,
+  namespace,
   showDeleteModal,
   itemToDelete,
   handleDelete,
@@ -216,8 +313,8 @@ const {
   handleFileChange,
   handleUpload,
   handleSearch,
-  handleReset,
   handlePageChange,
+  fetchItems,
 } = useListView<SkillListItem>({
   fetchFn: (params) =>
     batataApi.getSkillList({
@@ -225,6 +322,8 @@ const {
       pageSize: params.pageSize,
       namespaceId: params.namespaceId as string,
       skillName: params.skillName as string | undefined,
+      search: scopeFilter.value || undefined,
+      orderBy: sortOrder.value || undefined,
     }),
   deleteFn: (ns, name) => batataApi.deleteSkill(ns, name),
   uploadFn: (formData) => batataApi.uploadSkill(formData),
@@ -234,4 +333,39 @@ const {
 })
 
 const onlineCount = computed(() => items.value.filter((s) => s.onlineCnt > 0).length)
+
+const handleResetAll = () => {
+  searchKeyword.value = ''
+  scopeFilter.value = ''
+  sortOrder.value = ''
+  handleSearch()
+}
+
+// Batch selection
+const selectedNames = ref<Set<string>>(new Set())
+const showBatchDeleteModal = ref(false)
+
+const toggleSelect = (name: string) => {
+  const newSet = new Set(selectedNames.value)
+  if (newSet.has(name)) {
+    newSet.delete(name)
+  } else {
+    newSet.add(name)
+  }
+  selectedNames.value = newSet
+}
+
+const confirmBatchDelete = async () => {
+  try {
+    const names = Array.from(selectedNames.value)
+    await Promise.all(names.map((name) => batataApi.deleteSkill(namespace.value, name)))
+    toast.success(t('batchDelete'))
+    showBatchDeleteModal.value = false
+    selectedNames.value = new Set()
+    fetchItems()
+  } catch (error) {
+    logger.error('Failed to batch delete:', error)
+    toast.apiError(error)
+  }
+}
 </script>

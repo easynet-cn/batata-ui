@@ -27,18 +27,6 @@
             <FilePlus class="w-3.5 h-3.5" />
             {{ t('skillCreateDraft') }}
           </button>
-          <button
-            v-if="detail.onlineCnt > 0"
-            @click="handleOffline"
-            class="btn btn-secondary btn-sm"
-          >
-            <WifiOff class="w-3.5 h-3.5" />
-            {{ t('skillOfflineAction') }}
-          </button>
-          <button v-else @click="handleOnline" class="btn btn-primary btn-sm">
-            <Wifi class="w-3.5 h-3.5" />
-            {{ t('skillOnlineAction') }}
-          </button>
           <button @click="handleDelete" class="btn btn-ghost btn-sm text-danger">
             <Trash2 class="w-3.5 h-3.5" />
           </button>
@@ -59,13 +47,16 @@
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <span class="text-xs text-text-secondary">{{ t('skillScope') }}</span>
-              <p>
+              <div class="flex items-center gap-2 mt-1">
                 <span
                   :class="detail.scope === 'public' ? 'badge badge-success' : 'badge badge-warning'"
                 >
                   {{ detail.scope === 'public' ? t('skillScopePublic') : t('skillScopePrivate') }}
                 </span>
-              </p>
+                <button @click="toggleScope" class="btn btn-ghost btn-sm" :title="t('edit')">
+                  <ArrowLeftRight class="w-3 h-3" />
+                </button>
+              </div>
             </div>
             <div>
               <span class="text-xs text-text-secondary">{{ t('status') }}</span>
@@ -144,12 +135,19 @@
           <div
             v-for="ver in detail.versions"
             :key="ver.version"
-            class="p-4 hover:bg-bg-secondary transition-colors cursor-pointer"
+            class="p-4 hover:bg-bg-secondary transition-colors"
             :class="{ 'bg-bg-secondary': selectedVersion === ver.version }"
-            @click="handleSelectVersion(ver.version)"
           >
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
+              <div
+                class="flex items-center gap-3 cursor-pointer"
+                @click="handleSelectVersion(ver.version)"
+              >
+                <!-- Status dot -->
+                <div
+                  class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                  :class="statusDotClass(ver.status)"
+                />
                 <span class="font-mono text-sm font-medium text-text-primary">
                   v{{ ver.version }}
                 </span>
@@ -157,8 +155,8 @@
                   {{ getStatusLabel(ver.status) }}
                 </span>
               </div>
-              <div class="flex items-center gap-2">
-                <!-- Version Actions -->
+              <div class="flex items-center gap-1">
+                <!-- View content -->
                 <button
                   @click.stop="handleViewVersionContent(ver.version)"
                   class="btn btn-ghost btn-sm"
@@ -166,28 +164,92 @@
                 >
                   <Eye class="w-3.5 h-3.5" />
                 </button>
+                <!-- Download -->
                 <button
-                  v-if="ver.status === 'draft'"
-                  @click.stop="handleSubmitVersion(ver.version)"
+                  @click.stop="handleDownloadVersion(ver.version)"
                   class="btn btn-ghost btn-sm"
-                  :title="t('skillSubmitReview')"
+                  :title="t('skillDownload')"
                 >
-                  <Send class="w-3.5 h-3.5" />
+                  <Download class="w-3.5 h-3.5" />
                 </button>
+                <!-- Draft: Submit / Delete -->
+                <template v-if="ver.status === 'draft'">
+                  <button
+                    @click.stop="handleSubmitVersion(ver.version)"
+                    class="btn btn-ghost btn-sm text-blue-600"
+                    :title="t('skillSubmitReview')"
+                  >
+                    <Send class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click.stop="handleDeleteDraft"
+                    class="btn btn-ghost btn-sm text-danger"
+                    :title="t('deleteDraft')"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </template>
+                <!-- Reviewing: Publish / Force Publish -->
+                <template v-if="ver.status === 'reviewing'">
+                  <button
+                    @click.stop="handlePublishVersion(ver.version)"
+                    class="btn btn-ghost btn-sm text-emerald-600"
+                    :title="t('skillPublish')"
+                  >
+                    <Rocket class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click.stop="handleForcePublish(ver.version)"
+                    class="btn btn-ghost btn-sm text-orange-600"
+                    :title="t('forcePublish')"
+                  >
+                    <Zap class="w-3.5 h-3.5" />
+                  </button>
+                </template>
+                <!-- Online: Offline -->
                 <button
-                  v-if="ver.status === 'reviewing'"
-                  @click.stop="handlePublishVersion(ver.version)"
+                  v-if="ver.status === 'online'"
+                  @click.stop="handleOfflineVersion(ver.version)"
                   class="btn btn-ghost btn-sm"
-                  :title="t('skillPublish')"
+                  :title="t('skillOfflineAction')"
                 >
-                  <Rocket class="w-3.5 h-3.5" />
+                  <WifiOff class="w-3.5 h-3.5" />
+                </button>
+                <!-- Offline: Online -->
+                <button
+                  v-if="ver.status === 'offline'"
+                  @click.stop="handleOnlineVersion(ver.version)"
+                  class="btn btn-ghost btn-sm"
+                  :title="t('skillOnlineAction')"
+                >
+                  <Wifi class="w-3.5 h-3.5" />
+                </button>
+                <!-- Create Draft From (for online/offline, when no editing version) -->
+                <button
+                  v-if="
+                    (ver.status === 'online' || ver.status === 'offline') &&
+                    !detail.editingVersion &&
+                    !detail.reviewingVersion
+                  "
+                  @click.stop="handleCreateDraft(ver.version)"
+                  class="btn btn-ghost btn-sm"
+                  :title="t('createDraftFromVersion')"
+                >
+                  <FilePlus class="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
-            <div class="flex items-center gap-4 mt-2 text-xs text-text-tertiary">
+            <!-- Version meta -->
+            <div class="flex items-center gap-4 mt-2 text-xs text-text-tertiary ml-5">
               <span>{{ ver.author }}</span>
               <span>{{ new Date(ver.createTime).toLocaleString() }}</span>
-              <span>{{ t('downloadCount') }}: {{ ver.downloadCount }}</span>
+              <span v-if="ver.description" class="truncate max-w-[200px]">{{
+                ver.description
+              }}</span>
+            </div>
+            <!-- Pipeline Status (if present) -->
+            <div v-if="ver.publishPipelineInfo" class="mt-3 ml-5">
+              <PipelineStatusDisplay :publish-pipeline-info="ver.publishPipelineInfo" />
             </div>
           </div>
         </div>
@@ -196,9 +258,20 @@
       <!-- Version Content Display -->
       <div v-if="versionContent" class="card">
         <div class="p-4 border-b border-border">
-          <h3 class="text-sm font-medium text-text-primary">
-            {{ t('agentSpecContent') }} - v{{ selectedVersion }}
-          </h3>
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-medium text-text-primary">
+              {{ t('agentSpecContent') }} - v{{ selectedVersion }}
+            </h3>
+            <button
+              @click="
+                versionContent = null
+                selectedVersion = null
+              "
+              class="btn btn-ghost btn-sm"
+            >
+              <X class="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
         <div class="p-4">
           <CodeEditor
@@ -207,6 +280,26 @@
             readonly
             min-height="300px"
           />
+        </div>
+        <!-- Resources -->
+        <div
+          v-if="versionContent.resource && Object.keys(versionContent.resource).length > 0"
+          class="p-4 border-t border-border"
+        >
+          <h4 class="text-xs font-medium text-text-secondary mb-2">{{ t('skillResources') }}</h4>
+          <div class="space-y-2">
+            <div
+              v-for="(res, resName) in versionContent.resource"
+              :key="resName"
+              class="p-2 rounded-lg bg-bg-secondary"
+            >
+              <div class="flex items-center gap-2 text-xs">
+                <FileCode class="w-3 h-3 text-text-tertiary" />
+                <span class="font-mono text-text-primary">{{ resName }}</span>
+                <span class="badge badge-default">{{ res.type }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </template>
@@ -219,6 +312,25 @@
       :confirm-text="t('delete')"
       danger
       @confirm="confirmDelete"
+    />
+
+    <!-- Delete Draft Confirm Modal -->
+    <ConfirmModal
+      v-model="showDeleteDraftModal"
+      :title="t('deleteDraft')"
+      :message="t('deleteDraftConfirm')"
+      :confirm-text="t('delete')"
+      danger
+      @confirm="confirmDeleteDraft"
+    />
+
+    <!-- Force Publish Confirm Modal -->
+    <ConfirmModal
+      v-model="showForcePublishModal"
+      :title="t('forcePublish')"
+      :message="t('forcePublishConfirm')"
+      :confirm-text="t('forcePublish')"
+      @confirm="confirmForcePublish"
     />
 
     <!-- Labels Edit Modal -->
@@ -267,6 +379,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   ArrowLeft,
+  ArrowLeftRight,
   Pencil,
   Trash2,
   Loader2,
@@ -276,6 +389,10 @@ import {
   FilePlus,
   Wifi,
   WifiOff,
+  Download,
+  Zap,
+  X,
+  FileCode,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
@@ -285,6 +402,7 @@ import { useBatataStore } from '@/stores/batata'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import FormModal from '@/components/common/FormModal.vue'
 import CodeEditor from '@/components/common/CodeEditor.vue'
+import PipelineStatusDisplay from '@/components/ai/PipelineStatusDisplay.vue'
 import type { AgentSpecDetail, AgentSpecDocument, AgentSpecVersionStatus } from '@/types'
 
 const router = useRouter()
@@ -303,6 +421,9 @@ const versionContent = ref<AgentSpecDocument | null>(null)
 
 // Modals
 const showDeleteModal = ref(false)
+const showDeleteDraftModal = ref(false)
+const showForcePublishModal = ref(false)
+const forcePublishVersion = ref('')
 const showLabelsModal = ref(false)
 const showBizTagsModal = ref(false)
 const savingLabels = ref(false)
@@ -349,6 +470,37 @@ const handleViewVersionContent = async (version: string) => {
   }
 }
 
+const handleDownloadVersion = async (version: string) => {
+  try {
+    const response = await batataApi.downloadAgentSpecVersion(
+      namespace.value,
+      agentSpecName.value,
+      version,
+    )
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `${agentSpecName.value}-${version}.zip`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    logger.error('Failed to download version:', error)
+    toast.apiError(error)
+  }
+}
+
+const statusDotClass = (status: AgentSpecVersionStatus) => {
+  const classes: Record<AgentSpecVersionStatus, string> = {
+    draft: 'bg-amber-500',
+    reviewing: 'bg-blue-500',
+    online: 'bg-emerald-500',
+    offline: 'bg-gray-400',
+  }
+  return classes[status] || 'bg-gray-400'
+}
+
 const getStatusBadgeClass = (status: AgentSpecVersionStatus) => {
   const classes: Record<AgentSpecVersionStatus, string> = {
     draft: 'badge badge-warning',
@@ -384,6 +536,7 @@ const handleCreateDraft = async (basedOnVersion?: string) => {
       agentSpecName: agentSpecName.value,
       basedOnVersion,
     })
+    toast.success(t('skillCreateDraft'))
     fetchDetail()
   } catch (error) {
     logger.error('Failed to create draft:', error)
@@ -391,12 +544,30 @@ const handleCreateDraft = async (basedOnVersion?: string) => {
   }
 }
 
-const handleOnline = async () => {
+const handleDeleteDraft = () => {
+  showDeleteDraftModal.value = true
+}
+
+const confirmDeleteDraft = async () => {
+  try {
+    await batataApi.deleteAgentSpecDraft(namespace.value, agentSpecName.value)
+    showDeleteDraftModal.value = false
+    toast.success(t('deleteDraft'))
+    fetchDetail()
+  } catch (error) {
+    logger.error('Failed to delete draft:', error)
+    toast.apiError(error)
+  }
+}
+
+const handleOnlineVersion = async (version: string) => {
   try {
     await batataApi.onlineAgentSpec({
       namespaceId: namespace.value,
       agentSpecName: agentSpecName.value,
+      version,
     })
+    toast.success(t('skillOnlineAction'))
     fetchDetail()
   } catch (error) {
     logger.error('Failed to online agent spec:', error)
@@ -404,12 +575,14 @@ const handleOnline = async () => {
   }
 }
 
-const handleOffline = async () => {
+const handleOfflineVersion = async (version: string) => {
   try {
     await batataApi.offlineAgentSpec({
       namespaceId: namespace.value,
       agentSpecName: agentSpecName.value,
+      version,
     })
+    toast.success(t('skillOfflineAction'))
     fetchDetail()
   } catch (error) {
     logger.error('Failed to offline agent spec:', error)
@@ -420,6 +593,7 @@ const handleOffline = async () => {
 const handleSubmitVersion = async (version: string) => {
   try {
     await batataApi.submitAgentSpec(namespace.value, agentSpecName.value, version)
+    toast.success(t('skillSubmitReview'))
     fetchDetail()
   } catch (error) {
     logger.error('Failed to submit agent spec:', error)
@@ -434,9 +608,43 @@ const handlePublishVersion = async (version: string) => {
       agentSpecName: agentSpecName.value,
       version,
     })
+    toast.success(t('skillPublish'))
     fetchDetail()
   } catch (error) {
     logger.error('Failed to publish agent spec:', error)
+    toast.apiError(error)
+  }
+}
+
+const handleForcePublish = (version: string) => {
+  forcePublishVersion.value = version
+  showForcePublishModal.value = true
+}
+
+const confirmForcePublish = async () => {
+  try {
+    await batataApi.forcePublishAgentSpec({
+      namespaceId: namespace.value,
+      agentSpecName: agentSpecName.value,
+      version: forcePublishVersion.value,
+    })
+    showForcePublishModal.value = false
+    toast.success(t('forcePublish'))
+    fetchDetail()
+  } catch (error) {
+    logger.error('Failed to force publish agent spec:', error)
+    toast.apiError(error)
+  }
+}
+
+const toggleScope = async () => {
+  if (!detail.value) return
+  const newScope = detail.value.scope === 'public' ? 'private' : 'public'
+  try {
+    await batataApi.updateAgentSpecScope(namespace.value, agentSpecName.value, newScope)
+    fetchDetail()
+  } catch (error) {
+    logger.error('Failed to update scope:', error)
     toast.apiError(error)
   }
 }

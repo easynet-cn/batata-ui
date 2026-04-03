@@ -110,45 +110,145 @@
                   {{ t('noInstances') }}
                 </td>
               </tr>
-              <tr
-                v-for="node in filteredServiceNodes"
-                :key="node.Service.ID"
-                class="hover:bg-bg-secondary"
-              >
-                <td class="font-medium text-text-primary">{{ node.Node.Node }}</td>
-                <td class="text-text-secondary font-mono text-xs">
-                  {{ node.Service.Address || node.Node.Address }}
-                </td>
-                <td>{{ node.Service.Port }}</td>
-                <td class="text-text-secondary text-xs">{{ node.Service.ID }}</td>
-                <td>
-                  <div class="flex flex-wrap gap-1">
-                    <template v-if="node.Checks && node.Checks.length > 0">
-                      <span
-                        v-for="check in node.Checks"
-                        :key="check.CheckID"
-                        :class="statusBadgeClass(check.Status)"
-                        class="badge"
-                      >
-                        {{ check.Status }}
-                      </span>
-                    </template>
-                    <span v-else class="text-xs text-text-tertiary">-</span>
-                  </div>
-                </td>
-                <td>
-                  <button
-                    @click="toggleNodeDetail(node.Service.ID)"
-                    class="btn btn-ghost btn-sm"
-                    :title="t('viewDetails')"
-                  >
-                    <ChevronDown
-                      class="w-3.5 h-3.5 transition-transform"
-                      :class="{ 'rotate-180': expandedNodes.has(node.Service.ID) }"
-                    />
-                  </button>
-                </td>
-              </tr>
+              <template v-for="node in filteredServiceNodes" :key="node.Service.ID">
+                <tr class="hover:bg-bg-secondary">
+                  <td class="font-medium text-text-primary">{{ node.Node.Node }}</td>
+                  <td class="text-text-secondary font-mono text-xs">
+                    {{ node.Service.Address || node.Node.Address }}
+                  </td>
+                  <td>{{ node.Service.Port }}</td>
+                  <td class="text-text-secondary text-xs">{{ node.Service.ID }}</td>
+                  <td>
+                    <div class="flex flex-wrap gap-1">
+                      <template v-if="node.Checks && node.Checks.length > 0">
+                        <span
+                          v-for="check in node.Checks"
+                          :key="check.CheckID"
+                          :class="statusBadgeClass(check.Status)"
+                          class="badge"
+                        >
+                          {{ check.Status }}
+                        </span>
+                      </template>
+                      <span v-else class="text-xs text-text-tertiary">-</span>
+                    </div>
+                  </td>
+                  <td>
+                    <button
+                      @click="toggleNodeDetail(node.Service.ID)"
+                      class="btn btn-ghost btn-sm"
+                      :title="t('viewDetails')"
+                    >
+                      <ChevronDown
+                        class="w-3.5 h-3.5 transition-transform"
+                        :class="{ 'rotate-180': expandedNodes.has(node.Service.ID) }"
+                      />
+                    </button>
+                  </td>
+                </tr>
+                <!-- Expanded Instance Detail Row -->
+                <tr v-if="expandedNodes.has(node.Service.ID)">
+                  <td colspan="6" class="p-0">
+                    <div class="p-4 bg-bg-secondary space-y-3">
+                      <!-- Service Meta -->
+                      <div v-if="node.Service.Meta && Object.keys(node.Service.Meta).length > 0">
+                        <h4 class="text-xs font-medium text-text-secondary mb-1">
+                          {{ t('metadata') }}
+                        </h4>
+                        <div class="flex flex-wrap gap-1">
+                          <span
+                            v-for="(val, key) in node.Service.Meta"
+                            :key="key"
+                            class="badge badge-default"
+                          >
+                            {{ key }}={{ val }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <!-- Transparent Proxy Indicator -->
+                      <div v-if="getTransparentProxyPort(node)" class="flex items-center gap-2">
+                        <span class="badge badge-info">
+                          <Shield class="w-3 h-3 mr-1" />
+                          Transparent Proxy
+                        </span>
+                        <span class="text-xs text-text-tertiary">
+                          {{ t('consulOutboundPort') }}: {{ getTransparentProxyPort(node) }}
+                        </span>
+                      </div>
+
+                      <!-- Exposed Paths -->
+                      <div v-if="getExposedPaths(node).length > 0">
+                        <h4 class="text-xs font-medium text-text-secondary mb-1">
+                          {{ t('consulExposedPaths') }}
+                        </h4>
+                        <div class="overflow-x-auto">
+                          <table class="w-full text-xs">
+                            <thead>
+                              <tr class="border-b border-border">
+                                <th class="text-left py-1.5 px-2 text-text-tertiary font-medium">
+                                  {{ t('consulPathProtocol') }}
+                                </th>
+                                <th class="text-left py-1.5 px-2 text-text-tertiary font-medium">
+                                  {{ t('consulListenerPort') }}
+                                </th>
+                                <th class="text-left py-1.5 px-2 text-text-tertiary font-medium">
+                                  {{ t('consulPath') }}
+                                </th>
+                                <th class="text-left py-1.5 px-2 text-text-tertiary font-medium">
+                                  {{ t('consulLocalPort') }}
+                                </th>
+                                <th class="text-left py-1.5 px-2 text-text-tertiary font-medium">
+                                  {{ t('consulEndpoint') }}
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr
+                                v-for="(path, idx) in getExposedPaths(node)"
+                                :key="idx"
+                                class="border-b border-border/50"
+                              >
+                                <td class="py-1.5 px-2">{{ path.Protocol || 'http' }}</td>
+                                <td class="py-1.5 px-2 font-mono">{{ path.ListenerPort }}</td>
+                                <td class="py-1.5 px-2 font-mono">{{ path.Path }}</td>
+                                <td class="py-1.5 px-2 font-mono">{{ path.LocalPathPort }}</td>
+                                <td class="py-1.5 px-2 font-mono text-primary">
+                                  {{ node.Service.Address || node.Node.Address }}:{{
+                                    path.ListenerPort
+                                  }}{{ path.Path }}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      <!-- Health Checks for this instance -->
+                      <div v-if="node.Checks && node.Checks.length > 0">
+                        <h4 class="text-xs font-medium text-text-secondary mb-1">
+                          {{ t('healthChecksList') }}
+                        </h4>
+                        <div class="space-y-1">
+                          <div
+                            v-for="check in node.Checks"
+                            :key="check.CheckID"
+                            class="flex items-center gap-2 text-xs"
+                          >
+                            <span :class="statusBadgeClass(check.Status)" class="badge">
+                              {{ check.Status }}
+                            </span>
+                            <span class="text-text-primary">{{ check.CheckID }}</span>
+                            <span v-if="check.Output" class="text-text-tertiary truncate max-w-xs">
+                              {{ check.Output }}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
@@ -216,110 +316,21 @@
           </div>
         </div>
 
-        <!-- Topology content -->
-        <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <!-- Upstreams -->
-          <div class="card">
-            <div class="px-6 py-4 border-b border-border">
-              <h3 class="text-sm font-semibold text-text-primary">
-                {{ t('consulUpstreams') }}
-                <span class="text-text-tertiary font-normal">
-                  ({{ topology?.Upstreams?.length ?? 0 }})
-                </span>
-              </h3>
-            </div>
-            <div class="p-4 space-y-2">
-              <div
-                v-if="!topology?.Upstreams || topology.Upstreams.length === 0"
-                class="text-center py-6 text-text-tertiary"
-              >
-                <GitBranch class="w-6 h-6 mx-auto mb-2 opacity-50" />
-                <p class="text-xs">{{ t('consulNoUpstreams') }}</p>
-              </div>
-              <div
-                v-for="up in topology?.Upstreams"
-                :key="up.Name"
-                class="p-3 rounded-xl border border-border hover:bg-bg-secondary transition-colors"
-              >
-                <div class="flex items-center justify-between">
-                  <span class="text-sm font-medium text-text-primary">{{ up.Name }}</span>
-                  <span
-                    :class="up.Intention?.Allowed ? 'badge badge-success' : 'badge badge-danger'"
-                  >
-                    {{
-                      up.Intention?.Allowed
-                        ? t('consulIntentionAllowed')
-                        : t('consulIntentionDenied')
-                    }}
-                  </span>
-                </div>
-                <span v-if="up.Datacenter" class="text-xs text-text-tertiary mt-1 inline-block">
-                  {{ up.Datacenter }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Current Service -->
-          <div class="card">
-            <div class="px-6 py-4 border-b border-border">
-              <h3 class="text-sm font-semibold text-text-primary">{{ t('service') }}</h3>
-            </div>
-            <div class="p-6 flex flex-col items-center justify-center">
-              <div
-                class="w-16 h-16 bg-fuchsia-50 dark:bg-fuchsia-950/30 rounded-2xl flex items-center justify-center mb-3"
-              >
-                <Server class="w-8 h-8 text-fuchsia-600" />
-              </div>
-              <p class="text-sm font-bold text-text-primary">{{ serviceName }}</p>
-              <p v-if="topology?.Protocol" class="text-xs text-text-tertiary mt-1">
-                {{ topology.Protocol }}
-              </p>
-            </div>
-          </div>
-
-          <!-- Downstreams -->
-          <div class="card">
-            <div class="px-6 py-4 border-b border-border">
-              <h3 class="text-sm font-semibold text-text-primary">
-                {{ t('consulDownstreams') }}
-                <span class="text-text-tertiary font-normal">
-                  ({{ topology?.Downstreams?.length ?? 0 }})
-                </span>
-              </h3>
-            </div>
-            <div class="p-4 space-y-2">
-              <div
-                v-if="!topology?.Downstreams || topology.Downstreams.length === 0"
-                class="text-center py-6 text-text-tertiary"
-              >
-                <GitBranch class="w-6 h-6 mx-auto mb-2 opacity-50" />
-                <p class="text-xs">{{ t('consulNoDownstreams') }}</p>
-              </div>
-              <div
-                v-for="down in topology?.Downstreams"
-                :key="down.Name"
-                class="p-3 rounded-xl border border-border hover:bg-bg-secondary transition-colors"
-              >
-                <div class="flex items-center justify-between">
-                  <span class="text-sm font-medium text-text-primary">{{ down.Name }}</span>
-                  <span
-                    :class="down.Intention?.Allowed ? 'badge badge-success' : 'badge badge-danger'"
-                  >
-                    {{
-                      down.Intention?.Allowed
-                        ? t('consulIntentionAllowed')
-                        : t('consulIntentionDenied')
-                    }}
-                  </span>
-                </div>
-                <span v-if="down.Datacenter" class="text-xs text-text-tertiary mt-1 inline-block">
-                  {{ down.Datacenter }}
-                </span>
-              </div>
-            </div>
-          </div>
+        <!-- Topology Graph -->
+        <div v-else class="card p-4">
+          <ServiceTopologyGraph
+            :service-name="serviceName"
+            :upstreams="topology?.Upstreams || []"
+            :downstreams="topology?.Downstreams || []"
+            :filter-by-ac-ls="topology?.FilteredByACLs"
+            :protocol="topology?.Protocol"
+          />
         </div>
+      </div>
+
+      <!-- Routing (Discovery Chain) Tab -->
+      <div v-show="activeTab === 'routing'" class="card p-4">
+        <DiscoveryChainView :service-name="serviceName" />
       </div>
 
       <!-- Tags Tab -->
@@ -461,14 +472,16 @@ import {
   RefreshCw,
   Loader2,
   ChevronDown,
-  Server,
   GitBranch,
   Link,
   Tag,
+  Shield,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
 import { logger } from '@/utils/logger'
+import ServiceTopologyGraph from '@/components/consul/ServiceTopologyGraph.vue'
+import DiscoveryChainView from '@/components/consul/DiscoveryChainView.vue'
 import type {
   ConsulServiceNode,
   ConsulHealthCheck,
@@ -489,12 +502,13 @@ const expandedNodes = ref<Set<string>>(new Set())
 const instanceStatusFilter = ref<'all' | 'passing' | 'warning' | 'critical'>('all')
 
 // Tabs
-type TabKey = 'instances' | 'health' | 'topology' | 'tags' | 'upstreams' | 'intentions'
+type TabKey = 'instances' | 'health' | 'topology' | 'routing' | 'tags' | 'upstreams' | 'intentions'
 const activeTab = ref<TabKey>('instances')
 const tabs = computed(() => [
   { key: 'instances' as TabKey, label: t('serviceInstances') },
   { key: 'health' as TabKey, label: t('healthChecksList') },
   { key: 'topology' as TabKey, label: t('consulTopology') },
+  { key: 'routing' as TabKey, label: t('consulRouting') },
   { key: 'tags' as TabKey, label: t('consulServiceTags') },
   { key: 'upstreams' as TabKey, label: t('consulUpstreamServices') },
   { key: 'intentions' as TabKey, label: t('consulServiceIntentions') },
@@ -600,6 +614,28 @@ const healthSummary = computed(() => {
   }
   return { passing, warning, critical }
 })
+
+// Exposed Paths helper
+interface ExposedPath {
+  Protocol?: string
+  ListenerPort: number
+  Path: string
+  LocalPathPort: number
+}
+
+const getTransparentProxyPort = (node: ConsulServiceNode): number | null => {
+  const svc = node.Service as unknown as Record<string, unknown>
+  const proxy = svc.Proxy as { TransparentProxy?: { OutboundListenerPort?: number } } | undefined
+  return proxy?.TransparentProxy?.OutboundListenerPort || null
+}
+
+const getExposedPaths = (node: ConsulServiceNode): ExposedPath[] => {
+  const svc = node.Service as unknown as Record<string, unknown>
+  const proxy = svc.Proxy as
+    | { Expose?: { Paths?: ExposedPath[] }; TransparentProxy?: unknown }
+    | undefined
+  return proxy?.Expose?.Paths || []
+}
 
 // Methods
 const statusBadgeClass = (status: ConsulHealthStatus) => {

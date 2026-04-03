@@ -319,6 +319,36 @@ class ConsulApi {
     })
   }
 
+  async getBindingRule(id: string) {
+    return this.instance.get<ConsulACLBindingRule>(`/acl/binding-rules/${id}`)
+  }
+
+  async createBindingRule(data: {
+    AuthMethod: string
+    Description?: string
+    Selector?: string
+    BindType: string
+    BindName: string
+  }) {
+    return this.instance.put<ConsulACLBindingRule>('/acl/binding-rules', data)
+  }
+
+  async updateBindingRule(
+    id: string,
+    data: {
+      Description?: string
+      Selector?: string
+      BindType: string
+      BindName: string
+    },
+  ) {
+    return this.instance.put<ConsulACLBindingRule>(`/acl/binding-rules/${id}`, data)
+  }
+
+  async deleteBindingRule(id: string) {
+    return this.instance.delete(`/acl/binding-rules/${id}`)
+  }
+
   // ============================================
   // Peering API
   // ============================================
@@ -362,6 +392,12 @@ class ConsulApi {
 
   async getServiceTopology(service: string, dc?: string) {
     return this.instance.get<ConsulServiceTopology>(`/internal/ui/service-topology/${service}`, {
+      params: dc ? { dc } : undefined,
+    })
+  }
+
+  async getDiscoveryChain(service: string, dc?: string) {
+    return this.instance.get(`/discovery-chain/${service}`, {
       params: dc ? { dc } : undefined,
     })
   }

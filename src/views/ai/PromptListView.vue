@@ -53,6 +53,10 @@
             <Search class="w-3.5 h-3.5" />
             {{ t('search') }}
           </button>
+          <button v-if="searchKeyword" @click="handleResetSearch" class="btn btn-secondary">
+            <RotateCcw class="w-3.5 h-3.5" />
+            {{ t('reset') }}
+          </button>
         </div>
       </div>
     </div>
@@ -193,7 +197,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Search, Trash2, Loader2, Eye, FileText } from 'lucide-vue-next'
+import { Plus, Search, Trash2, Loader2, Eye, FileText, RotateCcw } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
@@ -236,6 +240,11 @@ const {
   getItemName: (item) => item.promptKey,
   searchParamKey: 'promptKey',
 })
+
+const handleResetSearch = () => {
+  searchKeyword.value = ''
+  handleSearch()
+}
 
 // Local state: batch selection
 const selectedKeys = ref<Set<string>>(new Set())

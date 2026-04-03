@@ -82,6 +82,38 @@
             </div>
           </div>
 
+          <!-- Governance info (if available) -->
+          <div v-if="governance" class="mt-4 pt-3 border-t border-border">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <span class="text-xs text-text-secondary">{{ t('promptScope') }}</span>
+                <div class="flex items-center gap-2 mt-1">
+                  <span
+                    :class="
+                      governance.scope === 'public' ? 'badge badge-success' : 'badge badge-warning'
+                    "
+                  >
+                    {{
+                      governance.scope === 'public' ? t('skillScopePublic') : t('skillScopePrivate')
+                    }}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <span class="text-xs text-text-secondary">{{ t('status') }}</span>
+                <p>
+                  <span :class="governance.enable ? 'badge badge-success' : 'badge badge-danger'">
+                    {{ governance.enable ? t('enabled') : t('disabled') }}
+                  </span>
+                </p>
+              </div>
+              <div>
+                <span class="text-xs text-text-secondary">{{ t('onlineCnt') }}</span>
+                <p class="font-medium text-text-primary">{{ governance.onlineCnt }}</p>
+              </div>
+            </div>
+          </div>
+
           <!-- Biz Tags -->
           <div v-if="metadata.bizTags && metadata.bizTags.length > 0" class="mt-3">
             <span class="text-xs text-text-secondary block mb-1.5">{{ t('tags') }}</span>
@@ -121,8 +153,101 @@
         </div>
       </div>
 
-      <!-- Main Content: Version History + Template -->
-      <div class="grid grid-cols-1 lg:grid-cols-4 gap-3">
+      <!-- Governance Version Timeline (if governance data is available) -->
+      <div v-if="governance && governance.versions && governance.versions.length > 0" class="card">
+        <div class="p-4 border-b border-border">
+          <h3 class="text-sm font-medium text-text-primary">{{ t('skillVersions') }}</h3>
+        </div>
+        <div class="divide-y divide-border">
+          <div
+            v-for="ver in governance.versions"
+            :key="ver.version"
+            class="p-4 hover:bg-bg-secondary transition-colors"
+          >
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                  :class="promptStatusDotClass(ver.status)"
+                />
+                <span class="font-mono text-sm font-medium text-text-primary">
+                  v{{ ver.version }}
+                </span>
+                <span :class="promptStatusBadgeClass(ver.status)">
+                  {{ promptStatusLabel(ver.status) }}
+                </span>
+              </div>
+              <div class="flex items-center gap-1">
+                <!-- View -->
+                <button
+                  @click="selectVersion(ver.version)"
+                  class="btn btn-ghost btn-sm"
+                  :title="t('viewDetail')"
+                >
+                  <Eye class="w-3.5 h-3.5" />
+                </button>
+                <!-- Draft: Submit -->
+                <button
+                  v-if="ver.status === 'draft'"
+                  @click="handleSubmitPrompt"
+                  class="btn btn-ghost btn-sm text-blue-600"
+                  :title="t('promptSubmitReview')"
+                >
+                  <Send class="w-3.5 h-3.5" />
+                </button>
+                <!-- Reviewing: Publish / Force Publish -->
+                <template v-if="ver.status === 'reviewing'">
+                  <button
+                    @click="handlePublishPrompt(ver.version)"
+                    class="btn btn-ghost btn-sm text-emerald-600"
+                    :title="t('promptPublish')"
+                  >
+                    <Rocket class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click="handleForcePublishPrompt(ver.version)"
+                    class="btn btn-ghost btn-sm text-orange-600"
+                    :title="t('forcePublish')"
+                  >
+                    <Zap class="w-3.5 h-3.5" />
+                  </button>
+                </template>
+                <!-- Online: Offline -->
+                <button
+                  v-if="ver.status === 'online'"
+                  @click="handleOfflinePrompt(ver.version)"
+                  class="btn btn-ghost btn-sm"
+                  :title="t('promptOfflineAction')"
+                >
+                  <WifiOff class="w-3.5 h-3.5" />
+                </button>
+                <!-- Offline: Online -->
+                <button
+                  v-if="ver.status === 'offline'"
+                  @click="handleOnlinePrompt(ver.version)"
+                  class="btn btn-ghost btn-sm"
+                  :title="t('promptOnlineAction')"
+                >
+                  <Wifi class="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+            <!-- Version meta -->
+            <div class="flex items-center gap-4 mt-2 text-xs text-text-tertiary ml-5">
+              <span>{{ ver.srcUser }}</span>
+              <span>{{ new Date(ver.gmtModified).toLocaleString() }}</span>
+              <span v-if="ver.commitMsg" class="truncate max-w-[200px]">{{ ver.commitMsg }}</span>
+            </div>
+            <!-- Pipeline Status -->
+            <div v-if="ver.publishPipelineInfo" class="mt-3 ml-5">
+              <PipelineStatusDisplay :publish-pipeline-info="ver.publishPipelineInfo" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content: Version History + Template (fallback for non-governance mode) -->
+      <div v-if="!governance || !governance.versions" class="grid grid-cols-1 lg:grid-cols-4 gap-3">
         <!-- Version History Sidebar -->
         <div class="lg:col-span-1">
           <div class="card">
@@ -158,7 +283,6 @@
                 <p class="text-[10px] text-text-tertiary mt-0.5">{{ ver.srcUser }}</p>
               </button>
             </div>
-            <!-- Version Pagination -->
             <AppPagination
               v-if="versionTotal > versionPageSize"
               :current-page="versionPage"
@@ -171,7 +295,6 @@
 
         <!-- Template Content -->
         <div class="lg:col-span-3 space-y-3">
-          <!-- Template Editor (read-only) -->
           <div class="card">
             <div class="p-3 border-b border-border">
               <h3 class="text-sm font-medium text-text-primary">
@@ -231,6 +354,65 @@
           </div>
         </div>
       </div>
+
+      <!-- Template content for governance mode -->
+      <template v-if="governance && governance.versions">
+        <div class="card" v-if="versionDetail">
+          <div class="p-3 border-b border-border">
+            <h3 class="text-sm font-medium text-text-primary">
+              {{ t('promptTemplate') }}
+              <span class="text-xs text-text-secondary ml-2">v{{ selectedVersion }}</span>
+            </h3>
+          </div>
+          <div class="p-3">
+            <div v-if="detailLoading" class="text-center py-6">
+              <Loader2 class="w-4 h-4 animate-spin mx-auto text-primary" />
+            </div>
+            <CodeEditor
+              v-else
+              :model-value="versionDetail.template"
+              language="text"
+              :readonly="true"
+              min-height="250px"
+            />
+          </div>
+        </div>
+
+        <!-- Variables -->
+        <div v-if="extractedVariables.length > 0" class="card">
+          <div class="p-3 border-b border-border">
+            <h3 class="text-sm font-medium text-text-primary">{{ t('promptVariables') }}</h3>
+          </div>
+          <div class="p-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div v-for="varName in extractedVariables" :key="varName">
+                <label class="block text-xs font-medium text-text-secondary mb-1">
+                  {{ wrapVar(varName) }}
+                </label>
+                <input
+                  v-model="variableValues[varName]"
+                  type="text"
+                  class="input"
+                  :placeholder="varName"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div v-if="extractedVariables.length > 0" class="card">
+          <div class="p-3 border-b border-border">
+            <h3 class="text-sm font-medium text-text-primary">{{ t('promptPreview') }}</h3>
+          </div>
+          <div class="p-3">
+            <pre
+              class="text-sm text-text-primary whitespace-pre-wrap bg-bg-tertiary rounded-lg p-3 max-h-[300px] overflow-y-auto"
+              >{{ previewText }}</pre
+            >
+          </div>
+        </div>
+      </template>
     </template>
 
     <!-- Edit Metadata Modal -->
@@ -300,13 +482,37 @@
         </div>
       </div>
     </FormModal>
+
+    <!-- Force Publish Confirm -->
+    <ConfirmModal
+      v-model="showForcePublishModal"
+      :title="t('forcePublish')"
+      :message="t('forcePublishConfirm')"
+      :confirm-text="t('forcePublish')"
+      @confirm="confirmForcePublish"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, Plus, Pencil, Loader2, Sparkles, Bug, Tag, X } from 'lucide-vue-next'
+import {
+  ArrowLeft,
+  Plus,
+  Pencil,
+  Loader2,
+  Sparkles,
+  Bug,
+  Tag,
+  X,
+  Eye,
+  Send,
+  Rocket,
+  Zap,
+  Wifi,
+  WifiOff,
+} from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
@@ -314,10 +520,18 @@ import { logger } from '@/utils/logger'
 import { useBatataStore } from '@/stores/batata'
 import AppPagination from '@/components/common/AppPagination.vue'
 import FormModal from '@/components/common/FormModal.vue'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import CodeEditor from '@/components/common/CodeEditor.vue'
 import PromptDebugPanel from '@/components/ai/PromptDebugPanel.vue'
 import PromptOptimizeDialog from '@/components/ai/PromptOptimizeDialog.vue'
-import type { PromptMetaInfo, PromptVersionInfo, PromptVersionSummary } from '@/types'
+import PipelineStatusDisplay from '@/components/ai/PipelineStatusDisplay.vue'
+import type {
+  PromptMetaInfo,
+  PromptGovernanceDetail,
+  PromptVersionInfo,
+  PromptVersionSummary,
+  PromptVersionStatus,
+} from '@/types'
 
 const showOptimizeDialog = ref(false)
 const showDebugPanel = ref(false)
@@ -331,6 +545,7 @@ const namespace = computed(() => store.currentNamespace)
 // State
 const loading = ref(false)
 const metadata = ref<PromptMetaInfo | null>(null)
+const governance = ref<PromptGovernanceDetail | null>(null)
 const selectedVersion = ref<string>('')
 
 // Version history
@@ -363,6 +578,10 @@ const labelForm = reactive({
   version: '',
 })
 
+// Force publish
+const showForcePublishModal = ref(false)
+const forcePublishVersion = ref('')
+
 // Computed
 const promptKey = computed(() => String(route.query.promptKey || ''))
 
@@ -389,6 +608,37 @@ const previewText = computed(() => {
   return text
 })
 
+// Status helpers for governance versions
+const promptStatusDotClass = (status: PromptVersionStatus) => {
+  const map: Record<PromptVersionStatus, string> = {
+    draft: 'bg-amber-500',
+    reviewing: 'bg-blue-500',
+    online: 'bg-emerald-500',
+    offline: 'bg-gray-400',
+  }
+  return map[status] || 'bg-gray-400'
+}
+
+const promptStatusBadgeClass = (status: PromptVersionStatus) => {
+  const map: Record<PromptVersionStatus, string> = {
+    draft: 'badge badge-warning',
+    reviewing: 'badge badge-info',
+    online: 'badge badge-success',
+    offline: 'badge badge-secondary',
+  }
+  return map[status] || 'badge'
+}
+
+const promptStatusLabel = (status: PromptVersionStatus) => {
+  const map: Record<PromptVersionStatus, string> = {
+    draft: t('promptDraft'),
+    reviewing: t('promptReviewing'),
+    online: t('promptOnline'),
+    offline: t('promptOffline'),
+  }
+  return map[status] || status
+}
+
 // Methods
 const goBack = () => {
   router.push('/prompts')
@@ -405,6 +655,17 @@ const fetchMetadata = async () => {
     toast.apiError(error)
   } finally {
     loading.value = false
+  }
+}
+
+const fetchGovernance = async () => {
+  if (!promptKey.value) return
+  try {
+    const response = await batataApi.getPromptGovernance(promptKey.value, namespace.value)
+    governance.value = response.data.data
+  } catch {
+    // Governance endpoint may not exist - fall back to versions-only mode
+    governance.value = null
   }
 }
 
@@ -459,7 +720,6 @@ const handleVersionPageChange = (page: number) => {
 
 const handleOptimizeApplied = (optimizedPrompt: string) => {
   showOptimizeDialog.value = false
-  // The optimized prompt can be used as the template for a new version
   router.push(
     `/prompt/editor?promptKey=${encodeURIComponent(promptKey.value)}&template=${encodeURIComponent(optimizedPrompt)}`,
   )
@@ -489,6 +749,7 @@ const saveMetadata = async () => {
     toast.success(t('save'))
     showEditMetadataModal.value = false
     fetchMetadata()
+    fetchGovernance()
   } catch (error) {
     logger.error('Failed to update prompt metadata:', error)
     toast.apiError(error)
@@ -531,12 +792,94 @@ const handleUnbindLabel = async (label: string) => {
   }
 }
 
+// Governance lifecycle actions
+const handleSubmitPrompt = async () => {
+  try {
+    await batataApi.submitPrompt(promptKey.value, namespace.value)
+    toast.success(t('promptSubmitReview'))
+    fetchGovernance()
+  } catch (error) {
+    logger.error('Failed to submit prompt:', error)
+    toast.apiError(error)
+  }
+}
+
+const handlePublishPrompt = async (version: string) => {
+  try {
+    await batataApi.publishPrompt({
+      promptKey: promptKey.value,
+      version,
+      template: versionDetail.value?.template || '',
+      namespaceId: namespace.value,
+    })
+    toast.success(t('promptPublish'))
+    fetchGovernance()
+    fetchMetadata()
+  } catch (error) {
+    logger.error('Failed to publish prompt:', error)
+    toast.apiError(error)
+  }
+}
+
+const handleForcePublishPrompt = (version: string) => {
+  forcePublishVersion.value = version
+  showForcePublishModal.value = true
+}
+
+const confirmForcePublish = async () => {
+  try {
+    await batataApi.forcePublishPrompt({
+      promptKey: promptKey.value,
+      version: forcePublishVersion.value,
+      namespaceId: namespace.value,
+    })
+    showForcePublishModal.value = false
+    toast.success(t('forcePublish'))
+    fetchGovernance()
+    fetchMetadata()
+  } catch (error) {
+    logger.error('Failed to force publish prompt:', error)
+    toast.apiError(error)
+  }
+}
+
+const handleOnlinePrompt = async (version: string) => {
+  try {
+    await batataApi.onlinePrompt({
+      promptKey: promptKey.value,
+      version,
+      namespaceId: namespace.value,
+    })
+    toast.success(t('promptOnlineAction'))
+    fetchGovernance()
+  } catch (error) {
+    logger.error('Failed to online prompt:', error)
+    toast.apiError(error)
+  }
+}
+
+const handleOfflinePrompt = async (version: string) => {
+  try {
+    await batataApi.offlinePrompt({
+      promptKey: promptKey.value,
+      version,
+      namespaceId: namespace.value,
+    })
+    toast.success(t('promptOfflineAction'))
+    fetchGovernance()
+  } catch (error) {
+    logger.error('Failed to offline prompt:', error)
+    toast.apiError(error)
+  }
+}
+
 // Watch for route query changes
 watch(
   () => route.query.promptKey,
   () => {
     if (promptKey.value) {
       fetchMetadata()
+      fetchGovernance()
       fetchVersions()
       const queryVersion = String(route.query.version || '')
       fetchVersionDetail(queryVersion || undefined)
@@ -547,6 +890,7 @@ watch(
 onMounted(() => {
   if (promptKey.value) {
     fetchMetadata()
+    fetchGovernance()
     fetchVersions()
     const queryVersion = String(route.query.version || '')
     fetchVersionDetail(queryVersion || undefined)
