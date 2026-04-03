@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { getTimeRange, formatDateTime, formatTimestamp, getRelativeTime } from '../date'
+import { getTimeRange, formatDateTime, formatTimestamp } from '../date'
 
 describe('date utilities', () => {
   describe('formatDateTime', () => {
@@ -68,38 +68,6 @@ describe('date utilities', () => {
       const result = getTimeRange('15m')
       expect(result.endTime).toBe('2024-06-15 12:00:00')
       expect(result.startTime).toBe('2024-06-15 11:45:00')
-    })
-  })
-
-  describe('getRelativeTime', () => {
-    const labels = {
-      justNow: 'Just now',
-      minutesAgo: 'minutes ago',
-      hoursAgo: 'hours ago',
-    }
-
-    beforeEach(() => {
-      vi.useFakeTimers()
-      vi.setSystemTime(new Date('2024-06-15T12:00:00.000Z'))
-    })
-
-    afterEach(() => {
-      vi.useRealTimers()
-    })
-
-    it('returns "Just now" for recent timestamps', () => {
-      const timestamp = Date.now() - 30000 // 30 seconds ago
-      expect(getRelativeTime(timestamp, labels)).toBe('Just now')
-    })
-
-    it('returns minutes for timestamps within an hour', () => {
-      const timestamp = Date.now() - 5 * 60000 // 5 minutes ago
-      expect(getRelativeTime(timestamp, labels)).toBe('5 minutes ago')
-    })
-
-    it('returns hours for timestamps over an hour', () => {
-      const timestamp = Date.now() - 3 * 3600000 // 3 hours ago
-      expect(getRelativeTime(timestamp, labels)).toBe('3 hours ago')
     })
   })
 })

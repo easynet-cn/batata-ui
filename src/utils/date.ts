@@ -38,20 +38,3 @@ export function formatTimestamp(timestamp: number | undefined | null): string {
   if (!timestamp) return '-'
   return new Date(timestamp).toLocaleString()
 }
-
-/**
- * Get a relative time description (e.g., "Just now", "5 minutes ago").
- */
-export function getRelativeTime(
-  timestamp: number,
-  labels: { justNow: string; minutesAgo: string; hoursAgo: string },
-): string {
-  const now = Date.now()
-  const diff = now - timestamp
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-
-  if (minutes < 1) return labels.justNow
-  if (minutes < 60) return `${minutes} ${labels.minutesAgo}`
-  return `${hours} ${labels.hoursAgo}`
-}

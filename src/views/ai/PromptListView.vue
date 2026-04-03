@@ -200,8 +200,6 @@ import { useRouter } from 'vue-router'
 import { Plus, Search, Trash2, Loader2, Eye, FileText, RotateCcw } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
-import { toast } from '@/utils/error'
-import { logger } from '@/utils/logger'
 import { useListView } from '@/composables/useListView'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import AppPagination from '@/components/common/AppPagination.vue'
@@ -213,9 +211,8 @@ const { t } = useI18n()
 // Local state: search mode (blur/accurate)
 const searchMode = ref<'blur' | 'accurate'>('blur')
 
-// Use list view composable
+// Use list view composable (with batch selection)
 const {
-  namespace,
   loading,
   items,
   total,
@@ -226,9 +223,14 @@ const {
   itemToDelete,
   handleDelete,
   confirmDelete,
-  fetchItems,
   handleSearch,
   handlePageChange,
+  // Batch selection from composable
+  selectedNames: selectedKeys,
+  showBatchDeleteModal,
+  toggleSelect,
+  toggleSelectAll,
+  confirmBatchDelete,
 } = useListView<PromptMetaSummary>({
   fetchFn: (params) =>
     batataApi.getPromptList({
@@ -246,45 +248,8 @@ const handleResetSearch = () => {
   handleSearch()
 }
 
-// Local state: batch selection
-const selectedKeys = ref<Set<string>>(new Set())
-const showBatchDeleteModal = ref(false)
-
-const toggleSelect = (key: string) => {
-  const newSet = new Set(selectedKeys.value)
-  if (newSet.has(key)) {
-    newSet.delete(key)
-  } else {
-    newSet.add(key)
-  }
-  selectedKeys.value = newSet
-}
-
-const toggleSelectAll = () => {
-  if (selectedKeys.value.size === items.value.length) {
-    selectedKeys.value = new Set()
-  } else {
-    selectedKeys.value = new Set(items.value.map((p) => p.promptKey))
-  }
-}
-
-// Batch delete
 const handleBatchDelete = () => {
   showBatchDeleteModal.value = true
-}
-
-const confirmBatchDelete = async () => {
-  try {
-    const keys = Array.from(selectedKeys.value)
-    await Promise.all(keys.map((key) => batataApi.deletePrompt(key, namespace.value)))
-    toast.success(t('batchDelete'))
-    showBatchDeleteModal.value = false
-    selectedKeys.value = new Set()
-    fetchItems()
-  } catch (error) {
-    logger.error('Failed to batch delete prompts:', error)
-    toast.apiError(error)
-  }
 }
 
 // Navigation

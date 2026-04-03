@@ -23,6 +23,8 @@ interface UseListViewOptions<T> {
   searchParamKey?: string
   pageSize?: number
   watchNamespace?: boolean
+  /** Enable batch selection and batch delete support */
+  batchDelete?: boolean
 }
 
 export function useListView<T>(options: UseListViewOptions<T>) {
@@ -150,6 +152,46 @@ export function useListView<T>(options: UseListViewOptions<T>) {
     })
   }
 
+  // Batch selection
+  const selectedNames = ref<Set<string>>(new Set())
+  const showBatchDeleteModal = ref(false)
+
+  const toggleSelect = (name: string) => {
+    const newSet = new Set(selectedNames.value)
+    if (newSet.has(name)) {
+      newSet.delete(name)
+    } else {
+      newSet.add(name)
+    }
+    selectedNames.value = newSet
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedNames.value.size === items.value.length) {
+      selectedNames.value = new Set()
+    } else {
+      selectedNames.value = new Set(items.value.map((item) => getItemName(item)))
+    }
+  }
+
+  const clearSelection = () => {
+    selectedNames.value = new Set()
+  }
+
+  const confirmBatchDelete = async () => {
+    if (!deleteFn || selectedNames.value.size === 0) return
+    try {
+      const names = Array.from(selectedNames.value)
+      await Promise.all(names.map((name) => deleteFn(namespace.value, name)))
+      showBatchDeleteModal.value = false
+      clearSelection()
+      fetchItems()
+    } catch (error) {
+      logger.error('Failed to batch delete:', error)
+      toast.apiError(error)
+    }
+  }
+
   // Auto-fetch on mount
   onMounted(() => {
     fetchItems()
@@ -175,6 +217,13 @@ export function useListView<T>(options: UseListViewOptions<T>) {
     uploading,
     handleFileChange,
     handleUpload,
+    // Batch selection
+    selectedNames,
+    showBatchDeleteModal,
+    toggleSelect,
+    toggleSelectAll,
+    clearSelection,
+    confirmBatchDelete,
     // Methods
     fetchItems,
     handleSearch,

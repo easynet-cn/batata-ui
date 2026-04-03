@@ -171,7 +171,6 @@ declare module 'vue' {
     readonly getCurrentInstance: UnwrapRef<(typeof import('vue'))['getCurrentInstance']>
     readonly getCurrentScope: UnwrapRef<(typeof import('vue'))['getCurrentScope']>
     readonly getCurrentWatcher: UnwrapRef<(typeof import('vue'))['getCurrentWatcher']>
-    readonly getRelativeTime: UnwrapRef<(typeof import('./utils/date'))['getRelativeTime']>
     readonly getTimeRange: UnwrapRef<(typeof import('./utils/date'))['getTimeRange']>
     readonly h: UnwrapRef<(typeof import('vue'))['h']>
     readonly handleError: UnwrapRef<(typeof import('./utils/error'))['handleError']>

@@ -615,26 +615,13 @@ const healthSummary = computed(() => {
   return { passing, warning, critical }
 })
 
-// Exposed Paths helper
-interface ExposedPath {
-  Protocol?: string
-  ListenerPort: number
-  Path: string
-  LocalPathPort: number
-}
-
+// Exposed Paths helper (uses properly typed ConsulServiceProxy)
 const getTransparentProxyPort = (node: ConsulServiceNode): number | null => {
-  const svc = node.Service as unknown as Record<string, unknown>
-  const proxy = svc.Proxy as { TransparentProxy?: { OutboundListenerPort?: number } } | undefined
-  return proxy?.TransparentProxy?.OutboundListenerPort || null
+  return node.Service.Proxy?.TransparentProxy?.OutboundListenerPort || null
 }
 
-const getExposedPaths = (node: ConsulServiceNode): ExposedPath[] => {
-  const svc = node.Service as unknown as Record<string, unknown>
-  const proxy = svc.Proxy as
-    | { Expose?: { Paths?: ExposedPath[] }; TransparentProxy?: unknown }
-    | undefined
-  return proxy?.Expose?.Paths || []
+const getExposedPaths = (node: ConsulServiceNode) => {
+  return node.Service.Proxy?.Expose?.Paths || []
 }
 
 // Methods

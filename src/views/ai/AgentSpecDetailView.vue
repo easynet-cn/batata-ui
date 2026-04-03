@@ -124,136 +124,22 @@
       </div>
 
       <!-- Version Timeline -->
-      <div class="card">
-        <div class="p-4 border-b border-border">
-          <h3 class="text-sm font-medium text-text-primary">{{ t('skillVersions') }}</h3>
-        </div>
-        <div v-if="detail.versions.length === 0" class="p-6 text-center text-text-secondary">
-          {{ t('noVersions') }}
-        </div>
-        <div v-else class="divide-y divide-border">
-          <div
-            v-for="ver in detail.versions"
-            :key="ver.version"
-            class="p-4 hover:bg-bg-secondary transition-colors"
-            :class="{ 'bg-bg-secondary': selectedVersion === ver.version }"
-          >
-            <div class="flex items-center justify-between">
-              <div
-                class="flex items-center gap-3 cursor-pointer"
-                @click="handleSelectVersion(ver.version)"
-              >
-                <!-- Status dot -->
-                <div
-                  class="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                  :class="statusDotClass(ver.status)"
-                />
-                <span class="font-mono text-sm font-medium text-text-primary">
-                  v{{ ver.version }}
-                </span>
-                <span :class="getStatusBadgeClass(ver.status)">
-                  {{ getStatusLabel(ver.status) }}
-                </span>
-              </div>
-              <div class="flex items-center gap-1">
-                <!-- View content -->
-                <button
-                  @click.stop="handleViewVersionContent(ver.version)"
-                  class="btn btn-ghost btn-sm"
-                  :title="t('agentSpecContent')"
-                >
-                  <Eye class="w-3.5 h-3.5" />
-                </button>
-                <!-- Download -->
-                <button
-                  @click.stop="handleDownloadVersion(ver.version)"
-                  class="btn btn-ghost btn-sm"
-                  :title="t('skillDownload')"
-                >
-                  <Download class="w-3.5 h-3.5" />
-                </button>
-                <!-- Draft: Submit / Delete -->
-                <template v-if="ver.status === 'draft'">
-                  <button
-                    @click.stop="handleSubmitVersion(ver.version)"
-                    class="btn btn-ghost btn-sm text-blue-600"
-                    :title="t('skillSubmitReview')"
-                  >
-                    <Send class="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    @click.stop="handleDeleteDraft"
-                    class="btn btn-ghost btn-sm text-danger"
-                    :title="t('deleteDraft')"
-                  >
-                    <Trash2 class="w-3.5 h-3.5" />
-                  </button>
-                </template>
-                <!-- Reviewing: Publish / Force Publish -->
-                <template v-if="ver.status === 'reviewing'">
-                  <button
-                    @click.stop="handlePublishVersion(ver.version)"
-                    class="btn btn-ghost btn-sm text-emerald-600"
-                    :title="t('skillPublish')"
-                  >
-                    <Rocket class="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    @click.stop="handleForcePublish(ver.version)"
-                    class="btn btn-ghost btn-sm text-orange-600"
-                    :title="t('forcePublish')"
-                  >
-                    <Zap class="w-3.5 h-3.5" />
-                  </button>
-                </template>
-                <!-- Online: Offline -->
-                <button
-                  v-if="ver.status === 'online'"
-                  @click.stop="handleOfflineVersion(ver.version)"
-                  class="btn btn-ghost btn-sm"
-                  :title="t('skillOfflineAction')"
-                >
-                  <WifiOff class="w-3.5 h-3.5" />
-                </button>
-                <!-- Offline: Online -->
-                <button
-                  v-if="ver.status === 'offline'"
-                  @click.stop="handleOnlineVersion(ver.version)"
-                  class="btn btn-ghost btn-sm"
-                  :title="t('skillOnlineAction')"
-                >
-                  <Wifi class="w-3.5 h-3.5" />
-                </button>
-                <!-- Create Draft From (for online/offline, when no editing version) -->
-                <button
-                  v-if="
-                    (ver.status === 'online' || ver.status === 'offline') &&
-                    !detail.editingVersion &&
-                    !detail.reviewingVersion
-                  "
-                  @click.stop="handleCreateDraft(ver.version)"
-                  class="btn btn-ghost btn-sm"
-                  :title="t('createDraftFromVersion')"
-                >
-                  <FilePlus class="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-            <!-- Version meta -->
-            <div class="flex items-center gap-4 mt-2 text-xs text-text-tertiary ml-5">
-              <span>{{ ver.author }}</span>
-              <span>{{ new Date(ver.createTime).toLocaleString() }}</span>
-              <span v-if="ver.description" class="truncate max-w-[200px]">{{
-                ver.description
-              }}</span>
-            </div>
-            <!-- Pipeline Status (if present) -->
-            <div v-if="ver.publishPipelineInfo" class="mt-3 ml-5">
-              <PipelineStatusDisplay :publish-pipeline-info="ver.publishPipelineInfo" />
-            </div>
-          </div>
-        </div>
-      </div>
+      <VersionTimeline
+        :versions="detail.versions"
+        :editing-version="detail.editingVersion"
+        :reviewing-version="detail.reviewingVersion"
+        show-download
+        @select="handleSelectVersion"
+        @view="handleViewVersionContent"
+        @download="handleDownloadVersion"
+        @submit="handleSubmitVersion"
+        @publish="handlePublishVersion"
+        @force-publish="handleForcePublish"
+        @online="handleOnlineVersion"
+        @offline="handleOfflineVersion"
+        @delete-draft="handleDeleteDraft"
+        @create-draft-from="handleCreateDraft"
+      />
 
       <!-- Version Content Display -->
       <div v-if="versionContent" class="card">
@@ -383,14 +269,7 @@ import {
   Pencil,
   Trash2,
   Loader2,
-  Eye,
-  Send,
-  Rocket,
   FilePlus,
-  Wifi,
-  WifiOff,
-  Download,
-  Zap,
   X,
   FileCode,
 } from 'lucide-vue-next'
@@ -402,8 +281,8 @@ import { useBatataStore } from '@/stores/batata'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import FormModal from '@/components/common/FormModal.vue'
 import CodeEditor from '@/components/common/CodeEditor.vue'
-import PipelineStatusDisplay from '@/components/ai/PipelineStatusDisplay.vue'
-import type { AgentSpecDetail, AgentSpecDocument, AgentSpecVersionStatus } from '@/types'
+import VersionTimeline from '@/components/ai/VersionTimeline.vue'
+import type { AgentSpecDetail, AgentSpecDocument } from '@/types'
 
 const router = useRouter()
 const route = useRoute()
@@ -491,35 +370,7 @@ const handleDownloadVersion = async (version: string) => {
   }
 }
 
-const statusDotClass = (status: AgentSpecVersionStatus) => {
-  const classes: Record<AgentSpecVersionStatus, string> = {
-    draft: 'bg-amber-500',
-    reviewing: 'bg-blue-500',
-    online: 'bg-emerald-500',
-    offline: 'bg-gray-400',
-  }
-  return classes[status] || 'bg-gray-400'
-}
-
-const getStatusBadgeClass = (status: AgentSpecVersionStatus) => {
-  const classes: Record<AgentSpecVersionStatus, string> = {
-    draft: 'badge badge-warning',
-    reviewing: 'badge badge-info',
-    online: 'badge badge-success',
-    offline: 'badge badge-secondary',
-  }
-  return classes[status] || 'badge'
-}
-
-const getStatusLabel = (status: AgentSpecVersionStatus) => {
-  const labels: Record<AgentSpecVersionStatus, string> = {
-    draft: t('skillDraft'),
-    reviewing: t('skillReviewing'),
-    online: t('skillOnline'),
-    offline: t('skillOffline'),
-  }
-  return labels[status] || status
-}
+// Status helpers removed - now handled by VersionTimeline component
 
 const goBack = () => {
   router.push('/ai/agent-specs')

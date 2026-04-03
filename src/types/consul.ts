@@ -45,6 +45,36 @@ export interface ConsulNodeInfo {
   ModifyIndex?: number
 }
 
+export interface ConsulExposedPath {
+  Protocol?: string
+  ListenerPort: number
+  Path: string
+  LocalPathPort: number
+}
+
+export interface ConsulServiceProxy {
+  DestinationServiceName?: string
+  DestinationServiceID?: string
+  LocalServiceAddress?: string
+  LocalServicePort?: number
+  Mode?: string
+  TransparentProxy?: {
+    OutboundListenerPort?: number
+  }
+  Expose?: {
+    Checks?: boolean
+    Paths?: ConsulExposedPath[]
+  }
+  Upstreams?: Array<{
+    DestinationType?: string
+    DestinationName?: string
+    DestinationNamespace?: string
+    LocalBindAddress?: string
+    LocalBindPort?: number
+  }>
+  [key: string]: unknown
+}
+
 export interface ConsulServiceInfo {
   ID: string
   Service: string
@@ -57,7 +87,7 @@ export interface ConsulServiceInfo {
   TaggedAddresses?: Record<string, unknown> | null
   Datacenter?: string
   Kind?: string
-  Proxy?: Record<string, unknown>
+  Proxy?: ConsulServiceProxy
   Connect?: Record<string, unknown>
   Namespace?: string
   CreateIndex?: number

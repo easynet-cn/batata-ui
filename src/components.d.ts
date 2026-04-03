@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppPagination: typeof import('./components/common/AppPagination.vue')['default']
+    BizTagList: typeof import('./components/common/BizTagList.vue')['default']
     CodeEditor: typeof import('./components/common/CodeEditor.vue')['default']
     ConfirmModal: typeof import('./components/common/ConfirmModal.vue')['default']
     DataTable: typeof import('./components/common/DataTable.vue')['default']
@@ -29,5 +30,6 @@ declare module 'vue' {
     ShowCodeDialog: typeof import('./components/common/ShowCodeDialog.vue')['default']
     SkillOptimizeDialog: typeof import('./components/ai/SkillOptimizeDialog.vue')['default']
     ToastMessage: typeof import('./components/feedback/ToastMessage.vue')['default']
+    VersionTimeline: typeof import('./components/ai/VersionTimeline.vue')['default']
   }
 }

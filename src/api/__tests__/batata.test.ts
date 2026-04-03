@@ -236,7 +236,8 @@ describe('BatataApi', () => {
       expect(thrown).not.toBeNull()
       expect(thrown!.name).toBe('ApiError')
       expect((thrown as unknown as { code: number }).code).toBe(502)
-      expect(thrown!.message).toBe('Bad Gateway')
+      // 502 now returns a custom user-friendly message
+      expect(thrown!.message).toBe('Server is temporarily unavailable. It may be restarting.')
     })
   })
 
@@ -275,7 +276,7 @@ describe('BatataApi', () => {
       })
     })
 
-    it('calls publishConfig with POST', async () => {
+    it('calls publishConfig with POST using form data', async () => {
       const mockResponse = { data: { code: 0, message: 'ok' } }
       ;(mockAxiosInstance.post as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse)
 
@@ -287,7 +288,19 @@ describe('BatataApi', () => {
 
       await BatataApi.default.publishConfig(configData)
 
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/cs/config', configData)
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/cs/config',
+        expect.any(URLSearchParams),
+        expect.objectContaining({
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        }),
+      )
+      // Verify the form data contains expected fields
+      const formData = (mockAxiosInstance.post as ReturnType<typeof vi.fn>).mock
+        .calls[0][1] as URLSearchParams
+      expect(formData.get('dataId')).toBe('test.yaml')
+      expect(formData.get('groupName')).toBe('DEFAULT_GROUP')
+      expect(formData.get('content')).toBe('key: value')
     })
 
     it('calls deleteConfig with correct params', async () => {
@@ -309,7 +322,7 @@ describe('BatataApi', () => {
 
       await BatataApi.default.createMcpServer(payload)
 
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/ai/mcp/servers', payload)
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/ai/mcp', payload)
     })
 
     it('calls getNamespaceList', async () => {

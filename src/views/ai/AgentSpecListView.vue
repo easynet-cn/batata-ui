@@ -14,7 +14,7 @@
             <Trash2 class="w-3.5 h-3.5" />
             {{ t('batchDelete') }}
           </button>
-          <button @click="selectedNames.clear()" class="btn btn-secondary btn-sm">
+          <button @click="clearSelection()" class="btn btn-secondary btn-sm">
             {{ t('cancel') }}
           </button>
         </template>
@@ -151,18 +151,7 @@
           </div>
 
           <!-- Biz Tags -->
-          <div v-if="item.bizTags" class="flex flex-wrap gap-1 mb-2">
-            <span
-              v-for="tag in item.bizTags.split(',').slice(0, 2)"
-              :key="tag"
-              class="px-1.5 py-0.5 text-[10px] rounded bg-gray-100 dark:bg-gray-800 text-text-secondary"
-            >
-              {{ tag.trim() }}
-            </span>
-            <span v-if="item.bizTags.split(',').length > 2" class="text-[10px] text-text-tertiary">
-              +{{ item.bizTags.split(',').length - 2 }}
-            </span>
-          </div>
+          <BizTagList v-if="item.bizTags" :biz-tags="item.bizTags" class="mb-2" />
 
           <!-- Footer -->
           <div class="flex items-center justify-between pt-2 border-t border-border">
@@ -257,12 +246,11 @@ import {
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
-import { toast } from '@/utils/error'
-import { logger } from '@/utils/logger'
 import { useListView } from '@/composables/useListView'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import FormModal from '@/components/common/FormModal.vue'
 import AppPagination from '@/components/common/AppPagination.vue'
+import BizTagList from '@/components/common/BizTagList.vue'
 import type { AgentSpecListItem } from '@/types'
 
 const router = useRouter()
@@ -279,7 +267,6 @@ const {
   currentPage,
   pageSize,
   searchKeyword,
-  namespace,
   showDeleteModal,
   itemToDelete,
   handleDelete,
@@ -291,7 +278,12 @@ const {
   handleUpload,
   handleSearch,
   handlePageChange,
-  fetchItems,
+  // Batch selection from composable
+  selectedNames,
+  showBatchDeleteModal,
+  toggleSelect,
+  clearSelection,
+  confirmBatchDelete,
 } = useListView<AgentSpecListItem>({
   fetchFn: (params) =>
     batataApi.getAgentSpecList({
@@ -311,34 +303,6 @@ const handleReset = () => {
   scopeFilter.value = ''
   sortOrder.value = ''
   handleSearch()
-}
-
-// Batch selection
-const selectedNames = ref<Set<string>>(new Set())
-const showBatchDeleteModal = ref(false)
-
-const toggleSelect = (name: string) => {
-  const newSet = new Set(selectedNames.value)
-  if (newSet.has(name)) {
-    newSet.delete(name)
-  } else {
-    newSet.add(name)
-  }
-  selectedNames.value = newSet
-}
-
-const confirmBatchDelete = async () => {
-  try {
-    const names = Array.from(selectedNames.value)
-    await Promise.all(names.map((name) => batataApi.deleteAgentSpec(namespace.value, name)))
-    toast.success(t('batchDelete'))
-    showBatchDeleteModal.value = false
-    selectedNames.value = new Set()
-    fetchItems()
-  } catch (error) {
-    logger.error('Failed to batch delete:', error)
-    toast.apiError(error)
-  }
 }
 
 const handleCreate = () => {

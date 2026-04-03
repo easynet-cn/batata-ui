@@ -518,6 +518,7 @@ import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
 import { useBatataStore } from '@/stores/batata'
+import { useVersionStatus } from '@/composables/useVersionStatus'
 import AppPagination from '@/components/common/AppPagination.vue'
 import FormModal from '@/components/common/FormModal.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
@@ -530,7 +531,6 @@ import type {
   PromptGovernanceDetail,
   PromptVersionInfo,
   PromptVersionSummary,
-  PromptVersionStatus,
 } from '@/types'
 
 const showOptimizeDialog = ref(false)
@@ -608,36 +608,12 @@ const previewText = computed(() => {
   return text
 })
 
-// Status helpers for governance versions
-const promptStatusDotClass = (status: PromptVersionStatus) => {
-  const map: Record<PromptVersionStatus, string> = {
-    draft: 'bg-amber-500',
-    reviewing: 'bg-blue-500',
-    online: 'bg-emerald-500',
-    offline: 'bg-gray-400',
-  }
-  return map[status] || 'bg-gray-400'
-}
-
-const promptStatusBadgeClass = (status: PromptVersionStatus) => {
-  const map: Record<PromptVersionStatus, string> = {
-    draft: 'badge badge-warning',
-    reviewing: 'badge badge-info',
-    online: 'badge badge-success',
-    offline: 'badge badge-secondary',
-  }
-  return map[status] || 'badge'
-}
-
-const promptStatusLabel = (status: PromptVersionStatus) => {
-  const map: Record<PromptVersionStatus, string> = {
-    draft: t('promptDraft'),
-    reviewing: t('promptReviewing'),
-    online: t('promptOnline'),
-    offline: t('promptOffline'),
-  }
-  return map[status] || status
-}
+// Status helpers (shared composable)
+const {
+  statusDotClass: promptStatusDotClass,
+  statusBadgeClass: promptStatusBadgeClass,
+  statusLabel: promptStatusLabel,
+} = useVersionStatus()
 
 // Methods
 const goBack = () => {
