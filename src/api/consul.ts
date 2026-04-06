@@ -8,6 +8,8 @@ import type {
   ConsulServiceNode,
   ConsulHealthCheck,
   ConsulNode,
+  ConsulUINode,
+  ConsulUIServiceSummary,
   ConsulAgentMember,
   ConsulAgentSelf,
   ConsulACLToken,
@@ -384,6 +386,24 @@ class ConsulApi {
   // Internal UI API
   // ============================================
 
+  async getUIServices(dc?: string) {
+    return this.instance.get<ConsulUIServiceSummary[]>('/internal/ui/services', {
+      params: dc ? { dc } : undefined,
+    })
+  }
+
+  async getUINodes(dc?: string) {
+    return this.instance.get<ConsulUINode[]>('/internal/ui/nodes', {
+      params: dc ? { dc } : undefined,
+    })
+  }
+
+  async getUINode(node: string, dc?: string) {
+    return this.instance.get<ConsulUINode>(`/internal/ui/node/${node}`, {
+      params: dc ? { dc } : undefined,
+    })
+  }
+
   async getCatalogOverview(dc?: string) {
     return this.instance.get<ConsulCatalogSummary>('/internal/ui/catalog-overview', {
       params: dc ? { dc } : undefined,
@@ -456,6 +476,16 @@ class ConsulApi {
   async listEvents(name?: string) {
     return this.instance.get<ConsulUserEvent[]>('/event/list', {
       params: name ? { name } : undefined,
+    })
+  }
+
+  // ============================================
+  // Status API
+  // ============================================
+
+  async getStatusLeader(dc?: string) {
+    return this.instance.get<string>('/status/leader', {
+      params: dc ? { dc } : undefined,
     })
   }
 

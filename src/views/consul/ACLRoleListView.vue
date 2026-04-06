@@ -18,6 +18,32 @@
       </div>
     </div>
 
+    <!-- Search & Sort Bar -->
+    <div class="card">
+      <div class="p-3">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div class="md:col-span-2">
+            <div class="relative">
+              <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+              <input
+                v-model="searchQuery"
+                type="text"
+                class="input pl-10"
+                :placeholder="t('searchRoles')"
+              />
+            </div>
+          </div>
+          <div>
+            <select v-model="sortBy" class="input">
+              <option value="name-asc">{{ t('sortBy') }}: {{ t('name') }} ↑</option>
+              <option value="name-desc">{{ t('sortBy') }}: {{ t('name') }} ↓</option>
+              <option value="newest">{{ t('sortBy') }}: {{ t('createTime') }} ↓</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Role List -->
     <div class="card">
       <div class="overflow-x-auto">
@@ -36,12 +62,12 @@
                 <Loader2 class="w-5 h-5 animate-spin mx-auto text-primary" />
               </td>
             </tr>
-            <tr v-else-if="store.aclRoles.length === 0">
+            <tr v-else-if="sortedRoles.length === 0">
               <td colspan="4" class="text-center py-6 text-text-secondary">
                 {{ t('noRoles') }}
               </td>
             </tr>
-            <tr v-for="role in store.aclRoles" :key="role.ID">
+            <tr v-for="role in sortedRoles" :key="role.ID" class="hover:bg-bg-secondary">
               <td>
                 <span class="font-medium text-text-primary">{{ role.Name }}</span>
               </td>
@@ -81,6 +107,11 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      <div class="flex items-center justify-between p-4 border-t border-border">
+        <div class="text-sm text-text-secondary">
+          {{ t('total') }}: {{ sortedRoles.length }} {{ t('items') }}
+        </div>
       </div>
     </div>
 
@@ -227,8 +258,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { Plus, RefreshCw, Trash2, Pencil, Loader2 } from 'lucide-vue-next'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { Plus, RefreshCw, Trash2, Pencil, Loader2, Search } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
@@ -252,10 +283,43 @@ const selectedPolicyIds = ref<string[]>([])
 const availablePolicies = ref<{ ID: string; Name: string; Description: string }[]>([])
 const serviceIdentities = ref<Array<{ ServiceName: string }>>([])
 const nodeIdentities = ref<Array<{ NodeName: string; Datacenter: string }>>([])
+const searchQuery = ref('')
+const sortBy = ref('name-asc')
 
 const createForm = reactive({
   Name: '',
   Description: '',
+})
+
+// Filtered & sorted
+const filteredRoles = computed(() => {
+  let roles = store.aclRoles
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    roles = roles.filter(
+      (r) =>
+        r.Name.toLowerCase().includes(q) ||
+        (r.Description || '').toLowerCase().includes(q) ||
+        (r.Policies || []).some((p) => p.Name.toLowerCase().includes(q)),
+    )
+  }
+  return roles
+})
+
+const sortedRoles = computed(() => {
+  const roles = [...filteredRoles.value]
+  switch (sortBy.value) {
+    case 'name-asc':
+      roles.sort((a, b) => a.Name.localeCompare(b.Name))
+      break
+    case 'name-desc':
+      roles.sort((a, b) => b.Name.localeCompare(a.Name))
+      break
+    case 'newest':
+      roles.sort((a, b) => (b.CreateIndex || 0) - (a.CreateIndex || 0))
+      break
+  }
+  return roles
 })
 
 // Actions
@@ -277,7 +341,6 @@ async function openCreateModal() {
   serviceIdentities.value = []
   nodeIdentities.value = []
   showCreateModal.value = true
-  // Load available policies for the selector
   try {
     await store.fetchACLPolicies()
     availablePolicies.value = store.aclPolicies.map((p) => ({
@@ -306,7 +369,6 @@ async function handleEdit(role: ConsulACLRole) {
       NodeName: ni.NodeName,
       Datacenter: ni.Datacenter,
     }))
-    // Load available policies for the selector
     await store.fetchACLPolicies()
     availablePolicies.value = store.aclPolicies.map((p) => ({
       ID: p.ID,

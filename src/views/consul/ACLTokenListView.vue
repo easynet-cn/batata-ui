@@ -18,6 +18,39 @@
       </div>
     </div>
 
+    <!-- Search & Filter Bar -->
+    <div class="card">
+      <div class="p-3">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+          <div class="md:col-span-2">
+            <div class="relative">
+              <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+              <input
+                v-model="searchQuery"
+                type="text"
+                class="input pl-10"
+                :placeholder="t('searchTokens')"
+              />
+            </div>
+          </div>
+          <div>
+            <select v-model="scopeFilter" class="input">
+              <option value="">{{ t('consulFilterAll') }}</option>
+              <option value="local">{{ t('tokenLocal') }}</option>
+              <option value="global">{{ t('tokenGlobal') }}</option>
+              <option value="management">{{ t('globalManagement') }}</option>
+            </select>
+          </div>
+          <div>
+            <select v-model="sortBy" class="input">
+              <option value="newest">{{ t('sortBy') }}: {{ t('createTime') }} ↓</option>
+              <option value="oldest">{{ t('sortBy') }}: {{ t('createTime') }} ↑</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Token List -->
     <div class="card">
       <div class="overflow-x-auto">
@@ -25,12 +58,12 @@
           <thead>
             <tr>
               <th>{{ t('accessorId') }}</th>
+              <th>{{ t('scope') }}</th>
               <th>{{ t('description') }}</th>
               <th>{{ t('policies') }}</th>
               <th>{{ t('roles') }}</th>
-              <th>{{ t('local') }}</th>
               <th>{{ t('createTime') }}</th>
-              <th class="w-24">{{ t('actions') }}</th>
+              <th class="w-32">{{ t('actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -39,15 +72,29 @@
                 <Loader2 class="w-5 h-5 animate-spin mx-auto text-primary" />
               </td>
             </tr>
-            <tr v-else-if="store.aclTokens.length === 0">
+            <tr v-else-if="sortedTokens.length === 0">
               <td colspan="7" class="text-center py-6 text-text-secondary">
                 {{ t('noTokens') }}
               </td>
             </tr>
-            <tr v-for="token in store.aclTokens" :key="token.AccessorID">
+            <tr v-for="token in sortedTokens" :key="token.AccessorID" class="hover:bg-bg-secondary">
               <td>
                 <span class="font-mono text-xs" :title="token.AccessorID">
-                  {{ truncateId(token.AccessorID) }}
+                  ...{{ token.AccessorID.slice(-8) }}
+                </span>
+              </td>
+              <td>
+                <span
+                  v-if="isGlobalManagement(token)"
+                  class="badge bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400"
+                >
+                  {{ t('globalManagement') }}
+                </span>
+                <span v-else-if="token.Local" class="badge badge-info">
+                  {{ t('tokenLocal') }}
+                </span>
+                <span v-else class="badge badge-warning">
+                  {{ t('tokenGlobal') }}
                 </span>
               </td>
               <td>
@@ -73,16 +120,18 @@
                   <span v-if="!token.Roles?.length" class="text-text-tertiary">-</span>
                 </div>
               </td>
-              <td>
-                <span :class="token.Local ? 'badge badge-success' : 'badge badge-warning'">
-                  {{ token.Local ? t('yes') : t('no') }}
-                </span>
-              </td>
               <td class="text-text-secondary text-xs">
                 {{ formatTime(token.CreateTime) }}
               </td>
               <td>
                 <div class="flex items-center gap-1">
+                  <button
+                    @click="copySecretId(token)"
+                    class="btn btn-ghost btn-sm text-text-secondary"
+                    :title="t('copySecretId')"
+                  >
+                    <ClipboardCopy class="w-3.5 h-3.5" />
+                  </button>
                   <button
                     @click="handleEdit(token)"
                     class="btn btn-ghost btn-sm text-text-secondary"
@@ -110,6 +159,11 @@
           </tbody>
         </table>
       </div>
+      <div class="flex items-center justify-between p-4 border-t border-border">
+        <div class="text-sm text-text-secondary">
+          {{ t('total') }}: {{ sortedTokens.length }} {{ t('items') }}
+        </div>
+      </div>
     </div>
 
     <!-- Create/Edit Token Modal -->
@@ -131,6 +185,13 @@
             class="input"
             :placeholder="t('descriptionPlaceholder')"
           />
+        </div>
+        <!-- Local/Global Toggle -->
+        <div v-if="!isEditing">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" v-model="createForm.Local" class="rounded" />
+            <span class="text-sm text-text-primary">{{ t('tokenLocalDesc') }}</span>
+          </label>
         </div>
         <div>
           <label class="block text-xs font-medium text-text-primary mb-1">
@@ -255,8 +316,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { Plus, RefreshCw, Trash2, Pencil, Loader2, Copy } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import {
+  Plus,
+  RefreshCw,
+  Trash2,
+  Pencil,
+  Loader2,
+  Copy,
+  Search,
+  ClipboardCopy,
+} from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
@@ -278,17 +348,22 @@ const editingToken = ref<ConsulACLToken | null>(null)
 const tokenToDelete = ref<ConsulACLToken | null>(null)
 const selectedPolicyIds = ref<string[]>([])
 const selectedRoleIds = ref<string[]>([])
+const searchQuery = ref('')
+const scopeFilter = ref('')
+const sortBy = ref('newest')
 
 const createForm = ref({
   Description: '',
+  Local: false,
 })
 const serviceIdentities = ref<Array<{ ServiceName: string }>>([])
 const nodeIdentities = ref<Array<{ NodeName: string; Datacenter: string }>>([])
 
 // Helpers
-function truncateId(id: string): string {
-  if (!id) return '-'
-  return id.length > 8 ? `${id.substring(0, 8)}...` : id
+const MANAGEMENT_POLICY_NAME = 'global-management'
+
+function isGlobalManagement(token: ConsulACLToken): boolean {
+  return (token.Policies || []).some((p) => p.Name === MANAGEMENT_POLICY_NAME)
 }
 
 function formatTime(time: string): string {
@@ -297,6 +372,63 @@ function formatTime(time: string): string {
     return new Date(time).toLocaleString()
   } catch {
     return time
+  }
+}
+
+// Filtered & sorted tokens
+const filteredTokens = computed(() => {
+  let tokens = store.aclTokens
+
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    tokens = tokens.filter((t) => {
+      if (t.AccessorID.toLowerCase().includes(q)) return true
+      if (t.Description?.toLowerCase().includes(q)) return true
+      if (t.Policies?.some((p) => p.Name.toLowerCase().includes(q))) return true
+      if (t.Roles?.some((r) => r.Name.toLowerCase().includes(q))) return true
+      return false
+    })
+  }
+
+  if (scopeFilter.value) {
+    switch (scopeFilter.value) {
+      case 'local':
+        tokens = tokens.filter((t) => t.Local)
+        break
+      case 'global':
+        tokens = tokens.filter((t) => !t.Local)
+        break
+      case 'management':
+        tokens = tokens.filter((t) => isGlobalManagement(t))
+        break
+    }
+  }
+
+  return tokens
+})
+
+const sortedTokens = computed(() => {
+  const tokens = [...filteredTokens.value]
+  tokens.sort((a, b) => {
+    const da = new Date(a.CreateTime || 0).getTime()
+    const db = new Date(b.CreateTime || 0).getTime()
+    return sortBy.value === 'newest' ? db - da : da - db
+  })
+  return tokens
+})
+
+// Copy SecretID
+async function copySecretId(token: ConsulACLToken) {
+  try {
+    const response = await consulApi.getACLToken(token.AccessorID)
+    const secretId = response.data.SecretID
+    if (secretId) {
+      await navigator.clipboard.writeText(secretId)
+      toast.success(t('copiedToClipboard'))
+    }
+  } catch (error) {
+    logger.error('Failed to copy secret ID:', error)
+    toast.apiError(error)
   }
 }
 
@@ -315,11 +447,11 @@ async function openCreateModal() {
   editingToken.value = null
   showCreateModal.value = true
   createForm.value.Description = ''
+  createForm.value.Local = false
   selectedPolicyIds.value = []
   selectedRoleIds.value = []
   serviceIdentities.value = []
   nodeIdentities.value = []
-  // Load policies and roles for the selector
   try {
     await Promise.all([store.fetchACLPolicies(), store.fetchACLRoles()])
   } catch (error) {
@@ -330,11 +462,11 @@ async function openCreateModal() {
 async function handleEdit(token: ConsulACLToken) {
   isEditing.value = true
   try {
-    // Fetch full token details
     const response = await consulApi.getACLToken(token.AccessorID)
     const fullToken = response.data
     editingToken.value = fullToken
     createForm.value.Description = fullToken.Description || ''
+    createForm.value.Local = fullToken.Local
     selectedPolicyIds.value = (fullToken.Policies || []).map((p) => p.ID)
     selectedRoleIds.value = (fullToken.Roles || []).map((r) => r.ID)
     serviceIdentities.value = (fullToken.ServiceIdentities || []).map((si) => ({
@@ -344,7 +476,6 @@ async function handleEdit(token: ConsulACLToken) {
       NodeName: ni.NodeName,
       Datacenter: ni.Datacenter,
     }))
-    // Load policies and roles for the selector
     await Promise.all([store.fetchACLPolicies(), store.fetchACLRoles()])
     showCreateModal.value = true
   } catch (error) {
@@ -383,7 +514,7 @@ async function submitCreate() {
     if (isEditing.value && editingToken.value) {
       await consulApi.updateACLToken(editingToken.value.AccessorID, tokenData)
     } else {
-      await consulApi.createACLToken(tokenData)
+      await consulApi.createACLToken({ ...tokenData, Local: createForm.value.Local })
     }
     showCreateModal.value = false
     toast.success(t('success'))

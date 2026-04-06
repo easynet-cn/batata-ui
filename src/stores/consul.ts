@@ -4,6 +4,8 @@ import { storage } from '@/composables/useStorage'
 import type {
   ConsulKVPair,
   ConsulNode,
+  ConsulUINode,
+  ConsulUIServiceSummary,
   ConsulHealthCheck,
   ConsulACLToken,
   ConsulACLPolicy,
@@ -38,8 +40,10 @@ export const useConsulStore = defineStore('consul', () => {
 
   // Catalog
   const services = ref<Record<string, string[]>>({}) // name -> tags
+  const uiServices = ref<ConsulUIServiceSummary[]>([])
   const serviceNodes = ref<ConsulServiceNode[]>([])
   const nodes = ref<ConsulNode[]>([])
+  const uiNodes = ref<ConsulUINode[]>([])
 
   // Health
   const healthChecks = ref<ConsulHealthCheck[]>([])
@@ -176,6 +180,21 @@ export const useConsulStore = defineStore('consul', () => {
     }
   }
 
+  async function fetchUIServices(dc?: string) {
+    try {
+      loading.value = true
+      error.value = null
+      const response = await consulApi.getUIServices(dc || currentDc.value || undefined)
+      uiServices.value = response.data || []
+      return uiServices.value
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch UI services'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function fetchServiceNodes(name: string, dc?: string) {
     try {
       loading.value = true
@@ -203,6 +222,21 @@ export const useConsulStore = defineStore('consul', () => {
       return nodes.value
     } catch (err: unknown) {
       error.value = err instanceof Error ? err.message : 'Failed to fetch nodes'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchUINodes(dc?: string) {
+    try {
+      loading.value = true
+      error.value = null
+      const response = await consulApi.getUINodes(dc || currentDc.value || undefined)
+      uiNodes.value = response.data || []
+      return uiNodes.value
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch UI nodes'
       throw err
     } finally {
       loading.value = false
@@ -617,8 +651,10 @@ export const useConsulStore = defineStore('consul', () => {
     kvKeys.value = []
     kvPairs.value = []
     services.value = {}
+    uiServices.value = []
     serviceNodes.value = []
     nodes.value = []
+    uiNodes.value = []
     healthChecks.value = []
     members.value = []
     aclTokens.value = []
@@ -650,8 +686,10 @@ export const useConsulStore = defineStore('consul', () => {
     kvKeys,
     kvPairs,
     services,
+    uiServices,
     serviceNodes,
     nodes,
+    uiNodes,
     healthChecks,
     members,
     aclTokens,
@@ -680,8 +718,10 @@ export const useConsulStore = defineStore('consul', () => {
     putKV,
     deleteKV,
     fetchServices,
+    fetchUIServices,
     fetchServiceNodes,
     fetchNodes,
+    fetchUINodes,
     fetchHealthChecks,
     fetchMembers,
     fetchACLTokens,

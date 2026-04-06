@@ -12,18 +12,51 @@
       </button>
     </div>
 
-    <!-- Search Bar -->
+    <!-- Search & Filter Bar -->
     <div class="card">
       <div class="p-3">
-        <div class="flex items-center gap-3">
-          <div class="relative flex-1">
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-            <input
-              v-model="searchQuery"
-              type="text"
-              class="input pl-10"
-              :placeholder="t('searchServices')"
-            />
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-2">
+          <!-- Search -->
+          <div class="md:col-span-2">
+            <div class="relative">
+              <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+              <input
+                v-model="searchQuery"
+                type="text"
+                class="input pl-10"
+                :placeholder="t('searchServices')"
+              />
+            </div>
+          </div>
+          <!-- Status Filter -->
+          <div>
+            <select v-model="statusFilter" class="input">
+              <option value="">{{ t('consulFilterAll') }}</option>
+              <option value="passing">{{ t('consulFilterPassing') }}</option>
+              <option value="warning">{{ t('consulFilterWarning') }}</option>
+              <option value="critical">{{ t('consulFilterCritical') }}</option>
+              <option value="empty">{{ t('consulFilterEmpty') }}</option>
+            </select>
+          </div>
+          <!-- Kind Filter -->
+          <div>
+            <select v-model="kindFilter" class="input">
+              <option value="">{{ t('consulFilterByKind') }}</option>
+              <option value="service">{{ t('consulServiceKindService') }}</option>
+              <option value="ingress-gateway">{{ t('consulServiceKindIngressGateway') }}</option>
+              <option value="terminating-gateway">
+                {{ t('consulServiceKindTerminatingGateway') }}
+              </option>
+              <option value="mesh-gateway">{{ t('consulServiceKindMeshGateway') }}</option>
+              <option value="api-gateway">{{ t('consulServiceKindApiGateway') }}</option>
+            </select>
+          </div>
+          <!-- Sort -->
+          <div>
+            <select v-model="sortBy" class="input">
+              <option value="status">{{ t('sortBy') }}: {{ t('consulSortByStatus') }}</option>
+              <option value="name">{{ t('sortBy') }}: {{ t('consulSortByName') }}</option>
+            </select>
           </div>
         </div>
       </div>
@@ -35,83 +68,112 @@
         <table class="table">
           <thead>
             <tr>
-              <th>{{ t('serviceName') }}</th>
-              <th>{{ t('tags') }}</th>
-              <th>{{ t('instanceCount') }}</th>
               <th>{{ t('healthStatus') }}</th>
-              <th class="w-32">{{ t('actions') }}</th>
+              <th>{{ t('serviceName') }}</th>
+              <th>{{ t('consulServiceKind') }}</th>
+              <th>{{ t('instanceCount') }}</th>
+              <th>{{ t('consulExternalSource') }}</th>
+              <th class="w-24">{{ t('actions') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="5" class="text-center py-6">
+              <td colspan="6" class="text-center py-6">
                 <Loader2 class="w-5 h-5 animate-spin mx-auto text-fuchsia-600" />
               </td>
             </tr>
-            <tr v-else-if="filteredServices.length === 0">
-              <td colspan="5" class="text-center py-6 text-text-secondary">
+            <tr v-else-if="sortedServices.length === 0">
+              <td colspan="6" class="text-center py-6 text-text-secondary">
                 {{ t('noServices') }}
               </td>
             </tr>
-            <tr v-for="svc in filteredServices" :key="svc.name" class="hover:bg-bg-secondary">
+            <tr v-for="svc in sortedServices" :key="svc.Name" class="hover:bg-bg-secondary">
+              <!-- Health Status -->
               <td>
-                <router-link
-                  :to="{ name: 'consul-service-detail', params: { name: svc.name } }"
-                  class="text-fuchsia-600 hover:text-fuchsia-700 hover:underline font-medium dark:text-fuchsia-400 dark:hover:text-fuchsia-300"
-                >
-                  {{ svc.name }}
-                </router-link>
-              </td>
-              <td>
-                <div class="flex flex-wrap gap-1">
-                  <span
-                    v-for="tag in svc.tags.slice(0, 5)"
-                    :key="tag"
-                    class="badge bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/30 dark:text-fuchsia-400"
-                  >
-                    {{ tag }}
-                  </span>
-                  <span
-                    v-if="svc.tags.length > 5"
-                    class="badge bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                  >
-                    +{{ svc.tags.length - 5 }}
-                  </span>
-                  <span v-if="svc.tags.length === 0" class="text-xs text-text-tertiary">
-                    {{ t('noTags') }}
-                  </span>
-                </div>
-              </td>
-              <td>
-                <span class="font-medium text-text-primary">
-                  {{ serviceHealthData[svc.name]?.total ?? '-' }}
+                <span :class="healthBadgeClass(getServiceHealthStatus(svc))">
+                  {{ healthStatusLabel(getServiceHealthStatus(svc)) }}
                 </span>
               </td>
+              <!-- Service Name + Tags + Mesh Badge -->
               <td>
-                <div class="flex items-center gap-2">
-                  <span v-if="serviceHealthData[svc.name]" class="badge badge-success">
-                    {{ serviceHealthData[svc.name]!.passing }} {{ t('passing') }}
-                  </span>
-                  <span
-                    v-if="serviceHealthData[svc.name]?.warning! > 0"
-                    class="badge badge-warning"
-                  >
-                    {{ serviceHealthData[svc.name]!.warning }} {{ t('warning') }}
-                  </span>
-                  <span
-                    v-if="serviceHealthData[svc.name]?.critical! > 0"
-                    class="badge badge-danger"
-                  >
-                    {{ serviceHealthData[svc.name]!.critical }} {{ t('critical') }}
-                  </span>
-                  <span v-if="!serviceHealthData[svc.name]" class="text-xs text-text-tertiary">
-                    -
-                  </span>
+                <div class="flex flex-col gap-1">
+                  <div class="flex items-center gap-2">
+                    <router-link
+                      v-if="svc.InstanceCount > 0"
+                      :to="{ name: 'consul-service-detail', params: { name: svc.Name } }"
+                      class="text-fuchsia-600 hover:text-fuchsia-700 hover:underline font-medium dark:text-fuchsia-400 dark:hover:text-fuchsia-300"
+                    >
+                      {{ svc.Name }}
+                    </router-link>
+                    <span v-else class="font-medium text-text-primary">
+                      {{ svc.Name }}
+                    </span>
+                    <!-- Mesh Badges -->
+                    <span
+                      v-if="svc.ConnectedWithProxy"
+                      class="badge bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/30 dark:text-fuchsia-400 text-[10px]"
+                    >
+                      {{ t('consulInMeshProxy') }}
+                    </span>
+                    <span
+                      v-else-if="svc.ConnectedWithGateway"
+                      class="badge bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/30 dark:text-fuchsia-400 text-[10px]"
+                    >
+                      {{ t('consulInMeshGateway') }}
+                    </span>
+                  </div>
+                  <!-- Tags preview -->
+                  <div v-if="svc.Tags && svc.Tags.length > 0" class="flex flex-wrap gap-1">
+                    <span
+                      v-for="tag in svc.Tags.slice(0, 3)"
+                      :key="tag"
+                      class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                    >
+                      {{ tag }}
+                    </span>
+                    <span v-if="svc.Tags.length > 3" class="text-[10px] text-text-tertiary">
+                      +{{ svc.Tags.length - 3 }}
+                    </span>
+                  </div>
                 </div>
               </td>
+              <!-- Kind -->
+              <td>
+                <span
+                  v-if="svc.Kind"
+                  class="badge bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-xs"
+                >
+                  {{ formatKind(svc.Kind) }}
+                </span>
+                <span v-else class="text-xs text-text-tertiary">{{
+                  t('consulServiceKindService')
+                }}</span>
+              </td>
+              <!-- Instance Count -->
+              <td>
+                <span class="font-medium text-text-primary">{{ svc.InstanceCount }}</span>
+              </td>
+              <!-- External Source -->
+              <td>
+                <div
+                  v-if="svc.ExternalSources && svc.ExternalSources.length > 0"
+                  class="flex flex-wrap gap-1"
+                >
+                  <span
+                    v-for="source in svc.ExternalSources"
+                    :key="source"
+                    class="badge bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-xs"
+                  >
+                    {{ source }}
+                  </span>
+                </div>
+                <span v-else class="text-xs text-text-tertiary">-</span>
+              </td>
+              <!-- Actions -->
               <td>
                 <router-link
-                  :to="{ name: 'consul-service-detail', params: { name: svc.name } }"
+                  v-if="svc.InstanceCount > 0"
+                  :to="{ name: 'consul-service-detail', params: { name: svc.Name } }"
                   class="btn btn-ghost btn-sm"
                   :title="t('viewDetails')"
                 >
@@ -126,7 +188,7 @@
       <!-- Footer -->
       <div class="flex items-center justify-between p-4 border-t border-border">
         <div class="text-sm text-text-secondary">
-          {{ t('total') }}: {{ filteredServices.length }} {{ t('items') }}
+          {{ t('total') }}: {{ sortedServices.length }} {{ t('items') }}
         </div>
       </div>
     </div>
@@ -138,8 +200,8 @@ import { ref, computed, onMounted } from 'vue'
 import { Search, RefreshCw, Eye, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
-import consulApi from '@/api/consul'
 import { logger } from '@/utils/logger'
+import type { ConsulUIServiceSummary, ConsulServiceKind } from '@/types/consul'
 
 const { t } = useI18n()
 const consulStore = useConsulStore()
@@ -147,89 +209,114 @@ const consulStore = useConsulStore()
 // State
 const loading = ref(false)
 const searchQuery = ref('')
-const serviceHealthData = ref<
-  Record<string, { total: number; passing: number; warning: number; critical: number }>
->({})
+const statusFilter = ref('')
+const kindFilter = ref('')
+const sortBy = ref('status')
 
-// Computed: service list derived from store's Record<string, string[]>
-interface ServiceEntry {
-  name: string
-  tags: string[]
+// Health status helpers
+type ServiceHealthStatus = 'critical' | 'warning' | 'passing' | 'empty'
+
+const getServiceHealthStatus = (svc: ConsulUIServiceSummary): ServiceHealthStatus => {
+  if (svc.ChecksCritical > 0) return 'critical'
+  if (svc.ChecksWarning > 0) return 'warning'
+  if (svc.ChecksPassing > 0) return 'passing'
+  return 'empty'
 }
 
-const serviceList = computed<ServiceEntry[]>(() => {
-  return Object.entries(consulStore.services).map(([name, tags]) => ({
-    name,
-    tags: tags || [],
-  }))
-})
+const healthStatusLabel = (status: ServiceHealthStatus): string => {
+  const map: Record<ServiceHealthStatus, string> = {
+    critical: t('critical'),
+    warning: t('warning'),
+    passing: t('passing'),
+    empty: t('consulFilterEmpty'),
+  }
+  return map[status]
+}
 
+const healthBadgeClass = (status: ServiceHealthStatus): string => {
+  const map: Record<ServiceHealthStatus, string> = {
+    critical: 'badge bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400',
+    warning: 'badge bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400',
+    passing: 'badge bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400',
+    empty: 'badge bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
+  }
+  return map[status]
+}
+
+const formatKind = (kind: ConsulServiceKind): string => {
+  const map: Record<string, string> = {
+    'connect-proxy': t('consulServiceKindConnectProxy'),
+    'mesh-gateway': t('consulServiceKindMeshGateway'),
+    'terminating-gateway': t('consulServiceKindTerminatingGateway'),
+    'ingress-gateway': t('consulServiceKindIngressGateway'),
+    'api-gateway': t('consulServiceKindApiGateway'),
+  }
+  return map[kind] || kind
+}
+
+// Filtered services
 const filteredServices = computed(() => {
-  if (!searchQuery.value) return serviceList.value
-  const query = searchQuery.value.toLowerCase()
-  return serviceList.value.filter(
-    (svc) =>
-      svc.name.toLowerCase().includes(query) ||
-      svc.tags.some((tag) => tag.toLowerCase().includes(query)),
-  )
+  let services = consulStore.uiServices
+
+  // Search filter (by Name, Tags)
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    services = services.filter((svc) => {
+      if (svc.Name.toLowerCase().includes(query)) return true
+      if (svc.Tags?.some((tag) => tag.toLowerCase().includes(query))) return true
+      if (svc.PeerName?.toLowerCase().includes(query)) return true
+      return false
+    })
+  }
+
+  // Status filter
+  if (statusFilter.value) {
+    services = services.filter((svc) => getServiceHealthStatus(svc) === statusFilter.value)
+  }
+
+  // Kind filter
+  if (kindFilter.value) {
+    if (kindFilter.value === 'service') {
+      services = services.filter((svc) => !svc.Kind)
+    } else {
+      services = services.filter((svc) => svc.Kind === kindFilter.value)
+    }
+  }
+
+  return services
 })
 
-// Methods
+// Sorted services
+const sortedServices = computed(() => {
+  const services = [...filteredServices.value]
+
+  switch (sortBy.value) {
+    case 'status': {
+      const priority: Record<string, number> = { critical: 0, warning: 1, passing: 2, empty: 3 }
+      services.sort(
+        (a, b) =>
+          (priority[getServiceHealthStatus(a)] ?? 3) - (priority[getServiceHealthStatus(b)] ?? 3),
+      )
+      break
+    }
+    case 'name':
+      services.sort((a, b) => a.Name.localeCompare(b.Name))
+      break
+  }
+
+  return services
+})
+
+// Data fetching
 const fetchServices = async () => {
   loading.value = true
   try {
-    await consulStore.fetchServices()
-    // Fetch health data for each service
-    await fetchHealthSummaries()
+    await consulStore.fetchUIServices()
   } catch (err) {
     logger.error('Failed to fetch catalog services:', err)
   } finally {
     loading.value = false
   }
-}
-
-const fetchHealthSummaries = async () => {
-  const names = Object.keys(consulStore.services)
-  const healthMap: Record<
-    string,
-    { total: number; passing: number; warning: number; critical: number }
-  > = {}
-
-  // Fetch health data in parallel, but limit concurrency
-  const results = await Promise.allSettled(
-    names.map(async (name) => {
-      try {
-        const response = await consulApi.getHealthService(name)
-        const nodes = response.data || []
-        let passing = 0
-        let warning = 0
-        let critical = 0
-
-        for (const node of nodes) {
-          if (node.Checks) {
-            for (const check of node.Checks) {
-              if (check.Status === 'passing') passing++
-              else if (check.Status === 'warning') warning++
-              else if (check.Status === 'critical') critical++
-            }
-          }
-        }
-
-        healthMap[name] = {
-          total: nodes.length,
-          passing,
-          warning,
-          critical,
-        }
-      } catch {
-        // Silently ignore health fetch errors for individual services
-      }
-    }),
-  )
-
-  // Handle settled results (already processed above)
-  void results
-  serviceHealthData.value = healthMap
 }
 
 const handleRefresh = () => {

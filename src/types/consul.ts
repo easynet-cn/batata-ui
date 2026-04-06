@@ -16,6 +16,40 @@ export interface ConsulKVPair {
 // Consul Catalog Types
 // ============================================
 
+// Service kind constants matching Consul's ServiceKind
+export type ConsulServiceKind =
+  | ''
+  | 'connect-proxy'
+  | 'mesh-gateway'
+  | 'terminating-gateway'
+  | 'ingress-gateway'
+  | 'api-gateway'
+
+// Enriched service summary from /v1/internal/ui/services endpoint
+export interface ConsulUIServiceSummary {
+  Kind: ConsulServiceKind
+  Name: string
+  Datacenter: string
+  Tags: string[]
+  Nodes: string[]
+  ExternalSources: string[]
+  InstanceCount: number
+  ChecksPassing: number
+  ChecksWarning: number
+  ChecksCritical: number
+  GatewayConfig?: {
+    AssociatedServiceCount?: number
+    Addresses?: string[]
+  }
+  TransparentProxy: boolean
+  ConnectNative: boolean
+  ConnectedWithProxy: boolean
+  ConnectedWithGateway: boolean
+  PeerName?: string
+  Namespace?: string
+  Partition?: string
+}
+
 export interface ConsulCatalogService {
   ServiceName: string
   ServiceID: string
@@ -124,6 +158,20 @@ export interface ConsulNode {
   Meta?: Record<string, string>
   CreateIndex: number
   ModifyIndex: number
+}
+
+// Enriched node info from /v1/internal/ui/nodes endpoint
+// Includes embedded services and health checks
+export interface ConsulUINode {
+  ID: string
+  Node: string
+  Address: string
+  Partition?: string
+  PeerName?: string
+  TaggedAddresses?: Record<string, string>
+  Meta?: Record<string, string>
+  Services: ConsulServiceInfo[]
+  Checks: ConsulHealthCheck[]
 }
 
 // ============================================

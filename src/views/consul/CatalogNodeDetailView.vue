@@ -42,7 +42,7 @@
               >
                 {{ t('nodeId') }}
               </label>
-              <p class="text-sm text-text-primary font-mono">{{ nodeData.Node.ID }}</p>
+              <p class="text-sm text-text-primary font-mono">{{ nodeData.ID || '-' }}</p>
             </div>
             <!-- Node Name -->
             <div>
@@ -51,7 +51,7 @@
               >
                 {{ t('nodeName') }}
               </label>
-              <p class="text-sm text-text-primary font-medium">{{ nodeData.Node.Node }}</p>
+              <p class="text-sm text-text-primary font-medium">{{ nodeData.Node }}</p>
             </div>
             <!-- Address -->
             <div>
@@ -60,28 +60,22 @@
               >
                 {{ t('address') }}
               </label>
-              <p class="text-sm text-text-primary font-mono">{{ nodeData.Node.Address }}</p>
+              <p class="text-sm text-text-primary font-mono">{{ nodeData.Address }}</p>
             </div>
-            <!-- Datacenter -->
-            <div>
+            <!-- Consul Version -->
+            <div v-if="nodeData.Meta?.['consul-version']">
               <label
                 class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1"
               >
-                {{ t('datacenter') }}
+                {{ t('consulNodeVersion') }}
               </label>
-              <span
-                class="badge bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/30 dark:text-fuchsia-400"
-              >
-                {{ nodeData.Node.Datacenter }}
-              </span>
+              <p class="text-sm text-text-primary">{{ nodeData.Meta['consul-version'] }}</p>
             </div>
           </div>
 
           <!-- Tagged Addresses -->
           <div
-            v-if="
-              nodeData.Node.TaggedAddresses && Object.keys(nodeData.Node.TaggedAddresses).length > 0
-            "
+            v-if="nodeData.TaggedAddresses && Object.keys(nodeData.TaggedAddresses).length > 0"
             class="mt-6"
           >
             <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-2">
@@ -89,7 +83,7 @@
             </label>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div
-                v-for="(addr, key) in nodeData.Node.TaggedAddresses"
+                v-for="(addr, key) in nodeData.TaggedAddresses"
                 :key="key"
                 class="flex items-center gap-2 px-3 py-2 bg-bg-secondary rounded-xl"
               >
@@ -100,13 +94,13 @@
           </div>
 
           <!-- Meta -->
-          <div v-if="nodeData.Node.Meta && Object.keys(nodeData.Node.Meta).length > 0" class="mt-6">
+          <div v-if="filteredMeta.length > 0" class="mt-6">
             <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-2">
               {{ t('meta') }}
             </label>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div
-                v-for="(val, key) in nodeData.Node.Meta"
+                v-for="[key, val] in filteredMeta"
                 :key="key"
                 class="flex items-center gap-2 px-3 py-2 bg-bg-secondary rounded-xl"
               >
@@ -118,93 +112,29 @@
         </div>
       </div>
 
-      <!-- Services Table -->
+      <!-- Tab Navigation -->
       <div class="card">
-        <div class="px-6 py-4 border-b border-border">
-          <h3 class="text-sm font-semibold text-text-primary">
-            {{ t('nodeServices') }} ({{ serviceList.length }})
-          </h3>
+        <div class="border-b border-border">
+          <nav class="flex gap-0 px-4">
+            <button
+              v-for="tab in availableTabs"
+              :key="tab.key"
+              @click="activeTab = tab.key"
+              class="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+              :class="
+                activeTab === tab.key
+                  ? 'border-fuchsia-600 text-fuchsia-600 dark:border-fuchsia-400 dark:text-fuchsia-400'
+                  : 'border-transparent text-text-secondary hover:text-text-primary'
+              "
+            >
+              {{ tab.label }}
+              <span class="ml-1 text-xs text-text-tertiary">({{ tab.count }})</span>
+            </button>
+          </nav>
         </div>
-        <div class="overflow-x-auto">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>{{ t('serviceName') }}</th>
-                <th>{{ t('serviceId') }}</th>
-                <th>{{ t('servicePort') }}</th>
-                <th>{{ t('serviceTags') }}</th>
-                <th class="w-32">{{ t('actions') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="serviceList.length === 0">
-                <td colspan="5" class="text-center py-6 text-text-secondary">
-                  {{ t('noServices') }}
-                </td>
-              </tr>
-              <tr v-for="svc in serviceList" :key="svc.ServiceID" class="hover:bg-bg-secondary">
-                <td>
-                  <router-link
-                    :to="{
-                      name: 'consul-service-detail',
-                      params: { name: svc.ServiceName },
-                    }"
-                    class="text-fuchsia-600 hover:text-fuchsia-700 hover:underline font-medium dark:text-fuchsia-400 dark:hover:text-fuchsia-300"
-                  >
-                    {{ svc.ServiceName }}
-                  </router-link>
-                </td>
-                <td class="text-text-secondary text-xs">{{ svc.ServiceID }}</td>
-                <td>{{ svc.ServicePort }}</td>
-                <td>
-                  <div class="flex flex-wrap gap-1">
-                    <span
-                      v-for="tag in (svc.ServiceTags || []).slice(0, 3)"
-                      :key="tag"
-                      class="badge bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/30 dark:text-fuchsia-400"
-                    >
-                      {{ tag }}
-                    </span>
-                    <span
-                      v-if="svc.ServiceTags && svc.ServiceTags.length > 3"
-                      class="badge bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                    >
-                      +{{ svc.ServiceTags.length - 3 }}
-                    </span>
-                    <span
-                      v-if="!svc.ServiceTags || svc.ServiceTags.length === 0"
-                      class="text-xs text-text-tertiary"
-                    >
-                      {{ t('noTags') }}
-                    </span>
-                  </div>
-                </td>
-                <td>
-                  <router-link
-                    :to="{
-                      name: 'consul-service-detail',
-                      params: { name: svc.ServiceName },
-                    }"
-                    class="btn btn-ghost btn-sm"
-                    :title="t('viewDetails')"
-                  >
-                    <Eye class="w-3.5 h-3.5" />
-                  </router-link>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
 
-      <!-- Health Checks -->
-      <div class="card">
-        <div class="px-6 py-4 border-b border-border">
-          <h3 class="text-sm font-semibold text-text-primary">
-            {{ t('healthChecksList') }} ({{ nodeHealthChecks.length }})
-          </h3>
-        </div>
-        <div class="overflow-x-auto">
+        <!-- Health Checks Tab -->
+        <div v-if="activeTab === 'healthchecks'" class="overflow-x-auto">
           <table class="table">
             <thead>
               <tr>
@@ -216,13 +146,13 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-if="nodeHealthChecks.length === 0">
+              <tr v-if="nodeData.Checks.length === 0">
                 <td colspan="5" class="text-center py-6 text-text-secondary">
                   {{ t('noHealthChecks') }}
                 </td>
               </tr>
               <tr
-                v-for="check in nodeHealthChecks"
+                v-for="check in nodeData.Checks"
                 :key="check.CheckID"
                 class="hover:bg-bg-secondary"
               >
@@ -243,16 +173,81 @@
             </tbody>
           </table>
         </div>
-      </div>
-      <!-- Network Latency (RTT) -->
-      <div class="card">
-        <div class="px-6 py-4 border-b border-border">
-          <h3 class="text-sm font-semibold text-text-primary flex items-center gap-2">
-            <Wifi class="w-4 h-4 text-fuchsia-600" />
-            {{ t('consulRtt') }}
-          </h3>
+
+        <!-- Services Tab -->
+        <div v-if="activeTab === 'services'" class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>{{ t('serviceName') }}</th>
+                <th>{{ t('serviceId') }}</th>
+                <th>{{ t('servicePort') }}</th>
+                <th>{{ t('serviceTags') }}</th>
+                <th class="w-24">{{ t('actions') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="nodeData.Services.length === 0">
+                <td colspan="5" class="text-center py-6 text-text-secondary">
+                  {{ t('noServices') }}
+                </td>
+              </tr>
+              <tr v-for="svc in nodeData.Services" :key="svc.ID" class="hover:bg-bg-secondary">
+                <td>
+                  <router-link
+                    :to="{ name: 'consul-service-detail', params: { name: svc.Service } }"
+                    class="text-fuchsia-600 hover:text-fuchsia-700 hover:underline font-medium dark:text-fuchsia-400 dark:hover:text-fuchsia-300"
+                  >
+                    {{ svc.Service }}
+                  </router-link>
+                  <span
+                    v-if="svc.Kind"
+                    class="ml-2 badge bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 text-[10px]"
+                  >
+                    {{ svc.Kind }}
+                  </span>
+                </td>
+                <td class="text-text-secondary text-xs">{{ svc.ID }}</td>
+                <td>{{ svc.Port }}</td>
+                <td>
+                  <div class="flex flex-wrap gap-1">
+                    <span
+                      v-for="tag in (svc.Tags || []).slice(0, 3)"
+                      :key="tag"
+                      class="badge bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/30 dark:text-fuchsia-400"
+                    >
+                      {{ tag }}
+                    </span>
+                    <span
+                      v-if="svc.Tags && svc.Tags.length > 3"
+                      class="badge bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                    >
+                      +{{ svc.Tags.length - 3 }}
+                    </span>
+                    <span
+                      v-if="!svc.Tags || svc.Tags.length === 0"
+                      class="text-xs text-text-tertiary"
+                    >
+                      {{ t('noTags') }}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <router-link
+                    :to="{ name: 'consul-service-detail', params: { name: svc.Service } }"
+                    class="btn btn-ghost btn-sm"
+                    :title="t('viewDetails')"
+                  >
+                    <Eye class="w-3.5 h-3.5" />
+                  </router-link>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div class="p-6">
+
+        <!-- RTT Tab -->
+        <div v-if="activeTab === 'rtt'" class="p-6">
           <div v-if="!rttStats" class="text-center py-4 text-text-tertiary">
             <p class="text-xs">{{ t('consulNoCoordinateData') }}</p>
           </div>
@@ -289,16 +284,9 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Lock Sessions -->
-      <div class="card">
-        <div class="px-6 py-4 border-b border-border">
-          <h3 class="text-sm font-semibold text-text-primary">
-            {{ t('consulNodeSessions') }} ({{ nodeSessions.length }})
-          </h3>
-        </div>
-        <div class="overflow-x-auto">
+        <!-- Sessions Tab -->
+        <div v-if="activeTab === 'sessions'" class="overflow-x-auto">
           <table class="table">
             <thead>
               <tr>
@@ -344,6 +332,26 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Metadata Tab -->
+        <div v-if="activeTab === 'metadata'" class="p-6">
+          <div
+            v-if="!nodeData.Meta || Object.keys(nodeData.Meta).length === 0"
+            class="text-center py-4 text-text-tertiary"
+          >
+            <p class="text-xs">{{ t('noData') }}</p>
+          </div>
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div
+              v-for="(val, key) in nodeData.Meta"
+              :key="key"
+              class="flex items-center gap-2 px-3 py-2 bg-bg-secondary rounded-xl"
+            >
+              <span class="text-xs font-bold text-text-tertiary">{{ key }}:</span>
+              <span class="text-sm text-text-primary">{{ val }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </template>
   </div>
@@ -352,14 +360,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, RefreshCw, Loader2, Eye, Wifi } from 'lucide-vue-next'
+import { ArrowLeft, RefreshCw, Loader2, Eye } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
+import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
 import { logger } from '@/utils/logger'
 import type {
-  ConsulNode,
-  ConsulServiceNode,
-  ConsulHealthCheck,
+  ConsulUINode,
   ConsulHealthStatus,
   ConsulSession,
   ConsulCoordinate,
@@ -368,31 +375,39 @@ import type {
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const consulStore = useConsulStore()
 
 // State
 const loading = ref(false)
 const nodeName = computed(() => (route.params.name as string) || '')
-const nodeData = ref<{ Node: ConsulNode; Services: Record<string, ConsulServiceNode> } | null>(null)
-const nodeHealthChecks = ref<ConsulHealthCheck[]>([])
+const nodeData = ref<ConsulUINode | null>(null)
 const nodeSessions = ref<ConsulSession[]>([])
 const rttStats = ref<{ min: number; median: number; max: number } | null>(null)
+const activeTab = ref('healthchecks')
 
 // Computed
-const serviceList = computed(() => {
-  if (!nodeData.value?.Services) return []
-  // Convert ConsulServiceNode to flat structure for template compatibility
-  return Object.values(nodeData.value.Services).map((svc) => ({
-    ServiceID: svc.Service.ID,
-    ServiceName: svc.Service.Service,
-    ServicePort: svc.Service.Port,
-    ServiceTags: svc.Service.Tags || [],
-    ServiceAddress: svc.Service.Address,
-    ServiceMeta: svc.Service.Meta,
-    ServiceWeights: svc.Service.Weights,
-    ServiceEnableTagOverride: svc.Service.EnableTagOverride,
-    CreateIndex: svc.Service.CreateIndex,
-    ModifyIndex: svc.Service.ModifyIndex,
-  }))
+const filteredMeta = computed(() => {
+  if (!nodeData.value?.Meta) return []
+  // Filter out consul-version from meta display (shown in header)
+  return Object.entries(nodeData.value.Meta).filter(([key]) => key !== 'consul-version')
+})
+
+const availableTabs = computed(() => {
+  if (!nodeData.value) return []
+  const tabs = [
+    { key: 'healthchecks', label: t('healthChecksList'), count: nodeData.value.Checks.length },
+    { key: 'services', label: t('nodeServices'), count: nodeData.value.Services.length },
+  ]
+  if (rttStats.value) {
+    tabs.push({ key: 'rtt', label: t('consulRtt'), count: 0 })
+  }
+  tabs.push({ key: 'sessions', label: t('consulNodeSessions'), count: nodeSessions.value.length })
+  tabs.push({
+    key: 'metadata',
+    label: t('meta'),
+    count: nodeData.value.Meta ? Object.keys(nodeData.value.Meta).length : 0,
+  })
+  return tabs
 })
 
 // Methods
@@ -424,9 +439,16 @@ function computeRtt(a: ConsulCoordinate['Coord'], b: ConsulCoordinate['Coord']):
   return Math.max(adjusted, 0)
 }
 
+function formatRtt(seconds: number): string {
+  if (seconds < 0.001) return `${(seconds * 1_000_000).toFixed(0)} µs`
+  if (seconds < 1) return `${(seconds * 1_000).toFixed(2)} ms`
+  return `${seconds.toFixed(3)} s`
+}
+
 const fetchNodeCoordinates = async () => {
   try {
-    const response = await consulApi.getCoordinateNodes()
+    const dc = consulStore.currentDc || undefined
+    const response = await consulApi.getCoordinateNodes(dc)
     const coords: ConsulCoordinate[] = response.data || []
     const thisNode = coords.find((c) => c.Node === nodeName.value)
     if (!thisNode || coords.length < 2) {
@@ -455,45 +477,37 @@ const fetchNodeCoordinates = async () => {
   }
 }
 
-function formatRtt(seconds: number): string {
-  if (seconds < 0.001) return `${(seconds * 1_000_000).toFixed(0)} µs`
-  if (seconds < 1) return `${(seconds * 1_000).toFixed(2)} ms`
-  return `${seconds.toFixed(3)} s`
+const fetchNodeSessions = async () => {
+  try {
+    const dc = consulStore.currentDc || undefined
+    const response = await consulApi.listSessions(dc)
+    nodeSessions.value = (response.data || []).filter((s) => s.Node === nodeName.value)
+  } catch {
+    nodeSessions.value = []
+  }
 }
 
 const fetchNodeDetail = async () => {
   if (!nodeName.value) return
   loading.value = true
   try {
-    const response = await consulApi.getCatalogNode(nodeName.value)
+    const dc = consulStore.currentDc || undefined
+    const response = await consulApi.getUINode(nodeName.value, dc)
     nodeData.value = response.data
 
-    // Fetch health checks, sessions, and coordinates for this node
-    await Promise.all([fetchNodeHealthChecks(), fetchNodeSessions(), fetchNodeCoordinates()])
+    // Set default tab based on data
+    if (nodeData.value.Checks.length > 0) {
+      activeTab.value = 'healthchecks'
+    } else {
+      activeTab.value = 'services'
+    }
+
+    // Fetch sessions and coordinates in parallel
+    await Promise.all([fetchNodeSessions(), fetchNodeCoordinates()])
   } catch (err) {
     logger.error('Failed to fetch node detail:', err)
   } finally {
     loading.value = false
-  }
-}
-
-const fetchNodeHealthChecks = async () => {
-  try {
-    // Fetch all health checks and filter by node
-    const response = await consulApi.getHealthState('any')
-    const allChecks = response.data || []
-    nodeHealthChecks.value = allChecks.filter((check) => check.Node === nodeName.value)
-  } catch {
-    // Silently ignore
-  }
-}
-
-const fetchNodeSessions = async () => {
-  try {
-    const response = await consulApi.listSessions()
-    nodeSessions.value = (response.data || []).filter((s) => s.Node === nodeName.value)
-  } catch {
-    // Silently ignore
   }
 }
 

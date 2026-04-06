@@ -18,6 +18,32 @@
       </div>
     </div>
 
+    <!-- Search & Filter Bar -->
+    <div class="card">
+      <div class="p-3">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div class="md:col-span-2">
+            <div class="relative">
+              <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+              <input
+                v-model="searchQuery"
+                type="text"
+                class="input pl-10"
+                :placeholder="t('searchIntentions')"
+              />
+            </div>
+          </div>
+          <div>
+            <select v-model="actionFilter" class="input">
+              <option value="">{{ t('consulFilterAll') }}</option>
+              <option value="allow">{{ t('allow') }}</option>
+              <option value="deny">{{ t('deny') }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Intention List -->
     <div class="card">
       <div class="overflow-x-auto">
@@ -38,12 +64,16 @@
                 <Loader2 class="w-5 h-5 animate-spin mx-auto text-primary" />
               </td>
             </tr>
-            <tr v-else-if="store.intentions.length === 0">
+            <tr v-else-if="filteredIntentions.length === 0">
               <td colspan="6" class="text-center py-6 text-text-secondary">
                 {{ t('noIntentions') }}
               </td>
             </tr>
-            <tr v-for="intention in store.intentions" :key="intention.ID">
+            <tr
+              v-for="intention in filteredIntentions"
+              :key="intention.ID"
+              class="hover:bg-bg-secondary"
+            >
               <td>
                 <div class="flex items-center gap-1.5">
                   <ArrowRightFromLine class="w-3.5 h-3.5 text-text-tertiary" />
@@ -316,7 +346,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import {
   Plus,
   RefreshCw,
@@ -325,6 +355,7 @@ import {
   Loader2,
   ArrowRightFromLine,
   ArrowRightToLine,
+  Search,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
@@ -345,6 +376,25 @@ const showDeleteModal = ref(false)
 const isEditing = ref(false)
 const editingIntention = ref<ConsulIntention | null>(null)
 const intentionToDelete = ref<ConsulIntention | null>(null)
+const searchQuery = ref('')
+const actionFilter = ref('')
+
+const filteredIntentions = computed(() => {
+  let intentions = store.intentions
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    intentions = intentions.filter(
+      (i) =>
+        i.SourceName.toLowerCase().includes(q) ||
+        i.DestinationName.toLowerCase().includes(q) ||
+        (i.Description || '').toLowerCase().includes(q),
+    )
+  }
+  if (actionFilter.value) {
+    intentions = intentions.filter((i) => i.Action === actionFilter.value)
+  }
+  return intentions
+})
 
 const createForm = reactive({
   SourceName: '',

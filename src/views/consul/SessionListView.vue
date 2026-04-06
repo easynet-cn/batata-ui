@@ -18,6 +18,21 @@
       </div>
     </div>
 
+    <!-- Search -->
+    <div class="card">
+      <div class="p-3">
+        <div class="relative">
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="input pl-10"
+            :placeholder="t('searchSessions')"
+          />
+        </div>
+      </div>
+    </div>
+
     <!-- Session List -->
     <div class="card">
       <div class="overflow-x-auto">
@@ -39,12 +54,12 @@
                 <Loader2 class="w-5 h-5 animate-spin mx-auto text-primary" />
               </td>
             </tr>
-            <tr v-else-if="store.sessions.length === 0">
+            <tr v-else-if="filteredSessions.length === 0">
               <td colspan="7" class="text-center py-6 text-text-secondary">
                 {{ t('noSessions') }}
               </td>
             </tr>
-            <tr v-for="session in store.sessions" :key="session.ID">
+            <tr v-for="session in filteredSessions" :key="session.ID" class="hover:bg-bg-secondary">
               <td>
                 <span class="font-mono text-xs" :title="session.ID">
                   {{ truncateId(session.ID) }}
@@ -165,8 +180,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { RefreshCw, Trash2, Loader2, Plus } from 'lucide-vue-next'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { RefreshCw, Trash2, Loader2, Plus, Search } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
@@ -184,6 +199,18 @@ const showDestroyModal = ref(false)
 const sessionToDestroy = ref<ConsulSession | null>(null)
 const showCreateModal = ref(false)
 const creating = ref(false)
+const searchQuery = ref('')
+
+const filteredSessions = computed(() => {
+  if (!searchQuery.value) return store.sessions
+  const q = searchQuery.value.toLowerCase()
+  return store.sessions.filter(
+    (s) =>
+      s.ID.toLowerCase().includes(q) ||
+      (s.Name || '').toLowerCase().includes(q) ||
+      s.Node.toLowerCase().includes(q),
+  )
+})
 
 const createForm = reactive({
   Name: '',

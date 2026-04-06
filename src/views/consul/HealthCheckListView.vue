@@ -12,9 +12,18 @@
       </button>
     </div>
 
-    <!-- Filter Tabs -->
+    <!-- Search & Filter -->
     <div class="card">
-      <div class="p-3">
+      <div class="p-3 space-y-2">
+        <div class="relative">
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="input pl-10"
+            :placeholder="t('searchHealthChecks')"
+          />
+        </div>
         <div class="flex items-center gap-1">
           <button
             v-for="tab in filterTabs"
@@ -80,7 +89,7 @@
               </td>
               <td>
                 <router-link
-                  :to="{ name: 'consul-catalog-node-detail', params: { name: check.Node } }"
+                  :to="{ name: 'consul-node-detail', params: { name: check.Node } }"
                   class="text-fuchsia-600 hover:text-fuchsia-700 hover:underline font-medium dark:text-fuchsia-400 dark:hover:text-fuchsia-300"
                 >
                   {{ check.Node }}
@@ -209,7 +218,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, Eye, Loader2 } from 'lucide-vue-next'
+import { RefreshCw, Eye, Loader2, Search } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import { toast } from '@/utils/error'
@@ -223,6 +232,7 @@ const consulStore = useConsulStore()
 // State
 const loading = ref(false)
 const activeFilter = ref<string>('any')
+const searchQuery = ref('')
 const expandedOutputs = ref<Set<string>>(new Set())
 const showDetailModal = ref(false)
 const detailCheck = ref<ConsulHealthCheck | null>(null)
@@ -240,8 +250,21 @@ const allChecks = ref<ConsulHealthCheck[]>([])
 
 // Computed
 const filteredChecks = computed(() => {
-  if (activeFilter.value === 'any') return allChecks.value
-  return allChecks.value.filter((check) => check.Status === activeFilter.value)
+  let checks = allChecks.value
+  if (activeFilter.value !== 'any') {
+    checks = checks.filter((check) => check.Status === activeFilter.value)
+  }
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    checks = checks.filter(
+      (c) =>
+        c.CheckID.toLowerCase().includes(q) ||
+        c.Node.toLowerCase().includes(q) ||
+        c.ServiceName.toLowerCase().includes(q) ||
+        (c.Output || '').toLowerCase().includes(q),
+    )
+  }
+  return checks
 })
 
 // Methods

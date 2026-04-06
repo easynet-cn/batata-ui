@@ -18,9 +18,18 @@
       </div>
     </div>
 
-    <!-- Kind Selector Tabs -->
+    <!-- Search & Kind Selector -->
     <div class="card">
-      <div class="p-3">
+      <div class="p-3 space-y-2">
+        <div class="relative">
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="input pl-10"
+            :placeholder="t('searchConfigEntries')"
+          />
+        </div>
         <div class="flex flex-wrap gap-1.5">
           <button
             v-for="k in kindOptions"
@@ -58,12 +67,16 @@
                 <Loader2 class="w-5 h-5 animate-spin mx-auto text-primary" />
               </td>
             </tr>
-            <tr v-else-if="store.configEntries.length === 0">
+            <tr v-else-if="filteredEntries.length === 0">
               <td colspan="5" class="text-center py-6 text-text-secondary">
                 {{ t('noConfigEntries') }}
               </td>
             </tr>
-            <tr v-for="entry in store.configEntries" :key="`${entry.Kind}-${entry.Name}`">
+            <tr
+              v-for="entry in filteredEntries"
+              :key="`${entry.Kind}-${entry.Name}`"
+              class="hover:bg-bg-secondary"
+            >
               <td>
                 <span class="font-medium text-text-primary">{{ entry.Name }}</span>
               </td>
@@ -193,7 +206,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { RefreshCw, Eye, Trash2, Loader2, Copy, Plus, Pencil } from 'lucide-vue-next'
+import { RefreshCw, Eye, Trash2, Loader2, Copy, Plus, Pencil, Search } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
@@ -226,6 +239,13 @@ const allKindOptions = kindOptions
 const selectedKind = ref<ConsulConfigEntryKind>('service-defaults')
 const showJsonModal = ref(false)
 const showDeleteModal = ref(false)
+const searchQuery = ref('')
+
+const filteredEntries = computed(() => {
+  if (!searchQuery.value) return store.configEntries
+  const q = searchQuery.value.toLowerCase()
+  return store.configEntries.filter((e) => e.Name.toLowerCase().includes(q))
+})
 const showFormModal = ref(false)
 const isEditing = ref(false)
 const saving = ref(false)

@@ -478,6 +478,7 @@ import {
   Shield,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
+import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
 import { logger } from '@/utils/logger'
 import ServiceTopologyGraph from '@/components/consul/ServiceTopologyGraph.vue'
@@ -493,6 +494,7 @@ import type {
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const consulStore = useConsulStore()
 
 // State
 const loading = ref(false)
@@ -524,32 +526,25 @@ const relatedIntentions = ref<ConsulIntention[]>([])
 const intentionsLoading = ref(false)
 const intentionsLoaded = ref(false)
 
+async function loadTopology() {
+  if (topologyLoaded.value) return
+  topologyLoading.value = true
+  try {
+    const dc = consulStore.currentDc || undefined
+    const response = await consulApi.getServiceTopology(serviceName.value, dc)
+    topology.value = response.data
+    topologyLoaded.value = true
+  } catch (err) {
+    logger.error('Failed to fetch service topology:', err)
+  } finally {
+    topologyLoading.value = false
+  }
+}
+
 async function switchTab(tab: TabKey) {
   activeTab.value = tab
-  if (tab === 'topology' && !topologyLoaded.value) {
-    topologyLoading.value = true
-    try {
-      const response = await consulApi.getServiceTopology(serviceName.value)
-      topology.value = response.data
-      topologyLoaded.value = true
-    } catch (err) {
-      logger.error('Failed to fetch service topology:', err)
-    } finally {
-      topologyLoading.value = false
-    }
-  }
-  // Upstreams tab reuses topology data
-  if (tab === 'upstreams' && !topologyLoaded.value) {
-    topologyLoading.value = true
-    try {
-      const response = await consulApi.getServiceTopology(serviceName.value)
-      topology.value = response.data
-      topologyLoaded.value = true
-    } catch (err) {
-      logger.error('Failed to fetch service topology:', err)
-    } finally {
-      topologyLoading.value = false
-    }
+  if ((tab === 'topology' || tab === 'upstreams') && !topologyLoaded.value) {
+    await loadTopology()
   }
   if (tab === 'intentions' && !intentionsLoaded.value) {
     intentionsLoading.value = true
@@ -652,8 +647,8 @@ const fetchServiceDetail = async () => {
   if (!serviceName.value) return
   loading.value = true
   try {
-    // Use health endpoint to get nodes with checks
-    const response = await consulApi.getHealthService(serviceName.value)
+    const dc = consulStore.currentDc || undefined
+    const response = await consulApi.getHealthService(serviceName.value, dc)
     serviceNodes.value = response.data || []
   } catch (err) {
     logger.error('Failed to fetch service detail:', err)

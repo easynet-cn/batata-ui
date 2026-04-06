@@ -22,6 +22,21 @@
       </div>
     </div>
 
+    <!-- Search -->
+    <div class="card">
+      <div class="p-3">
+        <div class="relative">
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="input pl-10"
+            :placeholder="t('searchPeerings')"
+          />
+        </div>
+      </div>
+    </div>
+
     <!-- Peering List -->
     <div class="card">
       <div class="overflow-x-auto">
@@ -41,12 +56,12 @@
                 <Loader2 class="w-5 h-5 animate-spin mx-auto text-primary" />
               </td>
             </tr>
-            <tr v-else-if="store.peerings.length === 0">
+            <tr v-else-if="filteredPeerings.length === 0">
               <td colspan="5" class="text-center py-6 text-text-secondary">
                 {{ t('noPeerings') }}
               </td>
             </tr>
-            <tr v-for="peer in store.peerings" :key="peer.ID">
+            <tr v-for="peer in filteredPeerings" :key="peer.ID" class="hover:bg-bg-secondary">
               <td>
                 <RouterLink
                   :to="{ name: 'consul-peering-detail', params: { name: peer.Name } }"
@@ -167,9 +182,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Plus, RefreshCw, Trash2, KeyRound, Copy, Loader2 } from 'lucide-vue-next'
+import { Plus, RefreshCw, Trash2, KeyRound, Copy, Loader2, Search } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
@@ -190,6 +205,15 @@ const generating = ref(false)
 const establishing = ref(false)
 const generatedToken = ref('')
 const peerToDelete = ref<ConsulPeering | null>(null)
+const searchQuery = ref('')
+
+const filteredPeerings = computed(() => {
+  if (!searchQuery.value) return store.peerings
+  const q = searchQuery.value.toLowerCase()
+  return store.peerings.filter(
+    (p) => p.Name.toLowerCase().includes(q) || (p.State || '').toLowerCase().includes(q),
+  )
+})
 
 const generateForm = reactive({ name: '' })
 const establishForm = reactive({ name: '', token: '' })
