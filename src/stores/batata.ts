@@ -59,6 +59,9 @@ export const useBatataStore = defineStore('batata', () => {
   async function login(username: string, password: string) {
     return authStore.login(username, password)
   }
+  async function loginWithToken(secretId: string) {
+    return authStore.loginWithToken(secretId)
+  }
   function logout() {
     authStore.logout()
     services.value = []
@@ -281,6 +284,7 @@ export const useBatataStore = defineStore('batata', () => {
     // Actions
     restoreSession,
     login,
+    loginWithToken,
     logout,
     fetchServices,
     fetchServiceDetail,

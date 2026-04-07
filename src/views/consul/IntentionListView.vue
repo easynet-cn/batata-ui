@@ -148,6 +148,18 @@
         </div>
         <div>
           <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('consulSourcePeer') }}
+          </label>
+          <input
+            v-model="createForm.SourcePeer"
+            type="text"
+            class="input"
+            :placeholder="t('consulSourcePeerPlaceholder')"
+            :disabled="isEditing"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
             {{ t('destinationService') }} <span class="text-danger">*</span>
           </label>
           <input
@@ -398,6 +410,7 @@ const filteredIntentions = computed(() => {
 
 const createForm = reactive({
   SourceName: '',
+  SourcePeer: '',
   DestinationName: '',
   Action: 'allow' as 'allow' | 'deny',
   Description: '',
@@ -435,6 +448,7 @@ function openCreateModal() {
   isEditing.value = false
   editingIntention.value = null
   createForm.SourceName = ''
+  createForm.SourcePeer = ''
   createForm.DestinationName = ''
   createForm.Action = 'allow'
   createForm.Description = ''
@@ -449,6 +463,7 @@ async function handleEdit(intention: ConsulIntention) {
     const full = response.data
     editingIntention.value = full
     createForm.SourceName = full.SourceName
+    createForm.SourcePeer = (full as unknown as Record<string, string>).SourcePeer || ''
     createForm.DestinationName = full.DestinationName
     createForm.Action = full.Action
     createForm.Description = full.Description || ''
@@ -549,6 +564,7 @@ async function submitCreate() {
 
     const intentionData: Record<string, unknown> = {
       SourceName: createForm.SourceName,
+      SourcePeer: createForm.SourcePeer || undefined,
       DestinationName: createForm.DestinationName,
       Action: permissions.length > 0 ? undefined : createForm.Action,
       Description: createForm.Description || undefined,

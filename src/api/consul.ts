@@ -177,6 +177,12 @@ class ConsulApi {
     return this.instance.get<ConsulACLToken>(`/acl/token/${id}`)
   }
 
+  async getACLTokenSelf(secretId: string) {
+    return this.instance.get<ConsulACLToken>('/acl/token/self', {
+      headers: { 'X-Consul-Token': secretId },
+    })
+  }
+
   async createACLToken(data: Partial<ConsulACLToken>) {
     return this.instance.put<ConsulACLToken>('/acl/token', data)
   }
@@ -593,6 +599,67 @@ class ConsulApi {
 
   async deleteNamespace(name: string) {
     return this.instance.delete<boolean>(`/namespace/${name}`)
+  }
+
+  // ============================================
+  // OIDC API
+  // ============================================
+
+  async listOIDCAuthMethods() {
+    return this.instance.get<Array<{ Name: string; DisplayName?: string; Kind: string }>>(
+      '/internal/ui/oidc-auth-methods',
+    )
+  }
+
+  async getOIDCAuthURL(authMethod: string, redirectURI: string) {
+    return this.instance.post<{ AuthURL: string }>('/acl/oidc/auth-url', {
+      AuthMethod: authMethod,
+      RedirectURI: redirectURI,
+    })
+  }
+
+  async exchangeOIDCToken(authMethod: string, code: string, state: string) {
+    return this.instance.post<ConsulACLToken>('/acl/oidc/callback', {
+      AuthMethod: authMethod,
+      Code: code,
+      State: state,
+    })
+  }
+
+  async oidcLogout(token: string) {
+    return this.instance.post('/acl/logout', null, {
+      headers: { 'X-Consul-Token': token },
+    })
+  }
+
+  // ============================================
+  // License API (Enterprise only)
+  // ============================================
+
+  async getLicense() {
+    return this.instance.get<{
+      Valid: boolean
+      License?: {
+        license_id: string
+        customer_id: string
+        product: string
+        expiration_time: string
+        features: string[]
+        flags?: Record<string, unknown>
+      }
+    }>('/operator/license')
+  }
+
+  // ============================================
+  // ACL Authorization / Permissions API
+  // ============================================
+
+  async checkPermissions(
+    checks: Array<{ Resource: string; Segment?: { Value: string }; Access: string }>,
+  ) {
+    return this.instance.post<
+      Array<{ Resource: string; Segment?: { Value: string }; Access: string; Allow: boolean }>
+    >('/internal/acl/authorize', checks)
   }
 }
 

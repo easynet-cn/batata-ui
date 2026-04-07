@@ -159,6 +159,7 @@ export interface ServerState {
   server_port?: string
   consul_enabled?: string
   consul_port?: string
+  consul_acl_enabled?: string
   auth_enabled?: string
   auth_admin_request?: string
   console_ui_enabled?: string

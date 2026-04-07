@@ -1,48 +1,142 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Moon, Sun, Languages } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useBatataStore } from '@/stores/batata'
+import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/composables/useTheme'
 import batataApi from '@/api/batata'
+import consulApi from '@/api/consul'
+import { storage } from '@/composables/useStorage'
 
 const { t, language, setLanguage } = useI18n()
 const router = useRouter()
 const batataStore = useBatataStore()
+const authStore = useAuthStore()
 const { isDark, toggleTheme } = useTheme()
 
 const username = ref('')
 const password = ref('')
+const consulToken = ref('')
 const isLoading = ref(false)
 const loginError = ref('')
+
+// SSO / OIDC state
+const consulLoginTab = ref<'token' | 'sso'>('token')
+const oidcProviders = ref<Array<{ Name: string; DisplayName?: string; Kind: string }>>([])
+const selectedOidcProvider = ref('')
+const oidcLoading = ref(false)
+
+const provider = computed(() => {
+  const p = storage.get('batata_provider') || 'batata'
+  return p === 'null' || !p ? 'batata' : (p as string)
+})
+
+const isConsulAcl = computed(() => provider.value === 'consul' && authStore.consulAclEnabled)
 
 onMounted(async () => {
   try {
     const res = await batataApi.getServerState()
-    if (res.data.auth_admin_request === 'true') {
+    const state = res.data
+
+    // Set consul ACL state
+    if (state.consul_acl_enabled === 'true') {
+      authStore.setConsulAclEnabled(true)
+    } else {
+      authStore.setConsulAclEnabled(false)
+    }
+
+    // Consul with ACL disabled: redirect directly
+    if (provider.value === 'consul' && !authStore.consulAclEnabled) {
+      router.replace('/consul/dashboard')
+      return
+    }
+
+    // Batata: check if admin init is needed
+    if (provider.value !== 'consul' && state.auth_admin_request === 'true') {
       router.replace('/admin-init')
     }
   } catch {
     // ignore - server might not be ready
   }
+
+  // Fetch OIDC providers for Consul ACL mode
+  if (isConsulAcl.value) {
+    await fetchOidcProviders()
+  }
 })
+
+async function fetchOidcProviders() {
+  try {
+    const res = await consulApi.listOIDCAuthMethods()
+    oidcProviders.value = res.data || []
+    if (oidcProviders.value.length > 0) {
+      selectedOidcProvider.value = oidcProviders.value[0].Name
+    }
+  } catch {
+    // OIDC not available - that's fine, token login still works
+    oidcProviders.value = []
+  }
+}
 
 const handleSubmit = async () => {
   isLoading.value = true
   loginError.value = ''
   try {
-    const success = await batataStore.login(username.value, password.value)
-    if (success) {
-      router.push('/')
+    if (isConsulAcl.value) {
+      // Consul ACL token login
+      const success = await batataStore.loginWithToken(consulToken.value)
+      if (success) {
+        router.push('/consul/dashboard')
+      } else {
+        loginError.value = batataStore.error || t('consulTokenLoginFailed')
+      }
     } else {
-      loginError.value = batataStore.error || t('loginFailed')
+      // Batata username/password login
+      const success = await batataStore.login(username.value, password.value)
+      if (success) {
+        router.push('/')
+      } else {
+        loginError.value = batataStore.error || t('loginFailed')
+      }
     }
   } catch {
-    loginError.value = t('loginFailed')
+    loginError.value = isConsulAcl.value ? t('consulTokenLoginFailed') : t('loginFailed')
   } finally {
     isLoading.value = false
   }
+}
+
+async function handleOidcLogin() {
+  if (!selectedOidcProvider.value) return
+
+  oidcLoading.value = true
+  loginError.value = ''
+
+  try {
+    const redirectURI = window.location.origin + '/oidc/callback'
+    // Save auth method to localStorage so callback page can retrieve it
+    storage.set('consul_oidc_auth_method', selectedOidcProvider.value)
+
+    const authURL = await authStore.loginWithOIDC(selectedOidcProvider.value, redirectURI)
+    if (authURL) {
+      // Redirect current page to the OIDC auth URL
+      window.location.href = authURL
+    } else {
+      loginError.value = authStore.error || t('consulOidcLoginFailed')
+    }
+  } catch {
+    loginError.value = t('consulOidcLoginFailed')
+  } finally {
+    oidcLoading.value = false
+  }
+}
+
+const continueWithoutLogin = () => {
+  // Allow anonymous access - set user with empty token
+  authStore.setConsulAclEnabled(false)
+  router.push('/consul/dashboard')
 }
 
 const toggleLanguage = () => {
@@ -80,62 +174,196 @@ const toggleLanguage = () => {
       <div class="p-10 text-center">
         <div class="flex justify-center mb-6">
           <div
-            class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center font-bold text-white text-4xl italic shadow-xl shadow-blue-500/30 transform -rotate-6"
+            :class="[
+              'w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-white text-4xl italic shadow-xl transform -rotate-6',
+              isConsulAcl
+                ? 'bg-fuchsia-600 shadow-fuchsia-500/30'
+                : 'bg-blue-600 shadow-blue-500/30',
+            ]"
           >
-            B
+            {{ isConsulAcl ? 'C' : 'B' }}
           </div>
         </div>
         <h1 class="text-3xl font-extrabold text-gray-800 dark:text-gray-100 mb-2 tracking-tight">
-          {{ t('welcomeBack') }}
+          {{ isConsulAcl ? t('consulLoginTitle') : t('welcomeBack') }}
         </h1>
         <p class="text-gray-500 dark:text-gray-400 text-sm font-medium italic">
-          {{ t('loginSlogan') }}
+          {{ isConsulAcl ? t('consulLoginSlogan') : t('loginSlogan') }}
         </p>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="px-10 pb-10 space-y-6">
-        <div class="space-y-1">
-          <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{ t('username') }}</label>
-          <input
-            type="text"
-            v-model="username"
-            :placeholder="t('loginUserPlaceholder')"
-            class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-gray-100 outline-none transition-all text-sm"
-            required
-          />
-        </div>
-
-        <div class="space-y-1">
-          <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{ t('password') }}</label>
-          <input
-            type="password"
-            v-model="password"
-            :placeholder="t('loginPassPlaceholder')"
-            class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-gray-100 outline-none transition-all text-sm"
-            required
-          />
-        </div>
-
-        <div v-if="loginError" class="text-red-500 dark:text-red-400 text-sm text-center">
-          {{ loginError }}
-        </div>
-
-        <button
-          type="submit"
-          :disabled="isLoading"
-          class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 active:scale-95 transform disabled:opacity-70 disabled:cursor-not-allowed"
+      <div class="px-10 pb-10 space-y-6">
+        <!-- Consul ACL: Tab switcher (Token / SSO) -->
+        <div
+          v-if="isConsulAcl && oidcProviders.length > 0"
+          class="flex rounded-xl bg-gray-100 dark:bg-gray-800 p-1"
         >
-          <template v-if="isLoading">
-            <div
-              class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"
-            />
-          </template>
-          <template v-else>
-            {{ t('signIn') }}
-          </template>
-        </button>
+          <button
+            type="button"
+            @click="consulLoginTab = 'token'"
+            :class="[
+              'flex-1 py-2.5 text-sm font-bold rounded-lg transition-all',
+              consulLoginTab === 'token'
+                ? 'bg-white dark:bg-gray-700 text-fuchsia-600 dark:text-fuchsia-400 shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
+            ]"
+          >
+            {{ t('consulTokenLogin') }}
+          </button>
+          <button
+            type="button"
+            @click="consulLoginTab = 'sso'"
+            :class="[
+              'flex-1 py-2.5 text-sm font-bold rounded-lg transition-all',
+              consulLoginTab === 'sso'
+                ? 'bg-white dark:bg-gray-700 text-fuchsia-600 dark:text-fuchsia-400 shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
+            ]"
+          >
+            {{ t('consulSsoLogin') }}
+          </button>
+        </div>
 
-        <div class="text-center">
+        <!-- Consul ACL Token login -->
+        <form
+          v-if="isConsulAcl && consulLoginTab === 'token'"
+          @submit.prevent="handleSubmit"
+          class="space-y-6"
+        >
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{
+              t('consulAclToken')
+            }}</label>
+            <input
+              type="password"
+              v-model="consulToken"
+              :placeholder="t('consulTokenPlaceholder')"
+              class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-fuchsia-500 dark:text-gray-100 outline-none transition-all text-sm"
+              required
+            />
+          </div>
+
+          <div v-if="loginError" class="text-red-500 dark:text-red-400 text-sm text-center">
+            {{ loginError }}
+          </div>
+
+          <button
+            type="submit"
+            :disabled="isLoading"
+            class="w-full text-white py-4 rounded-xl font-bold text-lg transition-all shadow-xl active:scale-95 transform disabled:opacity-70 disabled:cursor-not-allowed bg-fuchsia-600 hover:bg-fuchsia-700 shadow-fuchsia-500/20"
+          >
+            <template v-if="isLoading">
+              <div
+                class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"
+              />
+            </template>
+            <template v-else>
+              {{ t('signIn') }}
+            </template>
+          </button>
+        </form>
+
+        <!-- Consul SSO / OIDC login -->
+        <div v-else-if="isConsulAcl && consulLoginTab === 'sso'" class="space-y-6">
+          <div v-if="oidcProviders.length === 0" class="text-center py-4">
+            <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('consulNoOidcProviders') }}</p>
+          </div>
+          <template v-else>
+            <div class="space-y-1">
+              <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{
+                t('consulSelectOidcProvider')
+              }}</label>
+              <select
+                v-model="selectedOidcProvider"
+                class="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-fuchsia-500 dark:text-gray-100 outline-none transition-all text-sm"
+              >
+                <option v-for="p in oidcProviders" :key="p.Name" :value="p.Name">
+                  {{ p.DisplayName || p.Name }}
+                </option>
+              </select>
+            </div>
+
+            <div v-if="loginError" class="text-red-500 dark:text-red-400 text-sm text-center">
+              {{ loginError }}
+            </div>
+
+            <button
+              type="button"
+              :disabled="oidcLoading || !selectedOidcProvider"
+              @click="handleOidcLogin"
+              class="w-full text-white py-4 rounded-xl font-bold text-lg transition-all shadow-xl active:scale-95 transform disabled:opacity-70 disabled:cursor-not-allowed bg-fuchsia-600 hover:bg-fuchsia-700 shadow-fuchsia-500/20"
+            >
+              <template v-if="oidcLoading">
+                <div
+                  class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"
+                />
+              </template>
+              <template v-else>
+                {{ t('consulOidcSignInWith') }} {{ selectedOidcProvider }}
+              </template>
+            </button>
+          </template>
+        </div>
+
+        <!-- Batata username/password login -->
+        <form v-else @submit.prevent="handleSubmit" class="space-y-6">
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{
+              t('username')
+            }}</label>
+            <input
+              type="text"
+              v-model="username"
+              :placeholder="t('loginUserPlaceholder')"
+              class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-gray-100 outline-none transition-all text-sm"
+              required
+            />
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{
+              t('password')
+            }}</label>
+            <input
+              type="password"
+              v-model="password"
+              :placeholder="t('loginPassPlaceholder')"
+              class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-gray-100 outline-none transition-all text-sm"
+              required
+            />
+          </div>
+
+          <div v-if="loginError" class="text-red-500 dark:text-red-400 text-sm text-center">
+            {{ loginError }}
+          </div>
+
+          <button
+            type="submit"
+            :disabled="isLoading"
+            class="w-full text-white py-4 rounded-xl font-bold text-lg transition-all shadow-xl active:scale-95 transform disabled:opacity-70 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 shadow-blue-500/20"
+          >
+            <template v-if="isLoading">
+              <div
+                class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"
+              />
+            </template>
+            <template v-else>
+              {{ t('signIn') }}
+            </template>
+          </button>
+        </form>
+
+        <div v-if="isConsulAcl" class="text-center">
+          <button
+            type="button"
+            @click="continueWithoutLogin"
+            class="text-gray-400 hover:text-fuchsia-500 text-sm transition-colors"
+          >
+            {{ t('consulContinueWithout') }}
+          </button>
+        </div>
+
+        <div v-if="!isConsulAcl" class="text-center">
           <router-link
             to="/register"
             class="text-gray-400 hover:text-blue-500 text-sm transition-colors"
@@ -143,7 +371,7 @@ const toggleLanguage = () => {
             {{ t('noAccount') }}
           </router-link>
         </div>
-      </form>
+      </div>
     </div>
   </div>
 </template>

@@ -169,6 +169,24 @@
                 <option :value="60000">60 {{ t('seconds') }}</option>
               </select>
             </div>
+
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-medium text-text-primary">{{ t('consulBlockingQueries') }}</p>
+                <p class="text-sm text-text-secondary">{{ t('consulBlockingQueriesDesc') }}</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input
+                  v-model="blockingQueriesEnabled"
+                  type="checkbox"
+                  class="sr-only peer"
+                  @change="toggleBlockingQueries"
+                />
+                <div
+                  class="w-11 h-6 bg-bg-tertiary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"
+                ></div>
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -293,6 +311,7 @@ const { t } = useI18n()
 // State
 const saving = ref(false)
 const loadingServer = ref(false)
+const blockingQueriesEnabled = ref(storage.get('consul_blocking_queries') === 'true')
 
 const settings = reactive({
   theme: 'light',
@@ -316,6 +335,10 @@ const serverInfo = reactive({
 })
 
 // Methods
+const toggleBlockingQueries = () => {
+  storage.set('consul_blocking_queries', blockingQueriesEnabled.value ? 'true' : 'false')
+}
+
 const loadSettings = () => {
   const saved = storage.getJSON<typeof settings>('batata-settings')
   if (saved) {

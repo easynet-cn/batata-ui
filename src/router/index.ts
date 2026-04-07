@@ -529,6 +529,12 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
+      path: '/oidc/callback',
+      name: 'oidc-callback',
+      component: () => import('../views/OIDCCallbackView.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/',
       name: LAYOUT_ROUTE_NAME,
       component: BatataLayout,
@@ -590,9 +596,6 @@ export function switchProviderRoutes(provider: ProviderType) {
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
 
-  // Restore user session from localStorage if not already in store
-  authStore.restoreSession()
-
   // Auto-switch provider based on path for direct links
   const provider = storage.get('batata_provider') || 'batata'
   const normalizedProvider = provider === 'null' || !provider ? 'batata' : (provider as string)
@@ -600,6 +603,20 @@ router.beforeEach((to, _from, next) => {
   if (to.path.startsWith('/consul') && normalizedProvider !== 'consul') {
     switchProviderRoutes('consul')
   }
+
+  // Consul with ACL disabled: skip auth entirely
+  if (normalizedProvider === 'consul' && !authStore.consulAclEnabled) {
+    authStore.setConsulAclEnabled(false)
+    if (to.path === '/login') {
+      next('/consul/dashboard')
+    } else {
+      next()
+    }
+    return
+  }
+
+  // Restore user session from localStorage if not already in store
+  authStore.restoreSession()
 
   if (to.meta.requiresAuth !== false && !authStore.isAuthenticated) {
     next('/login')

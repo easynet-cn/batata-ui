@@ -14,6 +14,11 @@ app.use(router)
 
 app.mount('#app')
 
+// Initialize cross-tab auth sync
+import { useAuthStore } from '@/stores/auth'
+const authStore = useAuthStore()
+authStore.setupStorageSync()
+
 // Global error handler - catches unhandled errors in components
 app.config.errorHandler = (err, _instance, info) => {
   console.error('[Global Error]', err, info)

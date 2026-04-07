@@ -412,12 +412,12 @@
               </div>
               <div class="hidden sm:block text-left">
                 <div class="text-xs font-bold text-gray-900 dark:text-gray-100 leading-none">
-                  {{ user?.name || 'User' }}
+                  {{ isConsulProvider ? consulTokenDisplay : user?.name || 'User' }}
                 </div>
                 <div
                   class="text-[10px] text-gray-400 dark:text-gray-500 leading-none mt-0.5 uppercase"
                 >
-                  {{ t('administrator') }}
+                  {{ isConsulProvider ? 'Consul' : t('administrator') }}
                 </div>
               </div>
               <ChevronDown
@@ -428,9 +428,29 @@
             <template v-if="showUserMenu">
               <div class="fixed inset-0 z-40" @click="showUserMenu = false" />
               <div
-                class="absolute right-0 mt-1.5 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg py-1 z-50"
+                class="absolute right-0 mt-1.5 w-48 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg py-1 z-50"
               >
+                <!-- Consul token info -->
+                <template v-if="isConsulProvider && consulTokenId">
+                  <div class="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
+                    <div class="text-[10px] font-bold text-gray-400 uppercase">
+                      {{ t('consulAccessorId') }}
+                    </div>
+                    <div class="text-xs font-mono text-gray-600 dark:text-gray-400 mt-0.5">
+                      ...{{ consulTokenId.slice(-8) }}
+                    </div>
+                  </div>
+                  <button
+                    @click="handleSwitchToken"
+                    class="w-full text-left px-3 py-2 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center font-medium"
+                  >
+                    <KeyRound :size="13" class="mr-2" />
+                    {{ t('consulSwitchToken') }}
+                  </button>
+                </template>
+                <!-- Batata: change password -->
                 <button
+                  v-if="!isConsulProvider"
                   @click="handleChangePassword"
                   class="w-full text-left px-3 py-2 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center font-medium"
                 >
@@ -575,6 +595,7 @@ import { useI18n, type Language } from '@/i18n'
 import type { Namespace } from '@/types'
 import { useBatataStore } from '@/stores/batata'
 import { useConsulStore } from '@/stores/consul'
+import { useConsulAbilities } from '@/composables/useConsulAbilities'
 import batataApi from '@/api/batata'
 import { useGlobalWebSocket } from '@/composables/useWebSocket'
 import { globalNotifications } from '@/composables/useNotifications'
@@ -592,6 +613,17 @@ const route = useRoute()
 const router = useRouter()
 const batataStore = useBatataStore()
 const consulStore = useConsulStore()
+const {
+  fetchPermissions: fetchConsulPermissions,
+  canReadServices,
+  canReadNodes,
+  canReadKV,
+  canReadIntentions,
+  canReadSessions,
+  canReadPeerings,
+  canReadACL,
+  canReadOperator,
+} = useConsulAbilities()
 const { isDark, toggleTheme } = useTheme()
 const {
   provider,
@@ -659,6 +691,15 @@ const clearNotifications = () => {
 const user = computed(() =>
   batataStore.currentUser ? { name: batataStore.currentUser.username } : null,
 )
+const isConsulProvider = computed(() => provider.value === 'consul')
+const consulTokenId = computed(() => {
+  if (!isConsulProvider.value) return ''
+  return batataStore.currentUser?.token || ''
+})
+const consulTokenDisplay = computed(() => {
+  if (!consulTokenId.value) return user.value?.name || 'Anonymous'
+  return '...' + consulTokenId.value.slice(-8)
+})
 const defaultNamespace: Namespace = {
   namespace: '',
   namespaceShowName: 'public',
@@ -731,6 +772,12 @@ const handlerChangeLanguage = (lang: Language) => {
   showLangMenu.value = false
 }
 
+const handleSwitchToken = () => {
+  showUserMenu.value = false
+  batataStore.logout()
+  router.push('/login')
+}
+
 const handleLogout = () => {
   batataStore.logout()
   router.push('/login')
@@ -794,6 +841,8 @@ const initConsul = async () => {
     if (info) {
       consulAgentInfo.value = info
     }
+    // Fetch ACL permissions after probing capabilities
+    await fetchConsulPermissions()
   } catch {
     // Silently ignore
   }
@@ -933,37 +982,57 @@ const consulNavGroups = computed(() => {
       title: t('overview'),
       items: [{ path: '/consul/dashboard', label: t('dashboard'), icon: LayoutDashboard }],
     },
-    {
-      title: t('catalog'),
-      items: [
-        { path: '/consul/catalog/services', label: t('services'), icon: Server },
-        { path: '/consul/catalog/nodes', label: t('nodes'), icon: HardDrive },
-        { path: '/consul/health', label: t('healthChecks'), icon: HeartPulse },
-      ],
-    },
-    {
-      title: t('kvStore'),
-      items: [{ path: '/consul/kv', label: t('kvStore'), icon: Database }],
-    },
-    {
-      title: t('serviceMesh'),
-      items: [
-        { path: '/consul/intentions', label: t('intentions'), icon: Link },
-        { path: '/consul/config-entries', label: t('configEntries'), icon: Settings2 },
-        {
-          path: '/consul/exported-services',
-          label: t('consulExportedServices'),
-          icon: ExternalLink,
-        },
-      ],
-    },
-    {
-      title: t('peerings'),
-      items: [{ path: '/consul/peerings', label: t('peerings'), icon: GitBranch }],
-    },
   ]
 
-  if (consulStore.aclEnabled) {
+  // Catalog section - filter by read permissions
+  const catalogItems = []
+  if (canReadServices.value) {
+    catalogItems.push({ path: '/consul/catalog/services', label: t('services'), icon: Server })
+  }
+  if (canReadNodes.value) {
+    catalogItems.push({ path: '/consul/catalog/nodes', label: t('nodes'), icon: HardDrive })
+  }
+  // Health checks are always visible if any catalog item is visible
+  if (catalogItems.length > 0) {
+    catalogItems.push({ path: '/consul/health', label: t('healthChecks'), icon: HeartPulse })
+  }
+  if (catalogItems.length > 0) {
+    groups.push({ title: t('catalog'), items: catalogItems })
+  }
+
+  // KV Store - requires key read permission
+  if (canReadKV.value) {
+    groups.push({
+      title: t('kvStore'),
+      items: [{ path: '/consul/kv', label: t('kvStore'), icon: Database }],
+    })
+  }
+
+  // Service Mesh - filter by intention read permission
+  const meshItems = []
+  if (canReadIntentions.value) {
+    meshItems.push({ path: '/consul/intentions', label: t('intentions'), icon: Link })
+  }
+  meshItems.push({ path: '/consul/config-entries', label: t('configEntries'), icon: Settings2 })
+  meshItems.push({
+    path: '/consul/exported-services',
+    label: t('consulExportedServices'),
+    icon: ExternalLink,
+  })
+  if (meshItems.length > 0) {
+    groups.push({ title: t('serviceMesh'), items: meshItems })
+  }
+
+  // Peerings - requires peering read permission
+  if (canReadPeerings.value) {
+    groups.push({
+      title: t('peerings'),
+      items: [{ path: '/consul/peerings', label: t('peerings'), icon: GitBranch }],
+    })
+  }
+
+  // ACL section - requires ACL enabled and ACL read permission
+  if (consulStore.aclEnabled && canReadACL.value) {
     groups.push({
       title: t('acl'),
       items: [
@@ -975,22 +1044,24 @@ const consulNavGroups = computed(() => {
     })
   }
 
-  groups.push(
-    {
-      title: t('cluster'),
-      items: [
-        { path: '/consul/partitions', label: t('consulPartitions'), icon: Layers },
-        { path: '/consul/namespaces', label: t('consulNamespaces'), icon: FolderTree },
-        { path: '/consul/sessions', label: t('consulSessions'), icon: Timer },
-        { path: '/consul/events', label: t('consulEvents'), icon: Zap },
-        { path: '/consul/operator', label: t('consulOperator'), icon: Wrench },
-      ],
-    },
-    {
-      title: t('system'),
-      items: [{ path: '/consul/settings', label: t('settings'), icon: Cog }],
-    },
-  )
+  // Cluster section - filter by permissions
+  const clusterItems = [
+    { path: '/consul/partitions', label: t('consulPartitions'), icon: Layers },
+    { path: '/consul/namespaces', label: t('consulNamespaces'), icon: FolderTree },
+  ]
+  if (canReadSessions.value) {
+    clusterItems.push({ path: '/consul/sessions', label: t('consulSessions'), icon: Timer })
+  }
+  clusterItems.push({ path: '/consul/events', label: t('consulEvents'), icon: Zap })
+  if (canReadOperator.value) {
+    clusterItems.push({ path: '/consul/operator', label: t('consulOperator'), icon: Wrench })
+  }
+  groups.push({ title: t('cluster'), items: clusterItems })
+
+  groups.push({
+    title: t('system'),
+    items: [{ path: '/consul/settings', label: t('settings'), icon: Cog }],
+  })
 
   return groups
 })
