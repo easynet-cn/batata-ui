@@ -261,7 +261,8 @@ import {
   Activity,
   Plus,
 } from 'lucide-vue-next'
-import type * as echartsType from 'echarts'
+import { init as echartsInit } from '@/utils/echarts'
+import type { ECharts, EChartsOption } from '@/utils/echarts'
 import { useI18n } from '@/i18n'
 import { useBatataStore } from '@/stores/batata'
 import { logger } from '@/utils/logger'
@@ -279,16 +280,8 @@ const batataStore = useBatataStore()
 const loading = ref(false)
 const healthChartRef = ref<HTMLElement | null>(null)
 const configChartRef = ref<HTMLElement | null>(null)
-let healthChart: echartsType.ECharts | null = null
-let configChart: echartsType.ECharts | null = null
-let echartsModule: typeof echartsType | null = null
-
-const loadECharts = async () => {
-  if (!echartsModule) {
-    echartsModule = await import('echarts')
-  }
-  return echartsModule
-}
+let healthChart: ECharts | null = null
+let configChart: ECharts | null = null
 
 // Data
 const clusterNodes = ref<NodeInfo[]>([])
@@ -315,12 +308,11 @@ const configTypeData = ref([
 ])
 
 // Initialize health chart
-const initHealthChart = async () => {
+const initHealthChart = () => {
   if (!healthChartRef.value) return
-  const echarts = await loadECharts()
 
-  healthChart = echarts.init(healthChartRef.value)
-  const option: echartsType.EChartsOption = {
+  healthChart = echartsInit(healthChartRef.value)
+  const option: EChartsOption = {
     tooltip: {
       trigger: 'item',
       formatter: '{b}: {c} ({d}%)',
@@ -375,12 +367,11 @@ const initHealthChart = async () => {
 }
 
 // Initialize config chart
-const initConfigChart = async () => {
+const initConfigChart = () => {
   if (!configChartRef.value) return
-  const echarts = await loadECharts()
 
-  configChart = echarts.init(configChartRef.value)
-  const option: echartsType.EChartsOption = {
+  configChart = echartsInit(configChartRef.value)
+  const option: EChartsOption = {
     tooltip: {
       trigger: 'item',
       formatter: '{b}: {c} ({d}%)',
@@ -543,10 +534,10 @@ const handleResize = () => {
   configChart?.resize()
 }
 
-onMounted(async () => {
+onMounted(() => {
   fetchData()
-  await initHealthChart()
-  await initConfigChart()
+  initHealthChart()
+  initConfigChart()
   window.addEventListener('resize', handleResize)
 })
 

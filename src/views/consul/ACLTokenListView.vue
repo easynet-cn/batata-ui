@@ -11,10 +11,10 @@
           <RefreshCw class="w-3.5 h-3.5" />
           {{ t('refresh') }}
         </button>
-        <button @click="openCreateModal" class="btn btn-primary btn-sm">
+        <RouterLink to="/consul/acl/token/new" class="btn btn-primary btn-sm">
           <Plus class="w-3.5 h-3.5" />
           {{ t('createToken') }}
-        </button>
+        </RouterLink>
       </div>
     </div>
 
@@ -132,13 +132,13 @@
                   >
                     <ClipboardCopy class="w-3.5 h-3.5" />
                   </button>
-                  <button
-                    @click="handleEdit(token)"
+                  <RouterLink
+                    :to="`/consul/acl/token/${token.AccessorID}/edit`"
                     class="btn btn-ghost btn-sm text-text-secondary"
                     :title="t('edit')"
                   >
                     <Pencil class="w-3.5 h-3.5" />
-                  </button>
+                  </RouterLink>
                   <button
                     @click="handleClone(token)"
                     class="btn btn-ghost btn-sm text-text-secondary"
@@ -166,139 +166,6 @@
       </div>
     </div>
 
-    <!-- Create/Edit Token Modal -->
-    <FormModal
-      v-model="showCreateModal"
-      :title="isEditing ? t('editToken') : t('createToken')"
-      :submit-text="isEditing ? t('updateToken') : t('create')"
-      :loading="saving"
-      @submit="submitCreate"
-    >
-      <div class="space-y-3">
-        <div>
-          <label class="block text-xs font-medium text-text-primary mb-1">
-            {{ t('description') }}
-          </label>
-          <input
-            v-model="createForm.Description"
-            type="text"
-            class="input"
-            :placeholder="t('descriptionPlaceholder')"
-          />
-        </div>
-        <!-- Local/Global Toggle -->
-        <div v-if="!isEditing">
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" v-model="createForm.Local" class="rounded" />
-            <span class="text-sm text-text-primary">{{ t('tokenLocalDesc') }}</span>
-          </label>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-text-primary mb-1">
-            {{ t('policies') }}
-          </label>
-          <div class="space-y-1.5 max-h-40 overflow-y-auto border border-border rounded-xl p-3">
-            <label
-              v-for="policy in store.aclPolicies"
-              :key="policy.ID"
-              class="flex items-center gap-2 text-sm text-text-primary cursor-pointer"
-            >
-              <input
-                type="checkbox"
-                :value="policy.ID"
-                v-model="selectedPolicyIds"
-                class="rounded"
-              />
-              {{ policy.Name }}
-            </label>
-            <p v-if="store.aclPolicies.length === 0" class="text-xs text-text-tertiary">
-              {{ t('noPolicies') }}
-            </p>
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-text-primary mb-1">
-            {{ t('roles') }}
-          </label>
-          <div class="space-y-1.5 max-h-40 overflow-y-auto border border-border rounded-xl p-3">
-            <label
-              v-for="role in store.aclRoles"
-              :key="role.ID"
-              class="flex items-center gap-2 text-sm text-text-primary cursor-pointer"
-            >
-              <input type="checkbox" :value="role.ID" v-model="selectedRoleIds" class="rounded" />
-              {{ role.Name }}
-            </label>
-            <p v-if="store.aclRoles.length === 0" class="text-xs text-text-tertiary">
-              {{ t('noRoles') }}
-            </p>
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-text-primary mb-1">
-            {{ t('serviceIdentities') }}
-          </label>
-          <div class="space-y-2 border border-border rounded-xl p-3">
-            <div v-for="(si, idx) in serviceIdentities" :key="idx" class="flex items-center gap-2">
-              <input
-                v-model="si.ServiceName"
-                type="text"
-                class="input flex-1"
-                :placeholder="t('serviceIdentityName')"
-              />
-              <button
-                @click="serviceIdentities.splice(idx, 1)"
-                class="btn btn-ghost btn-sm text-danger"
-              >
-                <Trash2 class="w-3 h-3" />
-              </button>
-            </div>
-            <button
-              @click="serviceIdentities.push({ ServiceName: '' })"
-              class="btn btn-ghost btn-sm text-primary"
-            >
-              <Plus class="w-3 h-3" />
-              {{ t('addServiceIdentity') }}
-            </button>
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-text-primary mb-1">
-            {{ t('nodeIdentities') }}
-          </label>
-          <div class="space-y-2 border border-border rounded-xl p-3">
-            <div v-for="(ni, idx) in nodeIdentities" :key="idx" class="flex items-center gap-2">
-              <input
-                v-model="ni.NodeName"
-                type="text"
-                class="input flex-1"
-                :placeholder="t('nodeIdentityName')"
-              />
-              <input
-                v-model="ni.Datacenter"
-                type="text"
-                class="input w-32"
-                :placeholder="t('nodeIdentityDc')"
-              />
-              <button
-                @click="nodeIdentities.splice(idx, 1)"
-                class="btn btn-ghost btn-sm text-danger"
-              >
-                <Trash2 class="w-3 h-3" />
-              </button>
-            </div>
-            <button
-              @click="nodeIdentities.push({ NodeName: '', Datacenter: '' })"
-              class="btn btn-ghost btn-sm text-primary"
-            >
-              <Plus class="w-3 h-3" />
-              {{ t('addNodeIdentity') }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </FormModal>
-
     <!-- Delete Confirm Modal -->
     <ConfirmModal
       v-model="showDeleteModal"
@@ -317,6 +184,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import {
   Plus,
   RefreshCw,
@@ -332,7 +200,6 @@ import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
 import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
-import FormModal from '@/components/common/FormModal.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import type { ConsulACLToken } from '@/types/consul'
 
@@ -340,24 +207,11 @@ const { t } = useI18n()
 const store = useConsulStore()
 
 // State
-const saving = ref(false)
-const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
-const isEditing = ref(false)
-const editingToken = ref<ConsulACLToken | null>(null)
 const tokenToDelete = ref<ConsulACLToken | null>(null)
-const selectedPolicyIds = ref<string[]>([])
-const selectedRoleIds = ref<string[]>([])
 const searchQuery = ref('')
 const scopeFilter = ref('')
 const sortBy = ref('newest')
-
-const createForm = ref({
-  Description: '',
-  Local: false,
-})
-const serviceIdentities = ref<Array<{ ServiceName: string }>>([])
-const nodeIdentities = ref<Array<{ NodeName: string; Datacenter: string }>>([])
 
 // Helpers
 const MANAGEMENT_POLICY_NAME = 'global-management'
@@ -439,91 +293,6 @@ async function loadTokens() {
   } catch (error) {
     logger.error('Failed to fetch ACL tokens:', error)
     toast.apiError(error)
-  }
-}
-
-async function openCreateModal() {
-  isEditing.value = false
-  editingToken.value = null
-  showCreateModal.value = true
-  createForm.value.Description = ''
-  createForm.value.Local = false
-  selectedPolicyIds.value = []
-  selectedRoleIds.value = []
-  serviceIdentities.value = []
-  nodeIdentities.value = []
-  try {
-    await Promise.all([store.fetchACLPolicies(), store.fetchACLRoles()])
-  } catch (error) {
-    logger.error('Failed to load policies/roles:', error)
-  }
-}
-
-async function handleEdit(token: ConsulACLToken) {
-  isEditing.value = true
-  try {
-    const response = await consulApi.getACLToken(token.AccessorID)
-    const fullToken = response.data
-    editingToken.value = fullToken
-    createForm.value.Description = fullToken.Description || ''
-    createForm.value.Local = fullToken.Local
-    selectedPolicyIds.value = (fullToken.Policies || []).map((p) => p.ID)
-    selectedRoleIds.value = (fullToken.Roles || []).map((r) => r.ID)
-    serviceIdentities.value = (fullToken.ServiceIdentities || []).map((si) => ({
-      ServiceName: si.ServiceName,
-    }))
-    nodeIdentities.value = (fullToken.NodeIdentities || []).map((ni) => ({
-      NodeName: ni.NodeName,
-      Datacenter: ni.Datacenter,
-    }))
-    await Promise.all([store.fetchACLPolicies(), store.fetchACLRoles()])
-    showCreateModal.value = true
-  } catch (error) {
-    logger.error('Failed to fetch token details:', error)
-    toast.apiError(error)
-  }
-}
-
-async function submitCreate() {
-  saving.value = true
-  try {
-    const policies = selectedPolicyIds.value.map((id) => {
-      const found = store.aclPolicies.find((p) => p.ID === id)
-      return { ID: id, Name: found?.Name || '' }
-    })
-    const roles = selectedRoleIds.value.map((id) => {
-      const found = store.aclRoles.find((r) => r.ID === id)
-      return { ID: id, Name: found?.Name || '' }
-    })
-
-    const si = serviceIdentities.value
-      .filter((s) => s.ServiceName.trim())
-      .map((s) => ({ ServiceName: s.ServiceName.trim() }))
-    const ni = nodeIdentities.value
-      .filter((n) => n.NodeName.trim())
-      .map((n) => ({ NodeName: n.NodeName.trim(), Datacenter: n.Datacenter.trim() }))
-
-    const tokenData: Partial<ConsulACLToken> = {
-      Description: createForm.value.Description,
-      Policies: policies,
-      Roles: roles,
-      ServiceIdentities: si.length > 0 ? si : undefined,
-      NodeIdentities: ni.length > 0 ? ni : undefined,
-    }
-
-    if (isEditing.value && editingToken.value) {
-      await consulApi.updateACLToken(editingToken.value.AccessorID, tokenData)
-    } else {
-      await consulApi.createACLToken({ ...tokenData, Local: createForm.value.Local })
-    }
-    showCreateModal.value = false
-    toast.success(t('success'))
-    await loadTokens()
-  } catch (error) {
-    logger.error('Failed to save ACL token:', error)
-    toast.apiError(error)
-  } finally {
-    saving.value = false
   }
 }
 

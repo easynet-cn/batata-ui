@@ -78,7 +78,15 @@
               class="hover:bg-bg-secondary"
             >
               <td>
-                <span class="font-medium text-text-primary">{{ entry.Name }}</span>
+                <RouterLink
+                  :to="{
+                    name: 'consul-config-entry-detail',
+                    params: { kind: entry.Kind, name: entry.Name },
+                  }"
+                  class="font-medium text-fuchsia-600 dark:text-fuchsia-400 hover:underline"
+                >
+                  {{ entry.Name }}
+                </RouterLink>
               </td>
               <td>
                 <span class="text-text-secondary">{{ entry.Namespace || '-' }}</span>
@@ -206,6 +214,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import { RefreshCw, Eye, Trash2, Loader2, Copy, Plus, Pencil, Search } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'

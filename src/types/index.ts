@@ -220,6 +220,18 @@ export interface PermissionInfo {
 // AI/MCP 管理类型
 // ============================================
 
+export interface McpSecurityConfig {
+  upstream?: {
+    scheme: 'none' | 'apiKey' | 'bearerToken' | 'basicAuth'
+    credentialId?: string
+    credential?: string
+  }
+  downstream?: {
+    scheme: 'none' | 'apiKey' | 'bearerToken' | 'passthrough'
+    passthrough?: boolean
+  }
+}
+
 export interface McpServerInfo {
   id: string
   name: string
@@ -239,6 +251,8 @@ export interface McpServerInfo {
   allowedTools?: string[]
   tools?: McpToolInfo[]
   toolCount?: number
+  // security
+  security?: McpSecurityConfig
   // metadata
   metadata?: Record<string, string>
   createTime?: number
@@ -420,6 +434,7 @@ export interface McpServerPayload {
   headers?: Record<string, string>
   autoDiscoverTools?: boolean
   allowedTools?: string[]
+  security?: McpSecurityConfig
   metadata?: Record<string, string>
 }
 

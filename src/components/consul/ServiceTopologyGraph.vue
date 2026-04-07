@@ -35,6 +35,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { GitBranch } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
+import '@/utils/echarts' // Register tree-shaken echarts components
 import VChart from 'vue-echarts'
 
 interface TopologyNode {

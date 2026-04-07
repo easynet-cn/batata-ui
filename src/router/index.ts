@@ -321,6 +321,12 @@ const consulChildren: RouteRecordRaw[] = [
     component: () => import('../views/consul/CatalogServiceDetailView.vue'),
     meta: { titleKey: 'routeConsulServiceDetail' },
   },
+  {
+    path: 'consul/catalog/service/:name/instance',
+    name: 'consul-service-instance',
+    component: () => import('../views/consul/ServiceInstanceDetailView.vue'),
+    meta: { titleKey: 'routeConsulServiceInstance' },
+  },
   // Catalog Nodes
   {
     path: 'consul/catalog/nodes',
@@ -349,16 +355,52 @@ const consulChildren: RouteRecordRaw[] = [
     meta: { titleKey: 'routeConsulTokens' },
   },
   {
+    path: 'consul/acl/token/new',
+    name: 'consul-token-new',
+    component: () => import('../views/consul/ACLTokenEditorView.vue'),
+    meta: { titleKey: 'routeConsulTokenNew' },
+  },
+  {
+    path: 'consul/acl/token/:id/edit',
+    name: 'consul-token-edit',
+    component: () => import('../views/consul/ACLTokenEditorView.vue'),
+    meta: { titleKey: 'routeConsulTokenEdit' },
+  },
+  {
     path: 'consul/acl/policies',
     name: 'consul-policies',
     component: () => import('../views/consul/ACLPolicyListView.vue'),
     meta: { titleKey: 'routeConsulPolicies' },
   },
   {
+    path: 'consul/acl/policy/new',
+    name: 'consul-policy-new',
+    component: () => import('../views/consul/ACLPolicyEditorView.vue'),
+    meta: { titleKey: 'routeConsulPolicyNew' },
+  },
+  {
+    path: 'consul/acl/policy/:id/edit',
+    name: 'consul-policy-edit',
+    component: () => import('../views/consul/ACLPolicyEditorView.vue'),
+    meta: { titleKey: 'routeConsulPolicyEdit' },
+  },
+  {
     path: 'consul/acl/roles',
     name: 'consul-roles',
     component: () => import('../views/consul/ACLRoleListView.vue'),
     meta: { titleKey: 'routeConsulRoles' },
+  },
+  {
+    path: 'consul/acl/role/new',
+    name: 'consul-role-new',
+    component: () => import('../views/consul/ACLRoleEditorView.vue'),
+    meta: { titleKey: 'routeConsulRoleNew' },
+  },
+  {
+    path: 'consul/acl/role/:id/edit',
+    name: 'consul-role-edit',
+    component: () => import('../views/consul/ACLRoleEditorView.vue'),
+    meta: { titleKey: 'routeConsulRoleEdit' },
   },
   // ACL Auth Methods
   {
@@ -386,6 +428,12 @@ const consulChildren: RouteRecordRaw[] = [
     component: () => import('../views/consul/ConfigEntryListView.vue'),
     meta: { titleKey: 'routeConsulConfigEntries' },
   },
+  {
+    path: 'consul/config-entry/:kind/:name',
+    name: 'consul-config-entry-detail',
+    component: () => import('../views/consul/ConfigEntryDetailView.vue'),
+    meta: { titleKey: 'routeConsulConfigEntryDetail' },
+  },
   // Peerings
   {
     path: 'consul/peerings',
@@ -406,6 +454,12 @@ const consulChildren: RouteRecordRaw[] = [
     component: () => import('../views/consul/SessionListView.vue'),
     meta: { titleKey: 'routeConsulSessions' },
   },
+  {
+    path: 'consul/session/:id',
+    name: 'consul-session-detail',
+    component: () => import('../views/consul/SessionDetailView.vue'),
+    meta: { titleKey: 'routeConsulSessionDetail' },
+  },
   // Events
   {
     path: 'consul/events',
@@ -419,6 +473,20 @@ const consulChildren: RouteRecordRaw[] = [
     name: 'consul-exported-services',
     component: () => import('../views/consul/ExportedServicesView.vue'),
     meta: { titleKey: 'routeConsulExportedServices' },
+  },
+  // Partitions
+  {
+    path: 'consul/partitions',
+    name: 'consul-partitions',
+    component: () => import('../views/consul/PartitionListView.vue'),
+    meta: { titleKey: 'routeConsulPartitions' },
+  },
+  // Consul Namespaces
+  {
+    path: 'consul/namespaces',
+    name: 'consul-namespaces',
+    component: () => import('../views/consul/ConsulNamespaceListView.vue'),
+    meta: { titleKey: 'routeConsulNamespaces' },
   },
   // Operator
   {

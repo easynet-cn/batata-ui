@@ -11,10 +11,10 @@
           <RefreshCw class="w-3.5 h-3.5" />
           {{ t('refresh') }}
         </button>
-        <button @click="openCreateModal" class="btn btn-primary btn-sm">
+        <RouterLink to="/consul/acl/policy/new" class="btn btn-primary btn-sm">
           <Plus class="w-3.5 h-3.5" />
           {{ t('createPolicy') }}
-        </button>
+        </RouterLink>
       </div>
     </div>
 
@@ -100,13 +100,13 @@
               </td>
               <td>
                 <div class="flex items-center gap-1">
-                  <button
-                    @click="handleEdit(policy)"
+                  <RouterLink
+                    :to="`/consul/acl/policy/${policy.ID}/edit`"
                     class="btn btn-ghost btn-sm text-text-secondary"
                     :title="t('edit')"
                   >
                     <Pencil class="w-3.5 h-3.5" />
-                  </button>
+                  </RouterLink>
                   <button
                     v-if="!isBuiltIn(policy)"
                     @click="handleDelete(policy)"
@@ -136,131 +136,6 @@
       </div>
     </div>
 
-    <!-- Create/Edit Policy Modal -->
-    <FormModal
-      v-model="showCreateModal"
-      :title="isEditing ? t('editPolicy') : t('createPolicy')"
-      :submit-text="isEditing ? t('updatePolicy') : t('create')"
-      :loading="saving"
-      @submit="submitCreate"
-    >
-      <div class="space-y-3">
-        <div>
-          <label class="block text-xs font-medium text-text-primary mb-1">
-            {{ t('name') }} <span class="text-danger">*</span>
-          </label>
-          <input
-            v-model="createForm.Name"
-            type="text"
-            class="input"
-            placeholder="my-policy"
-            :disabled="isEditing"
-          />
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-text-primary mb-1">
-            {{ t('description') }}
-          </label>
-          <input
-            v-model="createForm.Description"
-            type="text"
-            class="input"
-            :placeholder="t('descriptionPlaceholder')"
-          />
-        </div>
-        <!-- Policy Template Selector -->
-        <div>
-          <label class="block text-xs font-medium text-text-primary mb-1">
-            {{ t('policyTemplate') }}
-          </label>
-          <div class="flex items-center gap-2">
-            <button
-              v-for="tmpl in policyTemplates"
-              :key="tmpl.value"
-              @click="selectTemplate(tmpl.value)"
-              :class="[
-                'btn btn-sm',
-                createForm.template === tmpl.value ? 'btn-primary' : 'btn-secondary',
-              ]"
-            >
-              {{ tmpl.label }}
-            </button>
-          </div>
-        </div>
-        <!-- Template fields -->
-        <div v-if="createForm.template !== 'custom'" class="space-y-2">
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ createForm.template === 'service-identity' ? t('serviceName') : t('nodeName') }}
-              <span class="text-danger">*</span>
-            </label>
-            <input
-              v-model="createForm.templateName"
-              type="text"
-              class="input"
-              :placeholder="createForm.template === 'service-identity' ? 'my-service' : 'my-node'"
-              @input="generateTemplateRules"
-            />
-          </div>
-        </div>
-        <!-- Datacenters -->
-        <div>
-          <label class="block text-xs font-medium text-text-primary mb-1">
-            {{ t('datacenters') }}
-          </label>
-          <div class="space-y-2">
-            <label class="flex items-center gap-2 text-sm text-text-primary cursor-pointer">
-              <input type="radio" v-model="dcScope" value="all" />
-              {{ t('allDatacenters') }}
-            </label>
-            <label class="flex items-center gap-2 text-sm text-text-primary cursor-pointer">
-              <input type="radio" v-model="dcScope" value="scoped" />
-              {{ t('scopedDatacenters') }}
-            </label>
-            <div v-if="dcScope === 'scoped'" class="ml-6">
-              <div
-                v-if="store.datacenters.length > 0"
-                class="space-y-1.5 max-h-32 overflow-y-auto border border-border rounded-xl p-3"
-              >
-                <label
-                  v-for="dc in store.datacenters"
-                  :key="dc"
-                  class="flex items-center gap-2 text-sm text-text-primary cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    :value="dc"
-                    v-model="selectedDatacenters"
-                    class="rounded"
-                  />
-                  {{ dc }}
-                </label>
-              </div>
-              <input
-                v-else
-                v-model="manualDatacenters"
-                type="text"
-                class="input"
-                placeholder="dc1, dc2"
-              />
-            </div>
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-text-primary mb-1">
-            {{ t('rules') }} <span class="text-danger">*</span>
-          </label>
-          <CodeEditor
-            v-model="createForm.Rules"
-            language="hcl"
-            :readonly="createForm.template !== 'custom'"
-            min-height="200px"
-            :placeholder="t('rulesPlaceholder')"
-          />
-        </div>
-      </div>
-    </FormModal>
-
     <!-- Delete Confirm Modal -->
     <ConfirmModal
       v-model="showDeleteModal"
@@ -281,50 +156,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import { Plus, RefreshCw, Trash2, Pencil, Loader2, Search } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'
 import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
-import FormModal from '@/components/common/FormModal.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
-import CodeEditor from '@/components/common/CodeEditor.vue'
 import type { ConsulACLPolicy } from '@/types/consul'
 
 const { t } = useI18n()
 const store = useConsulStore()
 
 // State
-const saving = ref(false)
-const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
-const isEditing = ref(false)
-const editingPolicy = ref<ConsulACLPolicy | null>(null)
 const policyToDelete = ref<ConsulACLPolicy | null>(null)
 const searchQuery = ref('')
 const kindFilter = ref('')
 const sortBy = ref('name-asc')
-const dcScope = ref<'all' | 'scoped'>('all')
-const selectedDatacenters = ref<string[]>([])
-const manualDatacenters = ref('')
-
-type PolicyTemplate = 'custom' | 'service-identity' | 'node-identity'
-
-const createForm = reactive({
-  Name: '',
-  Description: '',
-  Rules: '',
-  template: 'custom' as PolicyTemplate,
-  templateName: '',
-})
-
-const policyTemplates = [
-  { value: 'custom' as PolicyTemplate, label: t('policyTemplateCustom') },
-  { value: 'service-identity' as PolicyTemplate, label: t('policyTemplateServiceIdentity') },
-  { value: 'node-identity' as PolicyTemplate, label: t('policyTemplateNodeIdentity') },
-]
 
 const BUILTIN_NAMES = ['global-management', 'builtin/global-read-only']
 
@@ -370,26 +221,6 @@ const sortedPolicies = computed(() => {
   return policies
 })
 
-function selectTemplate(tmpl: PolicyTemplate) {
-  createForm.template = tmpl
-  if (tmpl === 'custom') {
-    createForm.templateName = ''
-  } else {
-    generateTemplateRules()
-  }
-}
-
-function generateTemplateRules() {
-  const name = createForm.templateName || '<name>'
-  if (createForm.template === 'service-identity') {
-    createForm.Rules = `service "${name}" {\n  policy = "write"\n}\nservice "${name}-sidecar-proxy" {\n  policy = "write"\n}\nservice_prefix "" {\n  policy = "read"\n}\nnode_prefix "" {\n  policy = "read"\n}`
-    if (!createForm.Name) createForm.Name = `${name}-service-identity`
-  } else if (createForm.template === 'node-identity') {
-    createForm.Rules = `node "${name}" {\n  policy = "write"\n}\nservice_prefix "" {\n  policy = "read"\n}`
-    if (!createForm.Name) createForm.Name = `${name}-node-identity`
-  }
-}
-
 // Actions
 async function loadPolicies() {
   try {
@@ -397,91 +228,6 @@ async function loadPolicies() {
   } catch (error) {
     logger.error('Failed to fetch ACL policies:', error)
     toast.apiError(error)
-  }
-}
-
-function openCreateModal() {
-  isEditing.value = false
-  editingPolicy.value = null
-  createForm.Name = ''
-  createForm.Description = ''
-  createForm.Rules = ''
-  createForm.template = 'custom'
-  createForm.templateName = ''
-  dcScope.value = 'all'
-  selectedDatacenters.value = []
-  manualDatacenters.value = ''
-  showCreateModal.value = true
-}
-
-async function handleEdit(policy: ConsulACLPolicy) {
-  isEditing.value = true
-  try {
-    const response = await consulApi.getACLPolicy(policy.ID)
-    const fullPolicy = response.data
-    editingPolicy.value = fullPolicy
-    createForm.Name = fullPolicy.Name
-    createForm.Description = fullPolicy.Description || ''
-    createForm.Rules = fullPolicy.Rules || ''
-    createForm.template = 'custom'
-    createForm.templateName = ''
-    if (fullPolicy.Datacenters && fullPolicy.Datacenters.length > 0) {
-      dcScope.value = 'scoped'
-      selectedDatacenters.value = [...fullPolicy.Datacenters]
-    } else {
-      dcScope.value = 'all'
-      selectedDatacenters.value = []
-    }
-    showCreateModal.value = true
-  } catch (error) {
-    logger.error('Failed to fetch policy details:', error)
-    toast.apiError(error)
-  }
-}
-
-async function submitCreate() {
-  if (!createForm.Name || !createForm.Rules) {
-    toast.warning(t('requiredFieldsMissing'))
-    return
-  }
-
-  saving.value = true
-  try {
-    let datacenters: string[] | undefined
-    if (dcScope.value === 'scoped') {
-      if (selectedDatacenters.value.length > 0) {
-        datacenters = selectedDatacenters.value
-      } else if (manualDatacenters.value.trim()) {
-        datacenters = manualDatacenters.value
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean)
-      }
-    }
-
-    if (isEditing.value && editingPolicy.value) {
-      await consulApi.updateACLPolicy(editingPolicy.value.ID, {
-        Name: createForm.Name,
-        Description: createForm.Description,
-        Rules: createForm.Rules,
-        Datacenters: datacenters,
-      })
-    } else {
-      await consulApi.createACLPolicy({
-        Name: createForm.Name,
-        Description: createForm.Description,
-        Rules: createForm.Rules,
-        Datacenters: datacenters,
-      })
-    }
-    showCreateModal.value = false
-    toast.success(t('success'))
-    await loadPolicies()
-  } catch (error) {
-    logger.error('Failed to save ACL policy:', error)
-    toast.apiError(error)
-  } finally {
-    saving.value = false
   }
 }
 

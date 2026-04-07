@@ -170,6 +170,7 @@ describe('BatataApi', () => {
     it('passes through successful responses with code 0', () => {
       const response = {
         data: { code: 0, message: 'ok', data: { test: true } },
+        config: {},
       } as AxiosResponse
 
       const result = responseInterceptorFulfilled(response)
@@ -179,6 +180,7 @@ describe('BatataApi', () => {
     it('passes through successful responses with code 200', () => {
       const response = {
         data: { code: 200, message: 'ok', data: {} },
+        config: {},
       } as AxiosResponse
 
       const result = responseInterceptorFulfilled(response)
@@ -188,6 +190,7 @@ describe('BatataApi', () => {
     it('throws ApiError for non-success response codes', () => {
       const response = {
         data: { code: 500, message: 'Internal error', data: null },
+        config: {},
       } as AxiosResponse
 
       // Use name check since instanceof fails across module resets

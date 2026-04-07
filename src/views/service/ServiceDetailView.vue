@@ -183,6 +183,13 @@
                               :class="instance.enabled ? 'text-success' : 'text-danger'"
                             />
                           </button>
+                          <button
+                            @click="handleDeregisterInstance(instance)"
+                            class="btn btn-ghost btn-sm"
+                            :title="t('deregisterInstance')"
+                          >
+                            <Trash2 class="w-3.5 h-3.5 text-danger" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -332,6 +339,16 @@
       </div>
     </FormModal>
 
+    <!-- Deregister Instance Confirm Modal -->
+    <ConfirmModal
+      v-model="showDeregisterModal"
+      :title="t('deregisterInstance')"
+      :message="`${t('confirmDeregisterInstance')} ${instanceToDeregister?.ip}:${instanceToDeregister?.port}?`"
+      :confirm-text="t('deregister')"
+      danger
+      @confirm="confirmDeregisterInstance"
+    />
+
     <!-- Edit Service Modal -->
     <FormModal
       v-model="showServiceModal"
@@ -397,7 +414,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Pencil, Users, Loader2, Server, Power } from 'lucide-vue-next'
+import { ArrowLeft, Pencil, Users, Loader2, Server, Power, Trash2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
@@ -422,6 +439,8 @@ const service = ref<ServiceDetail | null>(null)
 const showInstanceModal = ref(false)
 const showClusterModal = ref(false)
 const showServiceModal = ref(false)
+const showDeregisterModal = ref(false)
+const instanceToDeregister = ref<InstanceInfo | null>(null)
 const instanceMetadataText = ref('')
 const clusterMetadataText = ref('')
 const serviceMetadataText = ref('')
@@ -654,6 +673,33 @@ const submitCluster = async () => {
     toast.apiError(error)
   } finally {
     saving.value = false
+  }
+}
+
+const handleDeregisterInstance = (instance: InstanceInfo) => {
+  instanceToDeregister.value = instance
+  showDeregisterModal.value = true
+}
+
+const confirmDeregisterInstance = async () => {
+  if (!instanceToDeregister.value) return
+  const { serviceName, groupName, namespaceId } = route.query
+  try {
+    await batataApi.deleteInstance({
+      serviceName: serviceName as string,
+      groupName: groupName as string,
+      namespaceId: (namespaceId as string) || props.namespace.namespace,
+      ip: instanceToDeregister.value.ip,
+      port: instanceToDeregister.value.port,
+      clusterName: instanceToDeregister.value.clusterName,
+    })
+    showDeregisterModal.value = false
+    instanceToDeregister.value = null
+    toast.success(t('deregisterSuccess'))
+    fetchService()
+  } catch (error) {
+    logger.error('Failed to deregister instance:', error)
+    toast.apiError(error)
   }
 }
 

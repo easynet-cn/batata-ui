@@ -20,6 +20,10 @@
           <ArrowLeftRight class="w-3.5 h-3.5" />
           {{ t('configCompare') }}
         </button>
+        <button @click="handleClone" class="btn btn-secondary btn-sm" :disabled="!config">
+          <CopyIcon class="w-3.5 h-3.5" />
+          {{ t('clone') }}
+        </button>
         <router-link
           :to="{
             name: 'config-history',
@@ -245,6 +249,69 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- Clone Modal -->
+    <FormModal
+      v-model="showCloneModal"
+      :title="t('cloneConfiguration')"
+      :submit-text="t('clone')"
+      @submit="confirmClone"
+    >
+      <div class="space-y-3">
+        <!-- Source info display -->
+        <div
+          v-if="config"
+          class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+        >
+          <p class="text-[10px] font-bold uppercase tracking-wider text-text-tertiary mb-2">
+            {{ t('sourceConfig') }}
+          </p>
+          <div class="grid grid-cols-3 gap-2 text-xs">
+            <div>
+              <span class="text-text-tertiary">{{ t('dataId') }}:</span>
+              <p class="font-medium text-text-primary truncate">{{ config.dataId }}</p>
+            </div>
+            <div>
+              <span class="text-text-tertiary">{{ t('group') }}:</span>
+              <p class="font-medium text-text-primary">{{ config.groupName }}</p>
+            </div>
+            <div>
+              <span class="text-text-tertiary">{{ t('namespace') }}:</span>
+              <p class="font-medium text-text-primary">{{ namespace.namespaceShowName }}</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-secondary mb-1">{{
+            t('targetNamespace')
+          }}</label>
+          <select v-model="cloneTargetNs" class="input">
+            <option v-for="ns in cloneNamespaces" :key="ns.namespace" :value="ns.namespace">
+              {{ ns.namespaceShowName }}
+            </option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-secondary mb-1">{{
+            t('conflictPolicy')
+          }}</label>
+          <select v-model="clonePolicy" class="input">
+            <option value="ABORT">{{ t('policyAbort') }}</option>
+            <option value="SKIP">{{ t('policySkip') }}</option>
+            <option value="OVERWRITE">{{ t('policyOverwrite') }}</option>
+          </select>
+          <p class="text-[10px] text-text-tertiary mt-1">
+            {{
+              clonePolicy === 'ABORT'
+                ? t('policyAbortDesc')
+                : clonePolicy === 'SKIP'
+                  ? t('policySkipDesc')
+                  : t('policyOverwriteDesc')
+            }}
+          </p>
+        </div>
+      </div>
+    </FormModal>
   </div>
 </template>
 
@@ -257,6 +324,7 @@ import {
   Pencil,
   Loader2,
   Copy,
+  Copy as CopyIcon,
   GitCompare,
   ArrowLeftRight,
   X,
@@ -405,6 +473,47 @@ const fetchCrossCompareConfig = async () => {
     showCrossCompareResult.value = true
   } catch (error) {
     logger.error('Failed to fetch target config:', error)
+    toast.apiError(error)
+  }
+}
+
+// Clone state
+const showCloneModal = ref(false)
+const cloneNamespaces = ref<Namespace[]>([])
+const cloneTargetNs = ref('')
+const clonePolicy = ref<'ABORT' | 'SKIP' | 'OVERWRITE'>('ABORT')
+
+const handleClone = async () => {
+  try {
+    const response = await batataApi.getNamespaceList()
+    cloneNamespaces.value = response.data.data || []
+    cloneTargetNs.value = cloneNamespaces.value[0]?.namespace || ''
+    clonePolicy.value = 'ABORT'
+    showCloneModal.value = true
+  } catch (error) {
+    logger.error('Failed to fetch namespaces for clone', error)
+    toast.apiError(error)
+  }
+}
+
+const confirmClone = async () => {
+  if (!config.value) return
+  try {
+    await batataApi.cloneConfig({
+      configBeans: [
+        {
+          cfgId: Number(config.value.id),
+          dataId: config.value.dataId,
+          group: config.value.groupName,
+        },
+      ],
+      targetNamespaceId: cloneTargetNs.value,
+      policy: clonePolicy.value,
+    })
+    showCloneModal.value = false
+    toast.success(t('cloneSuccess'))
+  } catch (error) {
+    logger.error('Failed to clone config', error)
     toast.apiError(error)
   }
 }

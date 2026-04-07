@@ -1,594 +1,39 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { storage } from '@/composables/useStorage'
-import type {
-  ConsulKVPair,
-  ConsulNode,
-  ConsulUINode,
-  ConsulUIServiceSummary,
-  ConsulHealthCheck,
-  ConsulACLToken,
-  ConsulACLPolicy,
-  ConsulACLRole,
-  ConsulACLAuthMethod,
-  ConsulACLBindingRule,
-  ConsulIntention,
-  ConsulSession,
-  ConsulConfigEntry,
-  ConsulConfigEntryKind,
-  ConsulAgentMember,
-  ConsulServiceNode,
-  ConsulPeering,
-  ConsulCatalogSummary,
-  ConsulServiceTopology,
-  ConsulExportedService,
-  ConsulImportedService,
-  ConsulUserEvent,
-  ConsulRaftConfiguration,
-  ConsulOperatorUsage,
-} from '@/types/consul'
+import type { ConsulConfigEntryKind } from '@/types/consul'
 import consulApi from '@/api/consul'
+import { useConsulKVStore } from '@/stores/consul-kv'
+import { useConsulACLStore } from '@/stores/consul-acl'
+import { useConsulCatalogStore } from '@/stores/consul-catalog'
+import { useConsulMeshStore } from '@/stores/consul-mesh'
+
+// Re-export sub-stores for direct use
+export { useConsulKVStore } from '@/stores/consul-kv'
+export { useConsulACLStore } from '@/stores/consul-acl'
+export { useConsulCatalogStore } from '@/stores/consul-catalog'
+export { useConsulMeshStore } from '@/stores/consul-mesh'
 
 export const useConsulStore = defineStore('consul', () => {
-  // State
+  // Shared state
   const loading = ref(false)
   const error = ref<string | null>(null)
-
-  // KV Store
-  const kvKeys = ref<string[]>([])
-  const kvPairs = ref<ConsulKVPair[]>([])
-
-  // Catalog
-  const services = ref<Record<string, string[]>>({}) // name -> tags
-  const uiServices = ref<ConsulUIServiceSummary[]>([])
-  const serviceNodes = ref<ConsulServiceNode[]>([])
-  const nodes = ref<ConsulNode[]>([])
-  const uiNodes = ref<ConsulUINode[]>([])
-
-  // Health
-  const healthChecks = ref<ConsulHealthCheck[]>([])
-
-  // Agent
-  const members = ref<ConsulAgentMember[]>([])
-
-  // ACL
-  const aclTokens = ref<ConsulACLToken[]>([])
-  const aclPolicies = ref<ConsulACLPolicy[]>([])
-  const aclRoles = ref<ConsulACLRole[]>([])
-
-  // Mesh
-  const intentions = ref<ConsulIntention[]>([])
-  const configEntries = ref<ConsulConfigEntry[]>([])
-
-  // Auth Methods
-  const authMethods = ref<ConsulACLAuthMethod[]>([])
-  const bindingRules = ref<ConsulACLBindingRule[]>([])
-
-  // Peerings
-  const peerings = ref<ConsulPeering[]>([])
-
-  // Sessions
-  const sessions = ref<ConsulSession[]>([])
-
-  // Catalog Overview
-  const catalogOverview = ref<ConsulCatalogSummary | null>(null)
-
-  // Service Topology
-  const serviceTopology = ref<ConsulServiceTopology | null>(null)
-
-  // Exported/Imported Services
-  const exportedServices = ref<ConsulExportedService[]>([])
-  const importedServices = ref<ConsulImportedService[]>([])
-
-  // Events
-  const events = ref<ConsulUserEvent[]>([])
-
-  // Operator
-  const raftConfig = ref<ConsulRaftConfiguration | null>(null)
-  const operatorUsage = ref<ConsulOperatorUsage | null>(null)
-
-  // Cluster
   const datacenters = ref<string[]>([])
   const savedDc = storage.get('consul_current_dc') || ''
   const currentDc = ref<string>(savedDc)
-
-  // ACL
-  const aclEnabled = ref(true)
 
   // Persist currentDc changes
   watch(currentDc, (val) => {
     storage.set('consul_current_dc', val)
   })
 
-  // ============================================
-  // KV Store Actions
-  // ============================================
-
-  async function fetchKVKeys(prefix?: string) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.listKVKeys(prefix)
-      kvKeys.value = response.data || []
-      return kvKeys.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch KV keys'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchKV(key: string) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.getKV(key)
-      return response.data
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch KV pair'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function putKV(key: string, value: string, flags?: number) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.putKV(key, value, flags)
-      return response.data
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to put KV pair'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function deleteKV(key: string, recurse?: boolean) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.deleteKV(key, recurse)
-      return response.data
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to delete KV pair'
-      throw err
-    } finally {
-      loading.value = false
-    }
+  // Helper to resolve datacenter parameter
+  function resolveDc(dc?: string): string | undefined {
+    return dc || currentDc.value || undefined
   }
 
   // ============================================
-  // Catalog Actions
-  // ============================================
-
-  async function fetchServices(dc?: string) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.getCatalogServices(dc || currentDc.value || undefined)
-      services.value = response.data || {}
-      return services.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch services'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchUIServices(dc?: string) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.getUIServices(dc || currentDc.value || undefined)
-      uiServices.value = response.data || []
-      return uiServices.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch UI services'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchServiceNodes(name: string, dc?: string) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.getCatalogServiceNodes(
-        name,
-        dc || currentDc.value || undefined,
-      )
-      serviceNodes.value = response.data || []
-      return serviceNodes.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch service nodes'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchNodes(dc?: string) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.getCatalogNodes(dc || currentDc.value || undefined)
-      nodes.value = response.data || []
-      return nodes.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch nodes'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchUINodes(dc?: string) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.getUINodes(dc || currentDc.value || undefined)
-      uiNodes.value = response.data || []
-      return uiNodes.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch UI nodes'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // ============================================
-  // Health Actions
-  // ============================================
-
-  async function fetchHealthChecks(state?: string, dc?: string) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.getHealthState(
-        state || 'any',
-        dc || currentDc.value || undefined,
-      )
-      healthChecks.value = response.data || []
-      return healthChecks.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch health checks'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // ============================================
-  // Agent Actions
-  // ============================================
-
-  async function fetchMembers() {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.getAgentMembers()
-      members.value = response.data || []
-      return members.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch agent members'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // ============================================
-  // ACL Actions
-  // ============================================
-
-  async function fetchACLTokens() {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.listACLTokens()
-      aclTokens.value = response.data || []
-      return aclTokens.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch ACL tokens'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchACLPolicies() {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.listACLPolicies()
-      aclPolicies.value = response.data || []
-      return aclPolicies.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch ACL policies'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchACLRoles() {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.listACLRoles()
-      aclRoles.value = response.data || []
-      return aclRoles.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch ACL roles'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // ============================================
-  // Intentions Actions
-  // ============================================
-
-  async function fetchIntentions() {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.listIntentions()
-      intentions.value = response.data || []
-      return intentions.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch intentions'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // ============================================
-  // Config Entries Actions
-  // ============================================
-
-  async function fetchConfigEntries(kind: ConsulConfigEntryKind) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.listConfigEntries(kind)
-      configEntries.value = response.data || []
-      return configEntries.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch config entries'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // ============================================
-  // Session Actions
-  // ============================================
-
-  async function fetchSessions(dc?: string) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.listSessions(dc || currentDc.value || undefined)
-      sessions.value = response.data || []
-      return sessions.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch sessions'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // ============================================
-  // Auth Method Actions
-  // ============================================
-
-  async function fetchAuthMethods() {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.listACLAuthMethods()
-      authMethods.value = response.data || []
-      return authMethods.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch auth methods'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchBindingRules(authMethod?: string) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.listBindingRules(authMethod)
-      bindingRules.value = response.data || []
-      return bindingRules.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch binding rules'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // ============================================
-  // Peering Actions
-  // ============================================
-
-  async function fetchPeerings() {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.listPeerings()
-      peerings.value = response.data || []
-      return peerings.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch peerings'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // ============================================
-  // Catalog Overview Actions
-  // ============================================
-
-  async function fetchCatalogOverview(dc?: string) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.getCatalogOverview(dc || currentDc.value || undefined)
-      catalogOverview.value = response.data || null
-      return catalogOverview.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch catalog overview'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchServiceTopology(service: string, dc?: string) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.getServiceTopology(
-        service,
-        dc || currentDc.value || undefined,
-      )
-      serviceTopology.value = response.data || null
-      return serviceTopology.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch service topology'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // ============================================
-  // Exported/Imported Services Actions
-  // ============================================
-
-  async function fetchExportedServices() {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.getExportedServices()
-      exportedServices.value = response.data || []
-      return exportedServices.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch exported services'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchImportedServices() {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.getImportedServices()
-      importedServices.value = response.data || []
-      return importedServices.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch imported services'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // ============================================
-  // Events Actions
-  // ============================================
-
-  async function fetchEvents(name?: string) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.listEvents(name)
-      events.value = response.data || []
-      return events.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch events'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fireEvent(
-    name: string,
-    payload?: string,
-    node?: string,
-    service?: string,
-    tag?: string,
-  ) {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.fireEvent(name, payload, node, service, tag)
-      return response.data
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fire event'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // ============================================
-  // Operator Actions
-  // ============================================
-
-  async function fetchRaftConfig() {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.getRaftConfiguration()
-      raftConfig.value = response.data || null
-      return raftConfig.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch raft configuration'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchOperatorUsage() {
-    try {
-      loading.value = true
-      error.value = null
-      const response = await consulApi.getOperatorUsage()
-      operatorUsage.value = response.data || null
-      return operatorUsage.value
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch operator usage'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // ============================================
-  // Datacenter Actions
+  // Datacenter Actions (shared)
   // ============================================
 
   async function fetchDatacenters() {
@@ -612,33 +57,6 @@ export const useConsulStore = defineStore('consul', () => {
     }
   }
 
-  async function probeACLCapabilities() {
-    try {
-      const response = await consulApi.getAgentSelf()
-      const config = response.data?.Config
-      // If we can read agent/self, check ACL config
-      // ACL is enabled by default in Consul; check Stats for ACL
-      const stats = response.data?.Stats
-      const aclStats = stats?.['consul.acl']
-      if (aclStats && aclStats['enabled'] === 'false') {
-        aclEnabled.value = false
-      } else {
-        // Try listing tokens; if it fails with 401/403, ACL is disabled or no access
-        try {
-          await consulApi.listACLTokens()
-          aclEnabled.value = true
-        } catch {
-          aclEnabled.value = false
-        }
-      }
-      return { datacenter: config?.Datacenter, primaryDc: config?.PrimaryDatacenter }
-    } catch {
-      // If agent/self fails, assume ACL not available
-      aclEnabled.value = false
-      return null
-    }
-  }
-
   function setCurrentDc(dc: string) {
     currentDc.value = dc
   }
@@ -647,44 +65,179 @@ export const useConsulStore = defineStore('consul', () => {
     error.value = null
   }
 
+  // ============================================
+  // Facade: delegate to sub-stores
+  // ============================================
+
+  // KV Store
+  const kvStore = computed(() => useConsulKVStore())
+  const kvKeys = computed(() => kvStore.value.kvKeys)
+  const kvPairs = computed(() => kvStore.value.kvPairs)
+
+  function fetchKVKeys(prefix?: string) {
+    return kvStore.value.fetchKVKeys(prefix)
+  }
+  function fetchKV(key: string) {
+    return kvStore.value.fetchKV(key)
+  }
+  function putKV(key: string, value: string, flags?: number) {
+    return kvStore.value.putKV(key, value, flags)
+  }
+  function deleteKV(key: string, recurse?: boolean) {
+    return kvStore.value.deleteKV(key, recurse)
+  }
+
+  // ACL Store
+  const aclStore = computed(() => useConsulACLStore())
+  const aclTokens = computed(() => aclStore.value.aclTokens)
+  const aclPolicies = computed(() => aclStore.value.aclPolicies)
+  const aclRoles = computed(() => aclStore.value.aclRoles)
+  const authMethods = computed(() => aclStore.value.authMethods)
+  const bindingRules = computed(() => aclStore.value.bindingRules)
+  const aclEnabled = computed(() => aclStore.value.aclEnabled)
+
+  function fetchACLTokens() {
+    return aclStore.value.fetchACLTokens()
+  }
+  function fetchACLPolicies() {
+    return aclStore.value.fetchACLPolicies()
+  }
+  function fetchACLRoles() {
+    return aclStore.value.fetchACLRoles()
+  }
+  function fetchAuthMethods() {
+    return aclStore.value.fetchAuthMethods()
+  }
+  function fetchBindingRules(authMethod?: string) {
+    return aclStore.value.fetchBindingRules(authMethod)
+  }
+  function probeACLCapabilities() {
+    return aclStore.value.probeACLCapabilities()
+  }
+
+  // Catalog Store
+  const catalogStore = computed(() => useConsulCatalogStore())
+  const services = computed(() => catalogStore.value.services)
+  const uiServices = computed(() => catalogStore.value.uiServices)
+  const serviceNodes = computed(() => catalogStore.value.serviceNodes)
+  const nodes = computed(() => catalogStore.value.nodes)
+  const uiNodes = computed(() => catalogStore.value.uiNodes)
+  const healthChecks = computed(() => catalogStore.value.healthChecks)
+  const members = computed(() => catalogStore.value.members)
+  const catalogOverview = computed(() => catalogStore.value.catalogOverview)
+  const serviceTopology = computed(() => catalogStore.value.serviceTopology)
+  const exportedServices = computed(() => catalogStore.value.exportedServices)
+  const importedServices = computed(() => catalogStore.value.importedServices)
+
+  function fetchServices(dc?: string) {
+    return catalogStore.value.fetchServices(resolveDc(dc))
+  }
+  function fetchUIServices(dc?: string) {
+    return catalogStore.value.fetchUIServices(resolveDc(dc))
+  }
+  function fetchServiceNodes(name: string, dc?: string) {
+    return catalogStore.value.fetchServiceNodes(name, resolveDc(dc))
+  }
+  function fetchNodes(dc?: string) {
+    return catalogStore.value.fetchNodes(resolveDc(dc))
+  }
+  function fetchUINodes(dc?: string) {
+    return catalogStore.value.fetchUINodes(resolveDc(dc))
+  }
+  function fetchHealthChecks(state?: string, dc?: string) {
+    return catalogStore.value.fetchHealthChecks(state, resolveDc(dc))
+  }
+  function fetchMembers() {
+    return catalogStore.value.fetchMembers()
+  }
+  function fetchCatalogOverview(dc?: string) {
+    return catalogStore.value.fetchCatalogOverview(resolveDc(dc))
+  }
+  function fetchServiceTopology(service: string, dc?: string) {
+    return catalogStore.value.fetchServiceTopology(service, resolveDc(dc))
+  }
+  function fetchExportedServices() {
+    return catalogStore.value.fetchExportedServices()
+  }
+  function fetchImportedServices() {
+    return catalogStore.value.fetchImportedServices()
+  }
+
+  // Mesh Store
+  const meshStore = computed(() => useConsulMeshStore())
+  const intentions = computed(() => meshStore.value.intentions)
+  const configEntries = computed(() => meshStore.value.configEntries)
+  const sessions = computed(() => meshStore.value.sessions)
+  const peerings = computed(() => meshStore.value.peerings)
+  const events = computed(() => meshStore.value.events)
+  const raftConfig = computed(() => meshStore.value.raftConfig)
+  const operatorUsage = computed(() => meshStore.value.operatorUsage)
+
+  function fetchIntentions() {
+    return meshStore.value.fetchIntentions()
+  }
+  function fetchConfigEntries(kind: ConsulConfigEntryKind) {
+    return meshStore.value.fetchConfigEntries(kind)
+  }
+  function fetchSessions(dc?: string) {
+    return meshStore.value.fetchSessions(resolveDc(dc))
+  }
+  function fetchPeerings() {
+    return meshStore.value.fetchPeerings()
+  }
+  function fetchEvents(name?: string) {
+    return meshStore.value.fetchEvents(name)
+  }
+  function fireEvent(
+    name: string,
+    payload?: string,
+    node?: string,
+    service?: string,
+    tag?: string,
+  ) {
+    return meshStore.value.fireEvent(name, payload, node, service, tag)
+  }
+  function fetchRaftConfig() {
+    return meshStore.value.fetchRaftConfig()
+  }
+  function fetchOperatorUsage() {
+    return meshStore.value.fetchOperatorUsage()
+  }
+
+  // ============================================
+  // Reset all stores
+  // ============================================
+
   function $reset() {
-    kvKeys.value = []
-    kvPairs.value = []
-    services.value = {}
-    uiServices.value = []
-    serviceNodes.value = []
-    nodes.value = []
-    uiNodes.value = []
-    healthChecks.value = []
-    members.value = []
-    aclTokens.value = []
-    aclPolicies.value = []
-    aclRoles.value = []
-    authMethods.value = []
-    bindingRules.value = []
-    peerings.value = []
-    intentions.value = []
-    configEntries.value = []
-    sessions.value = []
-    catalogOverview.value = null
-    serviceTopology.value = null
-    exportedServices.value = []
-    importedServices.value = []
-    events.value = []
-    raftConfig.value = null
-    operatorUsage.value = null
+    kvStore.value.$reset()
+    aclStore.value.$reset()
+    catalogStore.value.$reset()
+    meshStore.value.$reset()
     datacenters.value = []
     currentDc.value = ''
-    aclEnabled.value = true
     error.value = null
   }
 
   return {
-    // State
+    // Shared state
     loading,
     error,
+    datacenters,
+    currentDc,
+
+    // KV state
     kvKeys,
     kvPairs,
+
+    // ACL state
+    aclTokens,
+    aclPolicies,
+    aclRoles,
+    authMethods,
+    bindingRules,
+    aclEnabled,
+
+    // Catalog state
     services,
     uiServices,
     serviceNodes,
@@ -692,31 +245,41 @@ export const useConsulStore = defineStore('consul', () => {
     uiNodes,
     healthChecks,
     members,
-    aclTokens,
-    aclPolicies,
-    aclRoles,
-    authMethods,
-    bindingRules,
-    peerings,
-    intentions,
-    configEntries,
-    sessions,
     catalogOverview,
     serviceTopology,
     exportedServices,
     importedServices,
+
+    // Mesh state
+    intentions,
+    configEntries,
+    sessions,
+    peerings,
     events,
     raftConfig,
     operatorUsage,
-    datacenters,
-    currentDc,
-    aclEnabled,
 
-    // Actions
+    // Shared actions
+    fetchDatacenters,
+    setCurrentDc,
+    clearError,
+    $reset,
+
+    // KV actions
     fetchKVKeys,
     fetchKV,
     putKV,
     deleteKV,
+
+    // ACL actions
+    fetchACLTokens,
+    fetchACLPolicies,
+    fetchACLRoles,
+    fetchAuthMethods,
+    fetchBindingRules,
+    probeACLCapabilities,
+
+    // Catalog actions
     fetchServices,
     fetchUIServices,
     fetchServiceNodes,
@@ -724,27 +287,19 @@ export const useConsulStore = defineStore('consul', () => {
     fetchUINodes,
     fetchHealthChecks,
     fetchMembers,
-    fetchACLTokens,
-    fetchACLPolicies,
-    fetchACLRoles,
-    fetchAuthMethods,
-    fetchBindingRules,
-    fetchPeerings,
-    fetchIntentions,
-    fetchConfigEntries,
-    fetchSessions,
     fetchCatalogOverview,
     fetchServiceTopology,
     fetchExportedServices,
     fetchImportedServices,
+
+    // Mesh actions
+    fetchIntentions,
+    fetchConfigEntries,
+    fetchSessions,
+    fetchPeerings,
     fetchEvents,
     fireEvent,
     fetchRaftConfig,
     fetchOperatorUsage,
-    fetchDatacenters,
-    setCurrentDc,
-    probeACLCapabilities,
-    clearError,
-    $reset,
   }
 })

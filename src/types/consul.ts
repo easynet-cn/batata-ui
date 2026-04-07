@@ -408,7 +408,7 @@ export interface ConsulACLAuthMethod {
   ModifyIndex: number
 }
 
-export type ConsulBindingRuleBindType = 'service' | 'node' | 'role'
+export type ConsulBindingRuleBindType = 'service' | 'node' | 'role' | 'policy'
 
 export interface ConsulACLBindingRule {
   ID: string
@@ -571,4 +571,31 @@ export interface ConsulCoordinate {
     Height: number
     Vec: number[]
   }
+}
+
+// ============================================
+// Consul Partition Types
+// ============================================
+
+export interface ConsulPartition {
+  Name: string
+  Description: string
+  CreateIndex: number
+  ModifyIndex: number
+}
+
+// ============================================
+// Consul Namespace Types
+// ============================================
+
+export interface ConsulNamespace {
+  Name: string
+  Description: string
+  ACLs?: {
+    PolicyDefaults?: Array<{ ID: string; Name: string }>
+    RoleDefaults?: Array<{ ID: string; Name: string }>
+  }
+  Meta?: Record<string, string>
+  CreateIndex: number
+  ModifyIndex: number
 }

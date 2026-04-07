@@ -61,9 +61,13 @@
             </tr>
             <tr v-for="session in filteredSessions" :key="session.ID" class="hover:bg-bg-secondary">
               <td>
-                <span class="font-mono text-xs" :title="session.ID">
+                <RouterLink
+                  :to="{ name: 'consul-session-detail', params: { id: session.ID } }"
+                  class="font-mono text-xs text-fuchsia-600 dark:text-fuchsia-400 hover:underline"
+                  :title="session.ID"
+                >
                   {{ truncateId(session.ID) }}
-                </span>
+                </RouterLink>
               </td>
               <td>
                 <span class="font-medium text-text-primary">{{ session.Name || '-' }}</span>
@@ -97,13 +101,22 @@
                 </div>
               </td>
               <td>
-                <button
-                  @click="handleDestroy(session)"
-                  class="btn btn-ghost btn-sm text-danger"
-                  :title="t('destroy')"
-                >
-                  <Trash2 class="w-3.5 h-3.5" />
-                </button>
+                <div class="flex items-center gap-1">
+                  <RouterLink
+                    :to="{ name: 'consul-session-detail', params: { id: session.ID } }"
+                    class="btn btn-ghost btn-sm text-primary"
+                    :title="t('details')"
+                  >
+                    <Eye class="w-3.5 h-3.5" />
+                  </RouterLink>
+                  <button
+                    @click="handleDestroy(session)"
+                    class="btn btn-ghost btn-sm text-danger"
+                    :title="t('destroy')"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -181,7 +194,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { RefreshCw, Trash2, Loader2, Plus, Search } from 'lucide-vue-next'
+import { RouterLink } from 'vue-router'
+import { RefreshCw, Trash2, Loader2, Plus, Search, Eye } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'

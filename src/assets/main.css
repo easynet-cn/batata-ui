@@ -480,4 +480,18 @@
   .empty-state {
     @apply flex flex-col items-center justify-center py-12 text-center text-text-secondary;
   }
+
+  /* Focus ring for keyboard navigation */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+  }
+
+  .dark .focus-ring {
+    @apply focus-visible:ring-offset-gray-900;
+  }
+
+  /* Skip to content link for keyboard navigation */
+  .skip-to-content {
+    @apply sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-white focus:rounded-lg;
+  }
 }

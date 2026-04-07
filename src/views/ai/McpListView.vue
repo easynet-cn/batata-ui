@@ -7,6 +7,10 @@
         <p class="text-xs text-text-secondary mt-0.5">{{ t('mcpServersDesc') }}</p>
       </div>
       <div class="flex items-center gap-2">
+        <button @click="showOpenApiModal = true" class="btn btn-secondary btn-sm">
+          <FileCode class="w-3.5 h-3.5" />
+          {{ t('importFromOpenAPI') }}
+        </button>
         <button @click="showImportRegistryModal = true" class="btn btn-secondary btn-sm">
           <Download class="w-3.5 h-3.5" />
           {{ t('importFromRegistry') }}
@@ -253,6 +257,92 @@
         </div>
       </div>
     </FormModal>
+
+    <!-- Import from OpenAPI Modal -->
+    <FormModal
+      v-model="showOpenApiModal"
+      :title="t('importFromOpenAPI')"
+      :submit-text="t('importSelected')"
+      :submit-disabled="openApiSelectedTools.size === 0"
+      :loading="importingOpenApi"
+      wide
+      @submit="handleImportOpenApi"
+    >
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-text-secondary mb-1">
+            {{ t('specFormat') }}
+          </label>
+          <select v-model="openApiFormat" class="input">
+            <option value="json">JSON</option>
+            <option value="yaml">YAML</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-secondary mb-1">
+            {{ t('openApiSpec') }}
+          </label>
+          <textarea
+            v-model="openApiContent"
+            class="input min-h-[160px] font-mono text-xs"
+            :placeholder="t('pasteOpenApiSpec')"
+          />
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            @click="handleValidateOpenApi"
+            class="btn btn-secondary btn-sm"
+            :disabled="!openApiContent || validatingOpenApi"
+          >
+            <Loader2 v-if="validatingOpenApi" class="w-3.5 h-3.5 animate-spin" />
+            <CheckCircle v-else class="w-3.5 h-3.5" />
+            {{ validatingOpenApi ? t('validating') : t('validateSpec') }}
+          </button>
+          <span v-if="openApiParsedTools.length > 0" class="text-xs text-text-secondary">
+            {{ t('toolsFound').replace('{count}', String(openApiParsedTools.length)) }}
+          </span>
+        </div>
+        <div v-if="openApiParsedTools.length > 0" class="space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-medium text-text-primary">{{ t('previewTools') }}</h4>
+            <button
+              @click="toggleSelectAllOpenApiTools"
+              class="text-xs text-primary hover:underline"
+            >
+              {{
+                openApiSelectedTools.size === openApiParsedTools.length
+                  ? t('deselectAll')
+                  : t('selectAll')
+              }}
+            </button>
+          </div>
+          <div
+            class="max-h-48 overflow-y-auto border border-border rounded-lg divide-y divide-border"
+          >
+            <label
+              v-for="tool in openApiParsedTools"
+              :key="tool.name"
+              class="flex items-center gap-2 p-2 hover:bg-bg-secondary cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                :checked="openApiSelectedTools.has(tool.name)"
+                @change="toggleOpenApiTool(tool.name)"
+                class="w-3.5 h-3.5 rounded"
+              />
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-medium text-text-primary font-mono truncate">
+                  {{ tool.name }}
+                </p>
+                <p class="text-[10px] text-text-tertiary truncate">
+                  {{ tool.description || '-' }}
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </FormModal>
   </div>
 </template>
 
@@ -271,6 +361,8 @@ import {
   Server as ServerIcon,
   Wrench,
   Layers,
+  FileCode,
+  CheckCircle,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
@@ -315,6 +407,144 @@ const registryResults = ref<Array<{ name: string; description: string }>>([])
 const selectedRegistryItems = ref<Set<string>>(new Set())
 const importingFromRegistry = ref(false)
 const registrySearched = ref(false)
+
+// Import from OpenAPI
+const showOpenApiModal = ref(false)
+const openApiContent = ref('')
+const openApiFormat = ref('json')
+const openApiParsedTools = ref<
+  Array<{ name: string; description: string; inputSchema?: Record<string, unknown> }>
+>([])
+const openApiSelectedTools = ref<Set<string>>(new Set())
+const validatingOpenApi = ref(false)
+const importingOpenApi = ref(false)
+
+const parseOpenApiLocally = (
+  content: string,
+): Array<{ name: string; description: string; inputSchema?: Record<string, unknown> }> => {
+  const tools: Array<{ name: string; description: string; inputSchema?: Record<string, unknown> }> =
+    []
+  try {
+    const spec = JSON.parse(content)
+    const paths = spec.paths || {}
+    for (const [path, methods] of Object.entries(paths)) {
+      for (const [method, operation] of Object.entries(
+        methods as Record<string, Record<string, unknown>>,
+      )) {
+        if (!['get', 'post', 'put', 'delete', 'patch'].includes(method)) continue
+        const op = operation as Record<string, unknown>
+        const toolName =
+          (op.operationId as string) || `${method}_${path.replace(/[^a-zA-Z0-9]/g, '_')}`
+        const description = (op.summary as string) || (op.description as string) || ''
+
+        // Build input schema from parameters and request body
+        const properties: Record<string, unknown> = {}
+        const required: string[] = []
+        const params = op.parameters as Array<Record<string, unknown>> | undefined
+        if (params) {
+          for (const param of params) {
+            properties[param.name as string] = param.schema || { type: 'string' }
+            if (param.required) required.push(param.name as string)
+          }
+        }
+        const requestBody = op.requestBody as Record<string, unknown> | undefined
+        if (requestBody) {
+          const bodyContent = requestBody.content as
+            | Record<string, Record<string, unknown>>
+            | undefined
+          if (bodyContent) {
+            const jsonBody = bodyContent['application/json']
+            if (jsonBody?.schema) {
+              properties['body'] = jsonBody.schema
+            }
+          }
+        }
+
+        const inputSchema: Record<string, unknown> = {
+          type: 'object',
+          properties,
+        }
+        if (required.length > 0) inputSchema.required = required
+
+        tools.push({ name: toolName, description, inputSchema })
+      }
+    }
+  } catch {
+    // Parsing failed, return empty
+  }
+  return tools
+}
+
+const handleValidateOpenApi = async () => {
+  if (!openApiContent.value) return
+  validatingOpenApi.value = true
+  openApiParsedTools.value = []
+  openApiSelectedTools.value = new Set()
+
+  try {
+    // Try server-side validation first
+    const response = await batataApi.validateOpenApiSpec({
+      content: openApiContent.value,
+      format: openApiFormat.value,
+    })
+    const tools = response.data.data?.tools || []
+    openApiParsedTools.value = tools
+    // Select all tools by default
+    openApiSelectedTools.value = new Set(tools.map((t: { name: string }) => t.name))
+    if (tools.length === 0) {
+      toast.warning(t('noToolsParsed'))
+    }
+  } catch {
+    // Fallback to client-side parsing for JSON specs
+    const tools = parseOpenApiLocally(openApiContent.value)
+    if (tools.length > 0) {
+      openApiParsedTools.value = tools
+      openApiSelectedTools.value = new Set(tools.map((t) => t.name))
+    } else {
+      toast.error(t('openApiParseError'))
+    }
+  } finally {
+    validatingOpenApi.value = false
+  }
+}
+
+const toggleOpenApiTool = (name: string) => {
+  if (openApiSelectedTools.value.has(name)) {
+    openApiSelectedTools.value.delete(name)
+  } else {
+    openApiSelectedTools.value.add(name)
+  }
+}
+
+const toggleSelectAllOpenApiTools = () => {
+  if (openApiSelectedTools.value.size === openApiParsedTools.value.length) {
+    openApiSelectedTools.value = new Set()
+  } else {
+    openApiSelectedTools.value = new Set(openApiParsedTools.value.map((t) => t.name))
+  }
+}
+
+const handleImportOpenApi = async () => {
+  if (openApiSelectedTools.value.size === 0) return
+  importingOpenApi.value = true
+  try {
+    await batataApi.importOpenApiTools({
+      content: openApiContent.value,
+      format: openApiFormat.value,
+      selectedTools: Array.from(openApiSelectedTools.value),
+    })
+    showOpenApiModal.value = false
+    openApiContent.value = ''
+    openApiParsedTools.value = []
+    openApiSelectedTools.value = new Set()
+    fetchMcpServers()
+  } catch (error) {
+    logger.error('Failed to import from OpenAPI:', error)
+    toast.apiError(error)
+  } finally {
+    importingOpenApi.value = false
+  }
+}
 
 const toggleRegistryItem = (name: string) => {
   if (selectedRegistryItems.value.has(name)) {

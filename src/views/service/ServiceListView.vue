@@ -40,7 +40,7 @@
               @keyup.enter="handleSearch"
             />
           </div>
-          <div class="flex items-center pt-6">
+          <div class="flex items-center gap-4 pt-6">
             <label class="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -49,6 +49,26 @@
               />
               <span class="text-sm text-text-primary">{{ t('hideEmptyService') }}</span>
             </label>
+            <div class="flex items-center gap-2 border-l pl-4 border-gray-200 dark:border-gray-800">
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  v-model="searchParams.search"
+                  value="blur"
+                  class="w-3.5 h-3.5 text-primary"
+                />
+                <span class="text-xs text-text-primary">{{ t('fuzzySearch') }}</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  v-model="searchParams.search"
+                  value="accurate"
+                  class="w-3.5 h-3.5 text-primary"
+                />
+                <span class="text-xs text-text-primary">{{ t('exactSearch') }}</span>
+              </label>
+            </div>
           </div>
           <div class="flex items-end gap-2">
             <button @click="handleSearch" class="btn btn-primary flex-1">
@@ -301,6 +321,7 @@ const searchParams = reactive({
   serviceName: '',
   groupName: '',
   hasIpCount: false,
+  search: 'blur' as 'accurate' | 'blur',
 })
 
 // Modals
@@ -353,6 +374,7 @@ const handleReset = () => {
     serviceName: '',
     groupName: '',
     hasIpCount: false,
+    search: 'blur',
   })
   handleSearch()
 }

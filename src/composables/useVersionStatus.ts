@@ -7,20 +7,20 @@ export function useVersionStatus() {
 
   const statusDotClass = (status: VersionStatus) => {
     const map: Record<VersionStatus, string> = {
-      draft: 'bg-amber-500',
-      reviewing: 'bg-blue-500',
+      draft: 'bg-gray-400',
+      reviewing: 'bg-amber-500',
       online: 'bg-emerald-500',
-      offline: 'bg-gray-400',
+      offline: 'bg-red-500',
     }
     return map[status] || 'bg-gray-400'
   }
 
   const statusBadgeClass = (status: VersionStatus) => {
     const map: Record<VersionStatus, string> = {
-      draft: 'badge badge-warning',
-      reviewing: 'badge badge-info',
+      draft: 'badge badge-secondary',
+      reviewing: 'badge badge-warning',
       online: 'badge badge-success',
-      offline: 'badge badge-secondary',
+      offline: 'badge badge-danger',
     }
     return map[status] || 'badge'
   }

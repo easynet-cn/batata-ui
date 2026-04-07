@@ -154,97 +154,18 @@
       </div>
 
       <!-- Governance Version Timeline (if governance data is available) -->
-      <div v-if="governance && governance.versions && governance.versions.length > 0" class="card">
-        <div class="p-4 border-b border-border">
-          <h3 class="text-sm font-medium text-text-primary">{{ t('skillVersions') }}</h3>
-        </div>
-        <div class="divide-y divide-border">
-          <div
-            v-for="ver in governance.versions"
-            :key="ver.version"
-            class="p-4 hover:bg-bg-secondary transition-colors"
-          >
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div
-                  class="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                  :class="promptStatusDotClass(ver.status)"
-                />
-                <span class="font-mono text-sm font-medium text-text-primary">
-                  v{{ ver.version }}
-                </span>
-                <span :class="promptStatusBadgeClass(ver.status)">
-                  {{ promptStatusLabel(ver.status) }}
-                </span>
-              </div>
-              <div class="flex items-center gap-1">
-                <!-- View -->
-                <button
-                  @click="selectVersion(ver.version)"
-                  class="btn btn-ghost btn-sm"
-                  :title="t('viewDetail')"
-                >
-                  <Eye class="w-3.5 h-3.5" />
-                </button>
-                <!-- Draft: Submit -->
-                <button
-                  v-if="ver.status === 'draft'"
-                  @click="handleSubmitPrompt"
-                  class="btn btn-ghost btn-sm text-blue-600"
-                  :title="t('promptSubmitReview')"
-                >
-                  <Send class="w-3.5 h-3.5" />
-                </button>
-                <!-- Reviewing: Publish / Force Publish -->
-                <template v-if="ver.status === 'reviewing'">
-                  <button
-                    @click="handlePublishPrompt(ver.version)"
-                    class="btn btn-ghost btn-sm text-emerald-600"
-                    :title="t('promptPublish')"
-                  >
-                    <Rocket class="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    @click="handleForcePublishPrompt(ver.version)"
-                    class="btn btn-ghost btn-sm text-orange-600"
-                    :title="t('forcePublish')"
-                  >
-                    <Zap class="w-3.5 h-3.5" />
-                  </button>
-                </template>
-                <!-- Online: Offline -->
-                <button
-                  v-if="ver.status === 'online'"
-                  @click="handleOfflinePrompt(ver.version)"
-                  class="btn btn-ghost btn-sm"
-                  :title="t('promptOfflineAction')"
-                >
-                  <WifiOff class="w-3.5 h-3.5" />
-                </button>
-                <!-- Offline: Online -->
-                <button
-                  v-if="ver.status === 'offline'"
-                  @click="handleOnlinePrompt(ver.version)"
-                  class="btn btn-ghost btn-sm"
-                  :title="t('promptOnlineAction')"
-                >
-                  <Wifi class="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-            <!-- Version meta -->
-            <div class="flex items-center gap-4 mt-2 text-xs text-text-tertiary ml-5">
-              <span>{{ ver.srcUser }}</span>
-              <span>{{ new Date(ver.gmtModified).toLocaleString() }}</span>
-              <span v-if="ver.commitMsg" class="truncate max-w-[200px]">{{ ver.commitMsg }}</span>
-            </div>
-            <!-- Pipeline Status -->
-            <div v-if="ver.publishPipelineInfo" class="mt-3 ml-5">
-              <PipelineStatusDisplay :publish-pipeline-info="ver.publishPipelineInfo" />
-            </div>
-          </div>
-        </div>
-      </div>
+      <VersionTimeline
+        v-if="governance && governance.versions && governance.versions.length > 0"
+        :versions="governanceVersionsForTimeline"
+        :editing-version="governance.editingVersion"
+        :reviewing-version="governance.reviewingVersion"
+        @view="selectVersion"
+        @submit="handleSubmitPromptVersion"
+        @publish="handlePublishPrompt"
+        @force-publish="handleForcePublishPrompt"
+        @online="handleOnlinePrompt"
+        @offline="handleOfflinePrompt"
+      />
 
       <!-- Main Content: Version History + Template (fallback for non-governance mode) -->
       <div v-if="!governance || !governance.versions" class="grid grid-cols-1 lg:grid-cols-4 gap-3">
@@ -497,35 +418,19 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import {
-  ArrowLeft,
-  Plus,
-  Pencil,
-  Loader2,
-  Sparkles,
-  Bug,
-  Tag,
-  X,
-  Eye,
-  Send,
-  Rocket,
-  Zap,
-  Wifi,
-  WifiOff,
-} from 'lucide-vue-next'
+import { ArrowLeft, Plus, Pencil, Loader2, Sparkles, Bug, Tag, X } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
 import { useBatataStore } from '@/stores/batata'
-import { useVersionStatus } from '@/composables/useVersionStatus'
 import AppPagination from '@/components/common/AppPagination.vue'
 import FormModal from '@/components/common/FormModal.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import CodeEditor from '@/components/common/CodeEditor.vue'
 import PromptDebugPanel from '@/components/ai/PromptDebugPanel.vue'
 import PromptOptimizeDialog from '@/components/ai/PromptOptimizeDialog.vue'
-import PipelineStatusDisplay from '@/components/ai/PipelineStatusDisplay.vue'
+import VersionTimeline from '@/components/ai/VersionTimeline.vue'
 import type {
   PromptMetaInfo,
   PromptGovernanceDetail,
@@ -608,12 +513,18 @@ const previewText = computed(() => {
   return text
 })
 
-// Status helpers (shared composable)
-const {
-  statusDotClass: promptStatusDotClass,
-  statusBadgeClass: promptStatusBadgeClass,
-  statusLabel: promptStatusLabel,
-} = useVersionStatus()
+// Map governance versions to the format expected by VersionTimeline
+const governanceVersionsForTimeline = computed(() => {
+  if (!governance.value?.versions) return []
+  return governance.value.versions.map((ver) => ({
+    version: ver.version,
+    status: ver.status,
+    srcUser: ver.srcUser,
+    commitMsg: ver.commitMsg,
+    gmtModified: ver.gmtModified,
+    publishPipelineInfo: ver.publishPipelineInfo,
+  }))
+})
 
 // Methods
 const goBack = () => {
@@ -778,6 +689,11 @@ const handleSubmitPrompt = async () => {
     logger.error('Failed to submit prompt:', error)
     toast.apiError(error)
   }
+}
+
+// Version-aware submit handler for VersionTimeline component
+const handleSubmitPromptVersion = async (_version: string) => {
+  await handleSubmitPrompt()
 }
 
 const handlePublishPrompt = async (version: string) => {

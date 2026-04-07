@@ -180,6 +180,93 @@
           </div>
         </div>
 
+        <!-- Security Config -->
+        <div class="space-y-3">
+          <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2">
+            {{ t('securityConfig') }}
+          </h3>
+
+          <!-- Upstream Security -->
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <Shield class="w-3.5 h-3.5 text-text-tertiary" />
+              <label class="text-xs font-medium text-text-primary">
+                {{ t('upstreamSecurity') }}
+              </label>
+            </div>
+            <p class="text-xs text-text-tertiary ml-5">{{ t('upstreamSecurityHint') }}</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 ml-5">
+              <div>
+                <label class="block text-xs font-medium text-text-primary mb-1">
+                  {{ t('securityScheme') }}
+                </label>
+                <select v-model="form.upstreamScheme" class="input">
+                  <option value="none">{{ t('schemeNone') }}</option>
+                  <option value="apiKey">{{ t('schemeApiKey') }}</option>
+                  <option value="bearerToken">{{ t('schemeBearerToken') }}</option>
+                  <option value="basicAuth">{{ t('schemeBasicAuth') }}</option>
+                </select>
+              </div>
+              <div v-if="form.upstreamScheme !== 'none'">
+                <label class="block text-xs font-medium text-text-primary mb-1">
+                  {{ t('credentialId') }}
+                </label>
+                <input
+                  v-model="form.upstreamCredentialId"
+                  type="text"
+                  class="input"
+                  placeholder="e.g. X-API-Key"
+                />
+              </div>
+              <div v-if="form.upstreamScheme !== 'none'">
+                <label class="block text-xs font-medium text-text-primary mb-1">
+                  {{ t('credentialValue') }}
+                </label>
+                <input
+                  v-model="form.upstreamCredential"
+                  type="password"
+                  class="input"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Downstream Security -->
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <ShieldCheck class="w-3.5 h-3.5 text-text-tertiary" />
+              <label class="text-xs font-medium text-text-primary">
+                {{ t('downstreamSecurity') }}
+              </label>
+            </div>
+            <p class="text-xs text-text-tertiary ml-5">{{ t('downstreamSecurityHint') }}</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 ml-5">
+              <div>
+                <label class="block text-xs font-medium text-text-primary mb-1">
+                  {{ t('securityScheme') }}
+                </label>
+                <select v-model="form.downstreamScheme" class="input">
+                  <option value="none">{{ t('schemeNone') }}</option>
+                  <option value="apiKey">{{ t('schemeApiKey') }}</option>
+                  <option value="bearerToken">{{ t('schemeBearerToken') }}</option>
+                  <option value="passthrough">{{ t('schemePassthrough') }}</option>
+                </select>
+              </div>
+            </div>
+            <div
+              v-if="form.downstreamScheme === 'passthrough'"
+              class="ml-5 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg"
+            >
+              <p class="text-xs text-blue-700 dark:text-blue-400">
+                {{ t('passthroughDesc') }}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <!-- Actions -->
         <div class="flex items-center justify-end gap-3 pt-3 border-t border-border">
           <button @click="goBack" class="btn btn-secondary">
@@ -198,7 +285,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, Loader2 } from 'lucide-vue-next'
+import { ArrowLeft, Loader2, Shield, ShieldCheck } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
@@ -230,6 +317,11 @@ const form = reactive({
   headers: '',
   autoDiscoverTools: true,
   allowedTools: '',
+  // Security
+  upstreamScheme: 'none',
+  upstreamCredentialId: '',
+  upstreamCredential: '',
+  downstreamScheme: 'none',
 })
 
 // Computed
@@ -262,6 +354,10 @@ const fetchMcpServer = async () => {
       headers: server.headers ? JSON.stringify(server.headers, null, 2) : '',
       autoDiscoverTools: server.autoDiscoverTools !== false,
       allowedTools: server.allowedTools?.join('\n') || '',
+      upstreamScheme: server.security?.upstream?.scheme || 'none',
+      upstreamCredentialId: server.security?.upstream?.credentialId || '',
+      upstreamCredential: server.security?.upstream?.credential || '',
+      downstreamScheme: server.security?.downstream?.scheme || 'none',
     })
   } catch (error) {
     logger.error('Failed to fetch MCP server:', error)
@@ -322,6 +418,25 @@ const handleSubmit = async () => {
 
     if (!form.autoDiscoverTools && form.allowedTools) {
       payload.allowedTools = form.allowedTools.split('\n').filter(Boolean)
+    }
+
+    // Security config
+    const security: McpServerPayload['security'] = {}
+    if (form.upstreamScheme !== 'none') {
+      security.upstream = {
+        scheme: form.upstreamScheme as 'apiKey' | 'bearerToken' | 'basicAuth',
+        credentialId: form.upstreamCredentialId || undefined,
+        credential: form.upstreamCredential || undefined,
+      }
+    }
+    if (form.downstreamScheme !== 'none') {
+      security.downstream = {
+        scheme: form.downstreamScheme as 'apiKey' | 'bearerToken' | 'passthrough',
+        passthrough: form.downstreamScheme === 'passthrough' ? true : undefined,
+      }
+    }
+    if (security.upstream || security.downstream) {
+      payload.security = security
     }
 
     if (isEdit.value) {

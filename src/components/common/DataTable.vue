@@ -1,7 +1,7 @@
 <template>
   <div class="card">
     <div class="overflow-x-auto">
-      <table class="table">
+      <table class="table" role="table" :aria-busy="loading" :aria-label="t('dataTable')">
         <thead>
           <tr>
             <th v-if="selectable" class="w-8">

@@ -247,42 +247,79 @@
         </div>
 
         <!-- RTT Tab -->
-        <div v-if="activeTab === 'rtt'" class="p-6">
-          <div v-if="!rttStats" class="text-center py-4 text-text-tertiary">
+        <div v-if="activeTab === 'rtt'">
+          <div v-if="!rttStats" class="p-6 text-center py-4 text-text-tertiary">
             <p class="text-xs">{{ t('consulNoCoordinateData') }}</p>
           </div>
-          <div v-else class="grid grid-cols-3 gap-4">
-            <div class="text-center p-4 bg-bg-secondary rounded-xl">
-              <label
-                class="block text-[10px] font-bold uppercase tracking-wider text-text-tertiary mb-1"
-              >
-                {{ t('consulMinRtt') }}
-              </label>
-              <p class="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
-                {{ formatRtt(rttStats.min) }}
-              </p>
+          <template v-else>
+            <!-- Summary stats -->
+            <div class="p-6 grid grid-cols-3 gap-4">
+              <div class="text-center p-4 bg-bg-secondary rounded-xl">
+                <label
+                  class="block text-[10px] font-bold uppercase tracking-wider text-text-tertiary mb-1"
+                >
+                  {{ t('consulMinRtt') }}
+                </label>
+                <p class="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
+                  {{ formatRtt(rttStats.min) }}
+                </p>
+              </div>
+              <div class="text-center p-4 bg-bg-secondary rounded-xl">
+                <label
+                  class="block text-[10px] font-bold uppercase tracking-wider text-text-tertiary mb-1"
+                >
+                  {{ t('consulMedianRtt') }}
+                </label>
+                <p class="text-lg font-extrabold text-fuchsia-600 dark:text-fuchsia-400">
+                  {{ formatRtt(rttStats.median) }}
+                </p>
+              </div>
+              <div class="text-center p-4 bg-bg-secondary rounded-xl">
+                <label
+                  class="block text-[10px] font-bold uppercase tracking-wider text-text-tertiary mb-1"
+                >
+                  {{ t('consulMaxRtt') }}
+                </label>
+                <p class="text-lg font-extrabold text-amber-600 dark:text-amber-400">
+                  {{ formatRtt(rttStats.max) }}
+                </p>
+              </div>
             </div>
-            <div class="text-center p-4 bg-bg-secondary rounded-xl">
-              <label
-                class="block text-[10px] font-bold uppercase tracking-wider text-text-tertiary mb-1"
-              >
-                {{ t('consulMedianRtt') }}
-              </label>
-              <p class="text-lg font-extrabold text-fuchsia-600 dark:text-fuchsia-400">
-                {{ formatRtt(rttStats.median) }}
-              </p>
+
+            <!-- Per-node RTT table -->
+            <div class="overflow-x-auto">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>{{ t('nodeName') }}</th>
+                    <th>{{ t('estimatedRtt') }}</th>
+                    <th>{{ t('datacenter') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="rttEntries.length === 0">
+                    <td colspan="3" class="text-center py-4 text-text-secondary">
+                      {{ t('noData') }}
+                    </td>
+                  </tr>
+                  <tr v-for="entry in rttEntries" :key="entry.node" class="hover:bg-bg-secondary">
+                    <td>
+                      <router-link
+                        :to="{ name: 'consul-node-detail', params: { name: entry.node } }"
+                        class="text-fuchsia-600 hover:text-fuchsia-700 hover:underline font-medium dark:text-fuchsia-400 dark:hover:text-fuchsia-300"
+                      >
+                        {{ entry.node }}
+                      </router-link>
+                    </td>
+                    <td>
+                      <span class="font-mono text-sm">{{ formatRtt(entry.rtt) }}</span>
+                    </td>
+                    <td class="text-text-secondary">{{ entry.dc || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <div class="text-center p-4 bg-bg-secondary rounded-xl">
-              <label
-                class="block text-[10px] font-bold uppercase tracking-wider text-text-tertiary mb-1"
-              >
-                {{ t('consulMaxRtt') }}
-              </label>
-              <p class="text-lg font-extrabold text-amber-600 dark:text-amber-400">
-                {{ formatRtt(rttStats.max) }}
-              </p>
-            </div>
-          </div>
+          </template>
         </div>
 
         <!-- Sessions Tab -->
@@ -383,6 +420,7 @@ const nodeName = computed(() => (route.params.name as string) || '')
 const nodeData = ref<ConsulUINode | null>(null)
 const nodeSessions = ref<ConsulSession[]>([])
 const rttStats = ref<{ min: number; median: number; max: number } | null>(null)
+const rttEntries = ref<Array<{ node: string; rtt: number; dc: string }>>([])
 const activeTab = ref('healthchecks')
 
 // Computed
@@ -399,7 +437,7 @@ const availableTabs = computed(() => {
     { key: 'services', label: t('nodeServices'), count: nodeData.value.Services.length },
   ]
   if (rttStats.value) {
-    tabs.push({ key: 'rtt', label: t('consulRtt'), count: 0 })
+    tabs.push({ key: 'rtt', label: t('consulRtt'), count: rttEntries.value.length })
   }
   tabs.push({ key: 'sessions', label: t('consulNodeSessions'), count: nodeSessions.value.length })
   tabs.push({
@@ -453,19 +491,24 @@ const fetchNodeCoordinates = async () => {
     const thisNode = coords.find((c) => c.Node === nodeName.value)
     if (!thisNode || coords.length < 2) {
       rttStats.value = null
+      rttEntries.value = []
       return
     }
-    const rtts: number[] = []
+    const entries: Array<{ node: string; rtt: number; dc: string }> = []
     for (const other of coords) {
       if (other.Node === nodeName.value) continue
       const rtt = computeRtt(thisNode.Coord, other.Coord)
-      rtts.push(rtt)
+      entries.push({ node: other.Node, rtt, dc: dc || '' })
     }
-    if (rtts.length === 0) {
+    // Sort by RTT ascending
+    entries.sort((a, b) => a.rtt - b.rtt)
+    rttEntries.value = entries
+
+    if (entries.length === 0) {
       rttStats.value = null
       return
     }
-    rtts.sort((a, b) => a - b)
+    const rtts = entries.map((e) => e.rtt)
     const mid = Math.floor(rtts.length / 2)
     rttStats.value = {
       min: rtts[0]!,
@@ -474,6 +517,7 @@ const fetchNodeCoordinates = async () => {
     }
   } catch {
     rttStats.value = null
+    rttEntries.value = []
   }
 }
 

@@ -380,14 +380,15 @@ function memberStatusLabel(status: number): string {
 async function fetchData() {
   loading.value = true
   try {
+    const dc = consulStore.currentDc || undefined
     await Promise.allSettled([
-      consulStore.fetchServices(),
-      consulStore.fetchNodes(),
-      consulStore.fetchHealthChecks(),
+      consulStore.fetchServices(dc),
+      consulStore.fetchNodes(dc),
+      consulStore.fetchHealthChecks('any', dc),
       consulStore.fetchMembers(),
       consulStore.fetchDatacenters(),
       consulApi
-        .getCatalogOverview()
+        .getCatalogOverview(dc)
         .then((res) => {
           catalogOverview.value = res.data
         })

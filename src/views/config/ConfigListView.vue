@@ -443,6 +443,15 @@
             <option value="SKIP">{{ t('policySkip') }}</option>
             <option value="OVERWRITE">{{ t('policyOverwrite') }}</option>
           </select>
+          <p class="text-[10px] text-text-tertiary mt-1">
+            {{
+              importPolicy === 'ABORT'
+                ? t('policyAbortDesc')
+                : importPolicy === 'SKIP'
+                  ? t('policySkipDesc')
+                  : t('policyOverwriteDesc')
+            }}
+          </p>
         </div>
       </div>
     </FormModal>
@@ -450,11 +459,34 @@
     <!-- Clone Modal -->
     <FormModal
       v-model="showCloneModal"
-      :title="t('cloneConfig')"
+      :title="t('cloneConfiguration')"
       :submit-text="t('clone')"
       @submit="confirmClone"
     >
       <div class="space-y-3">
+        <!-- Source info display -->
+        <div
+          v-if="configToClone"
+          class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+        >
+          <p class="text-[10px] font-bold uppercase tracking-wider text-text-tertiary mb-2">
+            {{ t('sourceConfig') }}
+          </p>
+          <div class="grid grid-cols-3 gap-2 text-xs">
+            <div>
+              <span class="text-text-tertiary">{{ t('dataId') }}:</span>
+              <p class="font-medium text-text-primary truncate">{{ configToClone.dataId }}</p>
+            </div>
+            <div>
+              <span class="text-text-tertiary">{{ t('group') }}:</span>
+              <p class="font-medium text-text-primary">{{ configToClone.groupName }}</p>
+            </div>
+            <div>
+              <span class="text-text-tertiary">{{ t('namespace') }}:</span>
+              <p class="font-medium text-text-primary">{{ namespace.namespaceShowName }}</p>
+            </div>
+          </div>
+        </div>
         <div>
           <label class="block text-xs font-medium text-text-secondary mb-1">{{
             t('targetNamespace')
@@ -474,6 +506,15 @@
             <option value="SKIP">{{ t('policySkip') }}</option>
             <option value="OVERWRITE">{{ t('policyOverwrite') }}</option>
           </select>
+          <p class="text-[10px] text-text-tertiary mt-1">
+            {{
+              clonePolicy === 'ABORT'
+                ? t('policyAbortDesc')
+                : clonePolicy === 'SKIP'
+                  ? t('policySkipDesc')
+                  : t('policyOverwriteDesc')
+            }}
+          </p>
         </div>
       </div>
     </FormModal>
@@ -784,6 +825,8 @@ const confirmClone = async () => {
       policy: clonePolicy.value,
     })
     showCloneModal.value = false
+    toast.success(t('cloneSuccess'))
+    fetchConfigs()
   } catch (error) {
     logger.error('Failed to clone config', error)
     toast.apiError(error)

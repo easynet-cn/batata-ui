@@ -1,4 +1,5 @@
 <template>
+  <a href="#main-content" class="skip-to-content">{{ t('skipToContent') }}</a>
   <div class="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
     <!-- Sidebar -->
     <aside
@@ -450,7 +451,7 @@
       </header>
 
       <!-- Main Content Area -->
-      <main class="flex-1 overflow-y-auto p-4 md:p-5 bg-gray-50 dark:bg-gray-950">
+      <main id="main-content" class="flex-1 overflow-y-auto p-4 md:p-5 bg-gray-50 dark:bg-gray-950">
         <div v-if="!consoleUiEnabled" class="flex items-center justify-center h-full">
           <div class="text-center space-y-3">
             <Settings2 class="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto" />
@@ -568,6 +569,7 @@ import {
   Sparkles,
   MessageSquare,
   Package,
+  FolderTree,
 } from 'lucide-vue-next'
 import { useI18n, type Language } from '@/i18n'
 import type { Namespace } from '@/types'
@@ -977,6 +979,8 @@ const consulNavGroups = computed(() => {
     {
       title: t('cluster'),
       items: [
+        { path: '/consul/partitions', label: t('consulPartitions'), icon: Layers },
+        { path: '/consul/namespaces', label: t('consulNamespaces'), icon: FolderTree },
         { path: '/consul/sessions', label: t('consulSessions'), icon: Timer },
         { path: '/consul/events', label: t('consulEvents'), icon: Zap },
         { path: '/consul/operator', label: t('consulOperator'), icon: Wrench },

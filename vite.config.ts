@@ -102,6 +102,9 @@ export default defineConfig(({ mode }) => {
               if (id.includes('axios')) {
                 return 'http'
               }
+              if (id.includes('zod')) {
+                return 'validation'
+              }
               return 'vendor'
             }
           },

@@ -134,9 +134,28 @@
             >
               {{ t('consulKVSession') }}
             </p>
-            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
-              {{ kvPair.Session || '-' }}
-            </p>
+            <div class="flex items-center gap-2">
+              <template v-if="kvPair.LockIndex > 0 && kvPair.Session">
+                <span
+                  class="px-2.5 py-1 text-xs font-bold rounded-lg bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/30 dark:text-fuchsia-400"
+                >
+                  {{ t('consulLocked') }}
+                </span>
+                <RouterLink
+                  :to="{ name: 'consul-session-detail', params: { id: kvPair.Session } }"
+                  class="text-sm font-mono text-fuchsia-600 dark:text-fuchsia-400 hover:underline"
+                >
+                  {{
+                    kvPair.Session.length > 16
+                      ? kvPair.Session.substring(0, 16) + '...'
+                      : kvPair.Session
+                  }}
+                </RouterLink>
+              </template>
+              <p v-else class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                {{ kvPair.Session || '-' }}
+              </p>
+            </div>
           </div>
         </div>
       </div>

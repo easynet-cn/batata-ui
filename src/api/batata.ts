@@ -45,7 +45,7 @@ import type {
   PromptLabelBindData,
 } from '@/types'
 import { config } from '@/config'
-import { ApiError, AuthError, NetworkError } from '@/utils/error'
+import { ApiError, AuthError, NetworkError, TimeoutError, ValidationError } from '@/utils/error'
 import { setupRetryInterceptor } from '@/utils/retry'
 import { storage } from '@/composables/useStorage'
 
@@ -66,6 +66,7 @@ class BatataApi {
   private instance: AxiosInstance
   private cache: LRUCache<string, AxiosResponse>
   private pendingRequests: Map<string, Promise<AxiosResponse>>
+  private activeControllers: Set<AbortController>
 
   constructor(baseURL: string = `${config.api.baseUrl}/v3/console`) {
     // Initialize cache
@@ -74,6 +75,7 @@ class BatataApi {
       ttl: config.cache.ttl,
     })
     this.pendingRequests = new Map()
+    this.activeControllers = new Set()
 
     // Create axios instance
     this.instance = axios.create({
@@ -87,7 +89,7 @@ class BatataApi {
     // Retry interceptor (must be added before error classification)
     setupRetryInterceptor(this.instance, config.api.retryCount)
 
-    // 请求拦截器
+    // Request interceptor
     this.instance.interceptors.request.use(
       (reqConfig) => {
         const token = storage.get(config.storage.tokenKey)
@@ -98,21 +100,49 @@ class BatataApi {
         if (username) {
           reqConfig.headers.username = username
         }
+
+        // Track AbortController if a signal is provided
+        if (reqConfig.signal && (reqConfig.signal as AbortSignal).aborted === false) {
+          const controller = (reqConfig as AxiosRequestConfig & { __controller?: AbortController })
+            .__controller
+          if (controller) {
+            this.activeControllers.add(controller)
+          }
+        }
+
         return reqConfig
       },
       (error) => Promise.reject(error),
     )
 
-    // 响应拦截器
+    // Response interceptor
     this.instance.interceptors.response.use(
       (response: AxiosResponse<BatataResponse>) => {
+        // Clean up tracked AbortController
+        this.cleanupController(response.config)
+
         const { data } = response
         if (data.code !== 0 && data.code !== 200) {
-          throw new ApiError(data.code, data.message || '请求失败')
+          throw new ApiError(data.code, data.message || 'Request failed')
         }
         return response
       },
       (error) => {
+        // Clean up tracked AbortController
+        if (error.config) {
+          this.cleanupController(error.config)
+        }
+
+        // Timeout detection (axios sets code to ECONNABORTED for timeouts)
+        if (error.code === 'ECONNABORTED') {
+          throw new TimeoutError()
+        }
+
+        // Cancelled requests should not throw visible errors
+        if (axios.isCancel(error)) {
+          throw error
+        }
+
         if (!error.response) {
           throw new NetworkError()
         }
@@ -133,6 +163,13 @@ class BatataApi {
           }
 
           throw new AuthError(message || 'Authentication failed. Please log in again.')
+        }
+
+        // 422 Unprocessable Entity - validation errors
+        if (status === 422) {
+          const fields: Record<string, string[]> =
+            typeof respData === 'object' && respData?.errors ? respData.errors : {}
+          throw new ValidationError(message || 'Validation failed', fields)
         }
 
         // 503 Service Unavailable - server is in maintenance/draining mode
@@ -187,7 +224,31 @@ class BatataApi {
     return promise
   }
 
-  // 清除缓存
+  // Remove a controller from tracking after request completes
+  private cleanupController(reqConfig: AxiosRequestConfig) {
+    const controller = (reqConfig as AxiosRequestConfig & { __controller?: AbortController })
+      .__controller
+    if (controller) {
+      this.activeControllers.delete(controller)
+    }
+  }
+
+  // Create an AbortController tracked by this API instance.
+  // Pass the returned signal into request options to enable cancellation.
+  createAbortController(): AbortController {
+    const controller = new AbortController()
+    this.activeControllers.add(controller)
+    return controller
+  }
+
+  // Cancel all in-flight requests that were created via createAbortController()
+  cancelPendingRequests() {
+    for (const controller of this.activeControllers) {
+      controller.abort()
+    }
+    this.activeControllers.clear()
+  }
+
   clearCache(pattern?: string) {
     if (pattern) {
       for (const key of this.cache.keys()) {
@@ -472,6 +533,7 @@ class BatataApi {
     serviceName?: string
     namespaceId?: string
     hasIpCount?: boolean
+    search?: 'accurate' | 'blur'
   }) {
     // Backend returns { count, serviceList } instead of PageResult
     const response = await this.instance.get<
@@ -561,6 +623,17 @@ class BatataApi {
     clusterName?: string
   }) {
     return this.instance.put<BatataResponse>('/ns/instance', data)
+  }
+
+  async deleteInstance(params: {
+    serviceName: string
+    groupName?: string
+    namespaceId?: string
+    ip: string
+    port: number
+    clusterName?: string
+  }) {
+    return this.instance.delete<BatataResponse>('/ns/instance', { params })
   }
 
   // 集群管理
@@ -885,6 +958,23 @@ class BatataApi {
 
   async executeMcpImport(data: { content: string; namespace?: string; overwrite?: boolean }) {
     return this.instance.post<BatataResponse>('/ai/mcp/import/execute', data)
+  }
+
+  async validateOpenApiSpec(data: { content: string; format?: string }) {
+    return this.instance.post<
+      BatataResponse<{
+        tools: Array<{ name: string; description: string; inputSchema?: Record<string, unknown> }>
+      }>
+    >('/ai/mcp/openapi/validate', data)
+  }
+
+  async importOpenApiTools(data: {
+    mcpServerName?: string
+    content: string
+    format?: string
+    selectedTools?: string[]
+  }) {
+    return this.instance.post<BatataResponse>('/ai/mcp/openapi/import', data)
   }
 
   // ============================================

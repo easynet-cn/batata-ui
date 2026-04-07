@@ -10,6 +10,8 @@ declare global {
   const AuthError: typeof import('./utils/error').AuthError
   const EffectScope: typeof import('vue').EffectScope
   const NetworkError: typeof import('./utils/error').NetworkError
+  const TimeoutError: typeof import('./utils/error').TimeoutError
+  const ValidationError: typeof import('./utils/error').ValidationError
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
   const buildSSEUrl: typeof import('./utils/sse').buildSSEUrl
   const computed: typeof import('vue').computed
@@ -34,6 +36,7 @@ declare global {
   const getTimeRange: typeof import('./utils/date').getTimeRange
   const h: typeof import('vue').h
   const handleError: typeof import('./utils/error').handleError
+  const init: typeof import('./utils/echarts').init
   const inject: typeof import('vue').inject
   const isBase64: typeof import('./utils/base64').isBase64
   const isProxy: typeof import('vue').isProxy
@@ -66,6 +69,7 @@ declare global {
   const onUnmounted: typeof import('vue').onUnmounted
   const onUpdated: typeof import('vue').onUpdated
   const onWatcherCleanup: typeof import('vue').onWatcherCleanup
+  const optimisticUpdate: typeof import('./utils/optimistic').optimisticUpdate
   const parseJsonFromContent: typeof import('./utils/sse').parseJsonFromContent
   const provide: typeof import('vue').provide
   const reactive: typeof import('vue').reactive
@@ -130,7 +134,16 @@ declare global {
   } from 'vue'
   import('vue')
   // @ts-ignore
-  export type { ApiError, NetworkError, AuthError } from './utils/error'
+  export type { ECharts, EChartsOption } from './utils/echarts'
+  import('./utils/echarts')
+  // @ts-ignore
+  export type {
+    ApiError,
+    NetworkError,
+    AuthError,
+    TimeoutError,
+    ValidationError,
+  } from './utils/error'
   import('./utils/error')
   // @ts-ignore
   export type { FormatResult, ValidateResult } from './utils/formatters'
@@ -149,6 +162,8 @@ declare module 'vue' {
     readonly AuthError: UnwrapRef<(typeof import('./utils/error'))['AuthError']>
     readonly EffectScope: UnwrapRef<(typeof import('vue'))['EffectScope']>
     readonly NetworkError: UnwrapRef<(typeof import('./utils/error'))['NetworkError']>
+    readonly TimeoutError: UnwrapRef<(typeof import('./utils/error'))['TimeoutError']>
+    readonly ValidationError: UnwrapRef<(typeof import('./utils/error'))['ValidationError']>
     readonly acceptHMRUpdate: UnwrapRef<(typeof import('pinia'))['acceptHMRUpdate']>
     readonly buildSSEUrl: UnwrapRef<(typeof import('./utils/sse'))['buildSSEUrl']>
     readonly computed: UnwrapRef<(typeof import('vue'))['computed']>
@@ -174,6 +189,7 @@ declare module 'vue' {
     readonly getTimeRange: UnwrapRef<(typeof import('./utils/date'))['getTimeRange']>
     readonly h: UnwrapRef<(typeof import('vue'))['h']>
     readonly handleError: UnwrapRef<(typeof import('./utils/error'))['handleError']>
+    readonly init: UnwrapRef<(typeof import('./utils/echarts'))['init']>
     readonly inject: UnwrapRef<(typeof import('vue'))['inject']>
     readonly isBase64: UnwrapRef<(typeof import('./utils/base64'))['isBase64']>
     readonly isProxy: UnwrapRef<(typeof import('vue'))['isProxy']>
@@ -206,6 +222,7 @@ declare module 'vue' {
     readonly onUnmounted: UnwrapRef<(typeof import('vue'))['onUnmounted']>
     readonly onUpdated: UnwrapRef<(typeof import('vue'))['onUpdated']>
     readonly onWatcherCleanup: UnwrapRef<(typeof import('vue'))['onWatcherCleanup']>
+    readonly optimisticUpdate: UnwrapRef<(typeof import('./utils/optimistic'))['optimisticUpdate']>
     readonly parseJsonFromContent: UnwrapRef<(typeof import('./utils/sse'))['parseJsonFromContent']>
     readonly provide: UnwrapRef<(typeof import('vue'))['provide']>
     readonly reactive: UnwrapRef<(typeof import('vue'))['reactive']>

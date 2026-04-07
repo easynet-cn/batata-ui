@@ -2,11 +2,14 @@
   <Teleport to="body">
     <div v-if="modelValue" class="modal-backdrop" @click="handleClose" role="presentation">
       <div
+        ref="modalRef"
         class="modal"
-        role="dialog"
+        role="alertdialog"
         aria-modal="true"
-        :aria-labelledby="'confirm-title'"
+        aria-labelledby="confirm-title"
+        aria-describedby="confirm-message"
         @click.stop
+        @keydown.escape="handleClose"
       >
         <div class="modal-header">
           <h3 id="confirm-title" class="text-sm font-semibold text-text-primary">{{ title }}</h3>
@@ -14,7 +17,7 @@
             <X class="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </div>
-        <div class="modal-body">
+        <div id="confirm-message" class="modal-body">
           <slot>
             <p class="text-xs text-text-secondary">{{ message }}</p>
           </slot>
@@ -38,12 +41,15 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch, nextTick } from 'vue'
 import { X, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 
 const { t } = useI18n()
 
-defineProps<{
+const modalRef = ref<HTMLElement>()
+
+const props = defineProps<{
   modelValue: boolean
   title: string
   message?: string
@@ -58,6 +64,20 @@ const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   confirm: []
 }>()
+
+// Auto-focus cancel button when modal opens
+watch(
+  () => props.modelValue,
+  async (isOpen) => {
+    if (isOpen) {
+      await nextTick()
+      const cancelBtn = modalRef.value?.querySelector<HTMLButtonElement>(
+        '.modal-footer .btn-secondary',
+      )
+      cancelBtn?.focus()
+    }
+  },
+)
 
 const handleClose = () => {
   emit('update:modelValue', false)

@@ -2,10 +2,17 @@
   <div
     ref="wrapperRef"
     class="code-editor-wrapper rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden relative"
+    :aria-label="t('codeEditor')"
     :class="{ 'fixed inset-0 z-50 rounded-none border-0': isFullscreen }"
     :style="isFullscreen ? {} : { minHeight }"
   >
-    <div ref="editorContainer" class="h-full"></div>
+    <div
+      ref="editorContainer"
+      class="h-full"
+      role="textbox"
+      :aria-multiline="true"
+      :aria-readonly="readonly"
+    ></div>
     <button
       @click="toggleFullscreen"
       class="absolute top-2 right-2 z-10 p-1 rounded-md bg-gray-100 dark:bg-gray-800 text-text-secondary hover:text-text-primary opacity-60 hover:opacity-100 transition-opacity"

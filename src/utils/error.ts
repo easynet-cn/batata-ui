@@ -25,8 +25,34 @@ export class AuthError extends Error {
   }
 }
 
+export class TimeoutError extends Error {
+  constructor(message = 'Request timed out, please try again') {
+    super(message)
+    this.name = 'TimeoutError'
+  }
+}
+
+export class ValidationError extends Error {
+  public fields: Record<string, string[]>
+
+  constructor(message = 'Validation failed', fields: Record<string, string[]> = {}) {
+    super(message)
+    this.name = 'ValidationError'
+    this.fields = fields
+  }
+}
+
 // Global error handler
 export function handleError(error: unknown): string {
+  if (error instanceof ValidationError) {
+    const fieldMessages = Object.entries(error.fields)
+      .map(([field, msgs]) => `${field}: ${msgs.join(', ')}`)
+      .join('; ')
+    return fieldMessages || error.message
+  }
+  if (error instanceof TimeoutError) {
+    return error.message
+  }
   if (error instanceof ApiError) {
     return error.message
   }

@@ -31,6 +31,8 @@ import type {
   ConsulRaftConfiguration,
   ConsulOperatorUsage,
   ConsulCoordinate,
+  ConsulPartition,
+  ConsulNamespace,
 } from '@/types/consul'
 
 class ConsulApi {
@@ -552,6 +554,45 @@ class ConsulApi {
     return this.instance.get<ConsulCoordinate[]>('/coordinate/nodes', {
       params: dc ? { dc } : undefined,
     })
+  }
+
+  // ============================================
+  // Partition API
+  // ============================================
+
+  async listPartitions() {
+    return this.instance.get<ConsulPartition[]>('/partition')
+  }
+
+  async createPartition(data: { Name: string; Description?: string }) {
+    return this.instance.put<ConsulPartition>('/partition', data)
+  }
+
+  async deletePartition(name: string) {
+    return this.instance.delete<boolean>(`/partition/${name}`)
+  }
+
+  // ============================================
+  // Namespace API
+  // ============================================
+
+  async listNamespaces() {
+    return this.instance.get<ConsulNamespace[]>('/namespace')
+  }
+
+  async createNamespace(data: {
+    Name: string
+    Description?: string
+    ACLs?: {
+      PolicyDefaults?: Array<{ ID?: string; Name?: string }>
+      RoleDefaults?: Array<{ ID?: string; Name?: string }>
+    }
+  }) {
+    return this.instance.put<ConsulNamespace>('/namespace', data)
+  }
+
+  async deleteNamespace(name: string) {
+    return this.instance.delete<boolean>(`/namespace/${name}`)
   }
 }
 

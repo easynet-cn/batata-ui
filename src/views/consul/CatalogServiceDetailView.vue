@@ -134,16 +134,29 @@
                     </div>
                   </td>
                   <td>
-                    <button
-                      @click="toggleNodeDetail(node.Service.ID)"
-                      class="btn btn-ghost btn-sm"
-                      :title="t('viewDetails')"
-                    >
-                      <ChevronDown
-                        class="w-3.5 h-3.5 transition-transform"
-                        :class="{ 'rotate-180': expandedNodes.has(node.Service.ID) }"
-                      />
-                    </button>
+                    <div class="flex items-center gap-1">
+                      <router-link
+                        :to="{
+                          name: 'consul-service-instance',
+                          params: { name: serviceName },
+                          query: { node: node.Node.Node, serviceId: node.Service.ID },
+                        }"
+                        class="btn btn-ghost btn-sm"
+                        :title="t('viewInstance')"
+                      >
+                        <Eye class="w-3.5 h-3.5" />
+                      </router-link>
+                      <button
+                        @click="toggleNodeDetail(node.Service.ID)"
+                        class="btn btn-ghost btn-sm"
+                        :title="t('viewDetails')"
+                      >
+                        <ChevronDown
+                          class="w-3.5 h-3.5 transition-transform"
+                          :class="{ 'rotate-180': expandedNodes.has(node.Service.ID) }"
+                        />
+                      </button>
+                    </div>
                   </td>
                 </tr>
                 <!-- Expanded Instance Detail Row -->
@@ -476,6 +489,7 @@ import {
   Link,
   Tag,
   Shield,
+  Eye,
 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'

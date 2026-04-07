@@ -1,11 +1,20 @@
 <template>
   <Teleport to="body">
     <div v-if="modelValue" class="modal-backdrop" @click="handleClose">
-      <div class="modal" :class="widthClass" @click.stop>
+      <div
+        ref="modalRef"
+        class="modal"
+        :class="widthClass"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="form-modal-title"
+        @click.stop
+        @keydown.escape="handleClose"
+      >
         <div class="modal-header">
-          <h3 class="text-sm font-semibold text-text-primary">{{ title }}</h3>
-          <button @click="handleClose" class="btn btn-ghost btn-sm">
-            <X class="w-3.5 h-3.5" />
+          <h3 id="form-modal-title" class="text-sm font-semibold text-text-primary">{{ title }}</h3>
+          <button @click="handleClose" class="btn btn-ghost btn-sm" :aria-label="t('close')">
+            <X class="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </div>
         <div class="modal-body">
@@ -30,11 +39,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { X, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 
 const { t } = useI18n()
+
+const modalRef = ref<HTMLElement>()
 
 const props = defineProps<{
   modelValue: boolean
@@ -52,6 +63,20 @@ const emit = defineEmits<{
 }>()
 
 const widthClass = computed(() => (props.wide ? 'max-w-lg' : ''))
+
+// Focus first input when modal opens
+watch(
+  () => props.modelValue,
+  async (isOpen) => {
+    if (isOpen) {
+      await nextTick()
+      const firstInput = modalRef.value?.querySelector<HTMLElement>(
+        'input, textarea, select, [contenteditable]',
+      )
+      firstInput?.focus()
+    }
+  },
+)
 
 const handleClose = () => {
   emit('update:modelValue', false)
