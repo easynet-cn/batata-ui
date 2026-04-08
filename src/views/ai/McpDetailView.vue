@@ -199,7 +199,11 @@ const getTypeClass = (type: string) => {
   const classes: Record<string, string> = {
     stdio: 'badge badge-info',
     sse: 'badge badge-success',
+    'mcp-sse': 'badge badge-success',
+    'mcp-streamable': 'badge badge-primary',
     http: 'badge badge-primary',
+    dubbo: 'badge badge-warning',
+    off: 'badge badge-secondary',
   }
   return classes[type] || 'badge'
 }

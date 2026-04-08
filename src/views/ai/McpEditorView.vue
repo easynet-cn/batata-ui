@@ -42,9 +42,12 @@
                 {{ t('serverType') }} <span class="text-danger">*</span>
               </label>
               <select v-model="form.type" class="input">
-                <option value="stdio">stdio</option>
-                <option value="sse">sse</option>
-                <option value="http">http</option>
+                <option value="stdio">Stdio</option>
+                <option value="mcp-sse">MCP-SSE</option>
+                <option value="mcp-streamable">MCP-Streamable</option>
+                <option value="http">HTTP</option>
+                <option value="dubbo">Dubbo</option>
+                <option value="off">{{ t('protocolOff') }}</option>
               </select>
             </div>
           </div>
@@ -79,8 +82,16 @@
             {{ t('connectionConfig') }}
           </h3>
 
+          <!-- Off type: no connection config needed -->
+          <div
+            v-if="form.type === 'off'"
+            class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl text-sm text-text-secondary"
+          >
+            {{ t('protocolOffDesc') }}
+          </div>
+
           <!-- STDIO Config -->
-          <template v-if="form.type === 'stdio'">
+          <template v-else-if="form.type === 'stdio'">
             <div>
               <label class="block text-xs font-medium text-text-primary mb-1">
                 {{ t('command') }} <span class="text-danger">*</span>
@@ -119,7 +130,7 @@
             </div>
           </template>
 
-          <!-- SSE/HTTP Config -->
+          <!-- URL-based Config (SSE/HTTP/MCP-SSE/MCP-Streamable/Dubbo) -->
           <template v-else>
             <div>
               <label class="block text-xs font-medium text-text-primary mb-1">
@@ -129,9 +140,7 @@
                 v-model="form.url"
                 type="text"
                 class="input font-mono"
-                :placeholder="
-                  form.type === 'sse' ? 'http://localhost:3000/sse' : 'http://localhost:3000'
-                "
+                :placeholder="urlPlaceholder"
               />
             </div>
 
@@ -327,6 +336,19 @@ const form = reactive({
 // Computed
 const isEdit = computed(() => !!route.query.name)
 
+const isUrlBased = computed(() => !['stdio', 'off'].includes(form.type))
+
+const urlPlaceholder = computed(() => {
+  const placeholders: Record<string, string> = {
+    sse: 'http://localhost:3000/sse',
+    'mcp-sse': 'http://localhost:3000/sse',
+    'mcp-streamable': 'http://localhost:3000/mcp',
+    http: 'http://localhost:3000',
+    dubbo: 'dubbo://localhost:20880',
+  }
+  return placeholders[form.type] || 'http://localhost:3000'
+})
+
 // Methods
 const fetchMcpServer = async () => {
   const namespace = route.query.namespace as string
@@ -381,7 +403,7 @@ const handleSubmit = async () => {
     return
   }
 
-  if ((form.type === 'sse' || form.type === 'http') && !form.url) {
+  if (isUrlBased.value && !form.url) {
     toast.warning(t('urlRequired'))
     return
   }
@@ -411,7 +433,7 @@ const handleSubmit = async () => {
               .filter(([k]) => k),
           )
         : {}
-    } else {
+    } else if (isUrlBased.value) {
       payload.url = form.url
       payload.headers = form.headers ? JSON.parse(form.headers) : {}
     }

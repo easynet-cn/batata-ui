@@ -237,14 +237,14 @@ export interface McpServerInfo {
   id: string
   name: string
   namespace?: string
-  type: 'stdio' | 'sse' | 'http'
+  type: 'stdio' | 'sse' | 'http' | 'mcp-sse' | 'mcp-streamable' | 'dubbo' | 'off'
   enabled: boolean
   description?: string
   // stdio type fields
   command?: string
   args?: string[]
   env?: Record<string, string>
-  // sse/http type fields
+  // sse/http/mcp-sse/mcp-streamable/dubbo type fields
   url?: string
   headers?: Record<string, string>
   // tools
@@ -425,7 +425,7 @@ export interface PluginInfo {
 export interface McpServerPayload {
   name: string
   namespace?: string
-  type: 'stdio' | 'sse' | 'http'
+  type: 'stdio' | 'sse' | 'http' | 'mcp-sse' | 'mcp-streamable' | 'dubbo' | 'off'
   enabled?: boolean
   description?: string
   command?: string
