@@ -12,13 +12,14 @@
 ## Features
 
 - **Dashboard** - System overview with key metrics and real-time statistics
-- **Configuration Management** - Create, edit, diff, import/export, version history and rollback
+- **Configuration Management** - Create, edit, diff, import/export, version history, rollback, gray release (beta), encryption, cross-environment sync
 - **Service Management** - Service registration, discovery, instance management and health monitoring
 - **Namespace Management** - Multi-environment configuration isolation
 - **Cluster Management** - Node status monitoring and health checks
 - **Multi-Datacenter** - Cross-datacenter topology and replication status
-- **Authentication** - User, role, and permission management (RBAC)
-- **AI Integration** - MCP Server and A2A Agent registry management
+- **Authentication** - User, role, and permission management (RBAC), OIDC/OAuth2 SSO support
+- **AI Registry** - Skill management, Prompt management (with versioning and governance), Agent management, AgentSpec management, MCP Server registry, Copilot LLM configuration
+- **Consul Compatibility** - Full Consul UI with KV store, service catalog, health checks, ACL (tokens/policies/roles/auth methods), Service Mesh (intentions/config entries), cluster peering, admin partitions, namespaces, sessions, events, and operator view
 - **Audit Logs** - Operation audit trail with filtering and search
 - **Tracing** - Distributed tracing with OpenTelemetry integration
 - **Plugin Management** - Plugin lifecycle management
@@ -112,11 +113,20 @@ src/
 ├── assets/                # Static assets and styles
 │   └── main.css          # Main styles (theme tokens, dark mode)
 ├── components/            # Shared components
-│   └── feedback/
-│       └── ToastMessage.vue
+│   ├── ai/               # AI-related components (optimize dialogs, pipelines)
+│   ├── common/           # Reusable UI components (DataTable, CodeEditor, DiffEditor, etc.)
+│   ├── consul/           # Consul-specific components (topology, discovery chain)
+│   └── feedback/         # Notification components (ToastMessage)
 ├── composables/           # Composables
 │   ├── useTheme.ts       # Theme switching (light/dark)
 │   ├── useProvider.ts    # Provider switching (batata/consul)
+│   ├── useConsulAbilities.ts  # Consul ACL permission checking
+│   ├── useListView.ts   # List view pagination and filtering
+│   ├── useDetailView.ts  # Detail view logic
+│   ├── useFormValidation.ts   # Form validation utilities
+│   ├── useAutoRefresh.ts # Auto-refresh interval management
+│   ├── useBlockingQuery.ts    # Consul blocking queries (real-time updates)
+│   ├── useVersionStatus.ts    # Version status tracking
 │   ├── useNotifications.ts
 │   └── useWebSocket.ts
 ├── i18n/                  # Internationalization
@@ -132,17 +142,18 @@ src/
 │   └── index.ts
 └── views/                 # Pages
     ├── dashboard/         # Dashboard
-    ├── config/            # Configuration management
+    ├── config/            # Configuration management (list, editor, detail, history, sync, rollback, listeners)
     ├── service/           # Service management
     ├── namespace/         # Namespace management
     ├── cluster/           # Cluster management
     ├── datacenter/        # Multi-datacenter
     ├── auth/              # User/Role/Permission
-    ├── ai/                # MCP/Agent management
+    ├── ai/                # AI Registry (Skills, Prompts, Agents, AgentSpecs, MCP Servers)
+    ├── consul/            # Consul mode (Dashboard, KV, Catalog, ACL, Service Mesh, Peering, etc.)
     ├── audit/             # Audit logs
     ├── tracing/           # Distributed tracing
     ├── plugin/            # Plugin management
-    └── settings/          # System settings
+    └── settings/          # System settings & Copilot LLM configuration
 ```
 
 ## Connecting to Batata Server
@@ -155,12 +166,15 @@ VITE_API_PROXY_TARGET=http://your-batata-server:8081
 
 ### Default Batata Server Ports
 
-| Port | Service          | Description                |
-| ---- | ---------------- | -------------------------- |
-| 8848 | Main HTTP API    | Nacos-compatible API       |
-| 8081 | Console HTTP API | Web management console API |
-| 9848 | SDK gRPC         | Client SDK communication   |
-| 9849 | Cluster gRPC     | Inter-node communication   |
+| Port  | Service          | Description                |
+| ----- | ---------------- | -------------------------- |
+| 8848  | Main HTTP API    | Nacos-compatible API       |
+| 8081  | Console HTTP API | Web management console API |
+| 9848  | SDK gRPC         | Client SDK communication   |
+| 9849  | Cluster gRPC     | Inter-node communication   |
+| 8500  | Consul HTTP API  | Consul-compatible API      |
+| 9080  | MCP Registry     | MCP server registry        |
+| 15010 | xDS              | Service mesh (Envoy/Istio) |
 
 ## Contributing
 

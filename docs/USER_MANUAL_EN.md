@@ -20,7 +20,7 @@
 8. [Namespace Management](#8-namespace-management)
 9. [Cluster Management](#9-cluster-management)
 10. [Access Control](#10-access-control)
-11. [AI Management](#11-ai-management)
+11. [AI Registry](#11-ai-registry)
 12. [Consul Compatibility](#12-consul-compatibility)
 13. [Multi-Datacenter Management](#13-multi-datacenter-management)
 14. [Audit Logs](#14-audit-logs)
@@ -212,6 +212,10 @@ On first use, the system automatically redirects to the admin initialization pag
 ### 4.3 User Registration
 
 If user registration is enabled, new users can create accounts through the registration page.
+
+### 4.4 OIDC Single Sign-On
+
+When OAuth2/OIDC authentication is configured, users can log in via third-party identity providers (e.g., Google, GitHub, Microsoft). After authenticating with the external provider, the system automatically handles the callback and completes the login process.
 
 ---
 
@@ -556,13 +560,144 @@ Batata supports multiple authentication methods:
 
 ---
 
-## 11. AI Management
+## 11. AI Registry
 
-Batata includes AI-native management capabilities supporting MCP and A2A protocols.
+Batata includes a comprehensive AI-native registry for managing AI capabilities across the platform. The AI Registry supports Skills, Prompts, Agents, Agent Specifications, and MCP Servers, along with a built-in Copilot configuration.
 
-### 11.1 MCP Server Management
+### 11.1 Skill Management
 
-**Path:** Sidebar > AI Management > MCP Servers
+**Path:** Sidebar > AI Registry > Skills
+
+Skills are reusable AI capability packages that can be versioned, published, and shared across the platform.
+
+**Statistics Cards:**
+Two statistics cards at the top: Total Skills and Online Skills.
+
+**Skill List:**
+
+- View all registered skills as a card grid
+- Filter by scope (public/private)
+- Sort by download count
+- Search by skill name
+- Batch select and delete skills
+
+**Create Skill:**
+
+Click "Create Skill" to open the skill editor. Fill in the skill metadata including name, description, labels, and business tags. Skills support a draft workflow — create a draft, submit for review, then publish.
+
+**Upload Skill:**
+
+Click "Upload Skill" to upload a skill package file directly.
+
+**Skill Details:**
+
+- View skill metadata (name, scope, labels, business tags)
+- Browse version history
+- Download specific versions
+- Manage skill lifecycle: online/offline, publish, scope changes
+
+**Skill Publishing Workflow:**
+
+1. **Create Draft** — Start with a draft version of the skill
+2. **Submit for Review** — Submit the draft for approval
+3. **Publish** — Approve and publish the skill (admin can force publish)
+4. **Online/Offline** — Control skill availability without deleting
+
+### 11.2 Prompt Management
+
+**Path:** Sidebar > AI Registry > Prompts
+
+Prompts are versioned prompt templates with governance support for AI applications.
+
+**Prompt List:**
+
+- View all prompts as a card grid
+- Search by prompt key (fuzzy or exact mode)
+- Batch select and delete prompts
+
+**Create Prompt:**
+
+Click "Create Prompt" to open the prompt editor. Define the prompt key, content, description, labels, and business tags.
+
+**Prompt Details:**
+
+- View prompt metadata and content
+- Browse version history
+- View governance information
+- Manage prompt lifecycle
+
+**Prompt Publishing Workflow:**
+
+1. **Create Draft** — Start with a draft version
+2. **Submit for Review** — Submit for approval
+3. **Publish** — Approve and publish (admin can force publish)
+4. **Online/Offline** — Control prompt availability
+5. **Update Metadata** — Update description, labels, and business tags independently
+
+### 11.3 Agent Management
+
+**Path:** Sidebar > AI Registry > Agents
+
+Agents are AI agent definitions that combine models, prompts, and tools (MCP servers) for task execution.
+
+**Agent List:**
+
+- View all registered agents
+- Status display (enabled/disabled)
+- Associated MCP servers
+
+**Create Agent:**
+
+| Field          | Description                       |
+| -------------- | --------------------------------- |
+| Agent Name     | Name identifier                   |
+| Model          | AI model to use                   |
+| System Prompt  | System prompt configuration       |
+| MCP Servers    | Associated tool servers           |
+| Temperature    | Generation temperature parameter  |
+| Max Tokens     | Output length limit               |
+| Max Iterations | Maximum tool-call iteration count |
+
+**Agent Details:**
+
+- View agent configuration and metadata
+- Edit agent settings
+- Delete agent
+
+### 11.4 Agent Specification Management
+
+**Path:** Sidebar > AI Registry > Agent Specs
+
+Agent Specifications (AgentSpecs) are reusable agent configuration templates that can be versioned, published, and shared — similar to Skills but for agent definitions.
+
+**AgentSpec List:**
+
+- View all agent specs as a card grid
+- Filter by scope (public/private)
+- Sort by download count
+- Search by spec name
+- Batch select and delete specs
+
+**Create AgentSpec:**
+
+Click "Create Agent Spec" to open the editor, or "Upload Agent Spec" to upload a spec package file.
+
+**AgentSpec Details:**
+
+- View spec metadata and version history
+- Download specific versions
+- Manage lifecycle: online/offline, publish, scope changes
+
+**AgentSpec Publishing Workflow:**
+
+1. **Create Draft** — Start with a draft
+2. **Submit for Review** — Submit for approval
+3. **Publish** — Approve and publish (admin can force publish)
+4. **Online/Offline** — Control availability
+
+### 11.5 MCP Server Management
+
+**Path:** Sidebar > AI Registry > MCP Servers
 
 MCP (Model Context Protocol) is a tool registration protocol for AI/LLM applications.
 
@@ -596,32 +731,29 @@ Four statistics cards at the top: Total MCP Servers, Enabled count, Total Tools,
 
 - Import tool definitions from existing MCP servers
 - Import from MCP Registry (search and select servers from the registry)
+- Import from OpenAPI specification
 - Validate import data
 - Batch import
 
-### 11.2 Agent Management
+### 11.6 Copilot Settings
 
-**Path:** Sidebar > AI Management > Agents
+**Path:** Sidebar > AI Registry > Copilot Settings
 
-A2A (Agent-to-Agent) protocol supports AI agent registration and discovery.
+Configure the built-in AI Copilot that assists with skill and prompt optimization.
 
-**Agent List:**
+**LLM Configuration:**
 
-- View all registered agents
-- Status display (enabled/disabled)
-- Associated MCP servers
+| Field    | Description                                                    |
+| -------- | -------------------------------------------------------------- |
+| API Key  | API key for your LLM provider (e.g., DashScope, OpenAI)        |
+| Model    | LLM model selection (e.g., qwen-plus, qwen-turbo, gpt-4, etc.) |
+| Base URL | Custom LLM endpoint URL (optional, uses provider default)      |
 
-**Create Agent:**
+**Studio Configuration:**
 
-| Field          | Description                       |
-| -------------- | --------------------------------- |
-| Agent Name     | Name identifier                   |
-| Model          | AI model to use                   |
-| System Prompt  | System prompt configuration       |
-| MCP Servers    | Associated tool servers           |
-| Temperature    | Generation temperature parameter  |
-| Max Tokens     | Output length limit               |
-| Max Iterations | Maximum tool-call iteration count |
+| Field      | Description                                            |
+| ---------- | ------------------------------------------------------ |
+| Studio URL | External AI studio URL for advanced editing (optional) |
 
 ---
 
@@ -682,10 +814,50 @@ View and manage service health check status.
 **Path:** Consul Sidebar > Peerings
 
 - **Peering List**: View cluster peering connections
-- **Peering Details**: View detailed peering information
-- **Session Management**: Manage distributed lock sessions
-- **Event Log**: View cluster event records
-- **Exported Services**: Manage cross-cluster exported services
+- **Peering Details**: View detailed peering information including status, imported/exported service counts, and connection metadata
+
+### 12.9 Exported Services
+
+**Path:** Consul Sidebar > Service Mesh > Exported Services
+
+Manage services that are exported across cluster partitions or peers for cross-cluster service discovery.
+
+### 12.10 Admin Partitions
+
+**Path:** Consul Sidebar > Cluster > Partitions
+
+Manage administrative partitions for multi-tenancy isolation within a Consul cluster.
+
+### 12.11 Consul Namespaces
+
+**Path:** Consul Sidebar > Cluster > Namespaces
+
+Manage Consul namespaces for logical isolation of services and KV data within a partition.
+
+### 12.12 Session Management
+
+**Path:** Consul Sidebar > Cluster > Sessions
+
+Manage distributed lock sessions:
+
+- **Session List**: View active sessions with TTL and lock information
+- **Session Details**: View detailed session information including associated node and checks
+
+### 12.13 Event Log
+
+**Path:** Consul Sidebar > Cluster > Events
+
+View and manage Consul user events:
+
+- Event name and payload
+- Event timestamp and source node
+- Fire new events
+
+### 12.14 Operator
+
+**Path:** Consul Sidebar > Cluster > Operator
+
+View cluster operator information including Raft peer status and autopilot configuration.
 
 ---
 
