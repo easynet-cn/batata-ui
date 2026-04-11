@@ -104,60 +104,36 @@
         <table class="table">
           <thead>
             <tr>
-              <th>{{ t('dataId') }}</th>
-              <th>{{ t('group') }}</th>
-              <th>{{ t('md5') }}</th>
               <th>{{ t('listeningIp') }}</th>
-              <th>{{ t('status') }}</th>
+              <th>{{ t('md5') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="5" class="text-center py-6">
+              <td colspan="2" class="text-center py-6">
                 <Loader2 class="w-5 h-5 animate-spin mx-auto text-primary" />
               </td>
             </tr>
-            <tr v-else-if="listeners.length === 0">
-              <td colspan="5" class="text-center py-6 text-text-secondary">
+            <tr v-else-if="configListenerEntries.length === 0">
+              <td colspan="2" class="text-center py-6 text-text-secondary">
                 {{ t('noData') }}
               </td>
             </tr>
-            <tr v-for="(item, index) in listeners" :key="index" class="hover:bg-bg-secondary">
-              <td class="font-medium">{{ item.dataId }}</td>
-              <td>{{ item.groupName }}</td>
-              <td class="font-mono text-sm text-text-secondary">{{ item.md5 }}</td>
-              <td class="font-mono text-sm">{{ item.listeningIp || '-' }}</td>
-              <td>
-                <span :class="getStatusClass(item.lisentersGroupkeyStatus)">
-                  {{ item.lisentersGroupkeyStatus }}
-                </span>
-              </td>
+            <tr
+              v-for="(entry, index) in configListenerEntries"
+              :key="index"
+              class="hover:bg-bg-secondary"
+            >
+              <td class="font-mono text-sm font-medium">{{ entry.key }}</td>
+              <td class="font-mono text-sm text-text-secondary">{{ entry.md5 }}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Pagination -->
       <div class="flex items-center justify-between p-4 border-t border-border">
         <div class="text-sm text-text-secondary">
-          {{ t('total') }}: {{ total }} {{ t('items') }}
-        </div>
-        <div class="flex items-center gap-2">
-          <button
-            @click="handlePageChange(currentPage - 1)"
-            :disabled="currentPage <= 1"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronLeft class="w-3.5 h-3.5" />
-          </button>
-          <span class="text-sm text-text-primary px-3"> {{ currentPage }} / {{ totalPages }} </span>
-          <button
-            @click="handlePageChange(currentPage + 1)"
-            :disabled="currentPage >= totalPages"
-            class="btn btn-secondary btn-sm"
-          >
-            <ChevronRight class="w-3.5 h-3.5" />
-          </button>
+          {{ t('total') }}: {{ configListenerEntries.length }} {{ t('items') }}
         </div>
       </div>
     </div>
@@ -199,12 +175,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { Search, RotateCcw, Loader2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ref, reactive, onMounted } from 'vue'
+import { Search, RotateCcw, Loader2 } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { logger } from '@/utils/logger'
-import type { ConfigListenerInfo, Namespace } from '@/types'
+import type { Namespace } from '@/types'
 
 const props = defineProps<{
   namespace: Namespace
@@ -215,12 +191,9 @@ const { t } = useI18n()
 // State
 const loading = ref(false)
 const queryMode = ref<'config' | 'ip'>('config')
-const listeners = ref<ConfigListenerInfo[]>([])
-const total = ref(0)
-const currentPage = ref(1)
-const pageSize = ref(10)
 
-// IP mode state
+// Map entries for both modes: {key -> md5}
+const configListenerEntries = ref<Array<{ key: string; md5: string }>>([])
 const ipListenerEntries = ref<Array<{ key: string; md5: string }>>([])
 
 const searchParams = reactive({
@@ -229,40 +202,33 @@ const searchParams = reactive({
   ip: '',
 })
 
-// Computed
-const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
+const toEntries = (status: Record<string, string> | undefined) =>
+  status ? Object.entries(status).map(([key, md5]) => ({ key, md5 })) : []
 
-// Methods
 const fetchListeners = async () => {
   loading.value = true
   try {
-    if (queryMode.value === 'ip' && searchParams.ip) {
-      // Query by IP mode
+    if (queryMode.value === 'ip') {
+      if (!searchParams.ip) {
+        ipListenerEntries.value = []
+        return
+      }
       const response = await batataApi.getConfigListenersByIp({
         ip: searchParams.ip,
         namespaceId: props.namespace.namespace,
       })
-      const data = response.data.data
-      // Convert listeners_status map to entries
-      if (data && data.listenersStatus) {
-        ipListenerEntries.value = Object.entries(data.listenersStatus).map(([key, md5]) => ({
-          key,
-          md5: md5 as string,
-        }))
-      } else {
-        ipListenerEntries.value = []
-      }
+      ipListenerEntries.value = toEntries(response.data.data?.listenersStatus)
     } else {
-      // Query by config mode
+      if (!searchParams.dataId || !searchParams.groupName) {
+        configListenerEntries.value = []
+        return
+      }
       const response = await batataApi.getConfigListeners({
         dataId: searchParams.dataId,
         groupName: searchParams.groupName,
         namespaceId: props.namespace.namespace,
-        pageNo: currentPage.value,
-        pageSize: pageSize.value,
       })
-      listeners.value = response.data.data.pageItems || []
-      total.value = response.data.data.totalCount || 0
+      configListenerEntries.value = toEntries(response.data.data?.listenersStatus)
     }
   } catch (error) {
     logger.error('Failed to fetch listeners:', error)
@@ -272,7 +238,6 @@ const fetchListeners = async () => {
 }
 
 const handleSearch = () => {
-  currentPage.value = 1
   fetchListeners()
 }
 
@@ -282,26 +247,11 @@ const handleReset = () => {
     groupName: '',
     ip: '',
   })
+  configListenerEntries.value = []
   ipListenerEntries.value = []
-  listeners.value = []
-  total.value = 0
-  handleSearch()
 }
 
-const handlePageChange = (page: number) => {
-  currentPage.value = page
-  fetchListeners()
-}
-
-const getStatusClass = (status: string) => {
-  if (status === 'SUCCESS' || status === 'OK') {
-    return 'badge badge-success'
-  }
-  return 'badge badge-warning'
-}
-
-// Lifecycle
 onMounted(() => {
-  fetchListeners()
+  // Don't auto-fetch; require user to enter search params first
 })
 </script>

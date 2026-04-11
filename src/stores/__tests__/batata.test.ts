@@ -58,7 +58,11 @@ describe('batata store', () => {
       const result = await store.login('admin', 'password')
 
       expect(result).toBe(true)
-      expect(store.currentUser).toEqual({ username: 'admin', token: 'test-token' })
+      expect(store.currentUser).toEqual({
+        username: 'admin',
+        token: 'test-token',
+        globalAdmin: false,
+      })
       expect(storage.set).toHaveBeenCalledWith('batata-token', 'test-token')
       expect(storage.set).toHaveBeenCalledWith('batata-username', 'admin')
       expect(store.loading).toBe(false)

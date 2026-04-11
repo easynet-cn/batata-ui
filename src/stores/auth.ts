@@ -6,13 +6,14 @@ import { config } from '@/config'
 import { storage } from '@/composables/useStorage'
 
 export const useAuthStore = defineStore('auth', () => {
-  const currentUser = ref<{ username: string; token: string } | null>(null)
+  const currentUser = ref<{ username: string; token: string; globalAdmin: boolean } | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
   const consulAclEnabled = ref(false)
 
   const isAuthenticated = computed(() => !!currentUser.value)
   const username = computed(() => currentUser.value?.username || '')
+  const isGlobalAdmin = computed(() => currentUser.value?.globalAdmin === true)
 
   function restoreSession(): boolean {
     if (currentUser.value) return true
@@ -23,22 +24,28 @@ export const useAuthStore = defineStore('auth', () => {
       // Consul: restore from consul token
       const consulToken = storage.get(config.storage.consulTokenKey)
       if (consulToken) {
-        currentUser.value = { username: 'consul', token: consulToken }
+        currentUser.value = { username: 'consul', token: consulToken, globalAdmin: true }
         return true
       }
       // If ACL is disabled, allow access without token
       if (!consulAclEnabled.value) {
-        currentUser.value = { username: 'anonymous', token: '' }
+        currentUser.value = { username: 'anonymous', token: '', globalAdmin: false }
         return true
       }
       return false
     }
 
     // Batata: restore from batata token
-    const savedUser = storage.getJSON<{ name: string }>(config.storage.userKey)
+    const savedUser = storage.getJSON<{ name: string; globalAdmin?: boolean }>(
+      config.storage.userKey,
+    )
     const savedToken = storage.get(config.storage.tokenKey)
     if (savedUser?.name && savedToken) {
-      currentUser.value = { username: savedUser.name, token: savedToken }
+      currentUser.value = {
+        username: savedUser.name,
+        token: savedToken,
+        globalAdmin: savedUser.globalAdmin === true,
+      }
       return true
     }
     return false
@@ -49,11 +56,12 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
       const response = await batataApi.login(username, password)
-      const { accessToken } = response.data
-      currentUser.value = { username, token: accessToken }
+      const { accessToken, globalAdmin } = response.data
+      const admin = globalAdmin === true
+      currentUser.value = { username, token: accessToken, globalAdmin: admin }
       storage.set(config.storage.tokenKey, accessToken)
       storage.set(config.storage.usernameKey, username)
-      storage.setJSON(config.storage.userKey, { name: username })
+      storage.setJSON(config.storage.userKey, { name: username, globalAdmin: admin })
       return true
     } catch (err: unknown) {
       error.value = err instanceof Error ? err.message : 'Login failed'
@@ -71,7 +79,7 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await consulApi.getACLTokenSelf(secretId)
       const tokenInfo = response.data
       const name = tokenInfo.Description || tokenInfo.AccessorID || 'consul'
-      currentUser.value = { username: name, token: secretId }
+      currentUser.value = { username: name, token: secretId, globalAdmin: true }
       storage.set(config.storage.consulTokenKey, secretId)
       return true
     } catch (err: unknown) {
@@ -103,7 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await consulApi.exchangeOIDCToken(authMethod, code, state)
       const tokenInfo = response.data
       const name = tokenInfo.Description || tokenInfo.AccessorID || 'consul'
-      currentUser.value = { username: name, token: tokenInfo.SecretID }
+      currentUser.value = { username: name, token: tokenInfo.SecretID, globalAdmin: true }
       storage.set(config.storage.consulTokenKey, tokenInfo.SecretID)
       return true
     } catch (err: unknown) {
@@ -120,7 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!enabled) {
       const provider = storage.get('batata_provider') || 'batata'
       if (provider === 'consul' && !currentUser.value) {
-        currentUser.value = { username: 'anonymous', token: '' }
+        currentUser.value = { username: 'anonymous', token: '', globalAdmin: false }
       }
     }
   }
@@ -142,16 +150,20 @@ export const useAuthStore = defineStore('auth', () => {
     window.addEventListener('storage', (e: StorageEvent) => {
       if (e.key === config.storage.consulTokenKey) {
         if (e.newValue) {
-          // Token changed in another tab
-          currentUser.value = { username: 'consul', token: e.newValue }
+          currentUser.value = { username: 'consul', token: e.newValue, globalAdmin: true }
         } else {
-          // Token removed in another tab
           currentUser.value = null
         }
       } else if (e.key === config.storage.tokenKey) {
         if (e.newValue) {
-          const savedUser = storage.getJSON<{ name: string }>(config.storage.userKey)
-          currentUser.value = { username: savedUser?.name || '', token: e.newValue }
+          const savedUser = storage.getJSON<{ name: string; globalAdmin?: boolean }>(
+            config.storage.userKey,
+          )
+          currentUser.value = {
+            username: savedUser?.name || '',
+            token: e.newValue,
+            globalAdmin: savedUser?.globalAdmin === true,
+          }
         } else {
           currentUser.value = null
         }
@@ -165,6 +177,7 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     consulAclEnabled,
     isAuthenticated,
+    isGlobalAdmin,
     username,
     restoreSession,
     login,

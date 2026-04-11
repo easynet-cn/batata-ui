@@ -37,7 +37,7 @@ export function createApiInstance(baseURL: string): AxiosInstance {
       if (data && typeof data === 'object' && 'code' in data) {
         const code = Number(data.code)
         if (code !== 0 && code !== 200) {
-          if (code === 401 || code === 403) {
+          if (code === 401) {
             storage.remove(config.storage.tokenKey)
             storage.remove(config.storage.usernameKey)
             storage.remove(config.storage.userKey)
@@ -45,6 +45,11 @@ export function createApiInstance(baseURL: string): AxiosInstance {
               window.location.href = '/login'
             }
             return Promise.reject(new AuthError(data.message || 'Session expired'))
+          }
+          if (code === 403) {
+            return Promise.reject(
+              new ApiError(403, data.message || 'You do not have permission for this action.'),
+            )
           }
           return Promise.reject(new ApiError(code, data.message || 'Request failed'))
         }
@@ -54,21 +59,25 @@ export function createApiInstance(baseURL: string): AxiosInstance {
     (error) => {
       if (error.response) {
         const status = error.response.status
-        if (status === 401 || status === 403) {
+        const msg = error.response.data?.message
+        if (status === 401) {
           storage.remove(config.storage.tokenKey)
           storage.remove(config.storage.usernameKey)
           storage.remove(config.storage.userKey)
           if (window.location.pathname !== '/login') {
             window.location.href = '/login'
           }
-          return Promise.reject(new AuthError('Session expired'))
+          return Promise.reject(new AuthError(msg || 'Session expired'))
+        }
+        if (status === 403) {
+          return Promise.reject(
+            new ApiError(403, msg || 'You do not have permission for this action.'),
+          )
         }
         if (status === 503) {
           return Promise.reject(new ApiError(503, 'Service unavailable'))
         }
-        return Promise.reject(
-          new ApiError(status, error.response.data?.message || 'Request failed'),
-        )
+        return Promise.reject(new ApiError(status, msg || 'Request failed'))
       }
       return Promise.reject(new NetworkError(error.message))
     },

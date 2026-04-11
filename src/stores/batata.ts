@@ -41,6 +41,7 @@ export const useBatataStore = defineStore('batata', () => {
   // Backward-compatible delegates
   const currentUser = computed(() => authStore.currentUser)
   const isAuthenticated = computed(() => authStore.isAuthenticated)
+  const isGlobalAdmin = computed(() => authStore.isGlobalAdmin)
   const namespaces = computed(() => namespaceStore.namespaces)
   const currentNamespace = computed({
     get: () => namespaceStore.currentNamespace,
@@ -278,6 +279,7 @@ export const useBatataStore = defineStore('batata', () => {
 
     // Computed
     isAuthenticated,
+    isGlobalAdmin,
     healthyServicesCount,
     totalInstancesCount,
 

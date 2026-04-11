@@ -400,6 +400,8 @@ export const translations = {
     global: 'Global',
     default: 'Default',
     custom: 'Custom',
+    configured: 'Configured',
+    notSet: 'Not Set',
 
     // Cluster
     clusterDesc: 'View cluster nodes status',
@@ -1910,6 +1912,8 @@ export const translations = {
     global: '全局',
     default: '默认',
     custom: '自定义',
+    configured: '已配置',
+    notSet: '未设置',
 
     // Cluster
     clusterDesc: '查看集群节点状态',

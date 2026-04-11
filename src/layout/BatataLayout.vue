@@ -920,50 +920,57 @@ const handleSwitchProvider = (p: 'batata' | 'consul') => {
   }
 }
 
-const nacosNavGroups = computed(() => [
-  {
-    title: t('overview'),
-    items: [{ path: '/', label: t('dashboard'), icon: LayoutDashboard }],
-  },
-  {
-    title: t('configManagement'),
-    items: [
-      { path: '/configs', label: t('configList'), icon: FileCode },
-      { path: '/config/history', label: t('historicalVersions'), icon: History },
-      { path: '/config/listeners', label: t('listeningToQuery'), icon: Radio },
-      { path: '/config/sync', label: t('configSync'), icon: RefreshCw },
-    ],
-  },
-  {
-    title: t('serviceManagement'),
-    items: [
-      { path: '/services', label: t('serviceList'), icon: Server },
-      { path: '/subscribers', label: t('subscriberList'), icon: Users },
-    ],
-  },
-  {
-    title: t('aiRegistry'),
-    items: [
-      { path: '/skills', label: t('skills'), icon: Sparkles },
-      { path: '/prompts', label: t('prompts'), icon: MessageSquare },
-      { path: '/agents', label: t('agents'), icon: Bot },
-      { path: '/agentspecs', label: t('agentSpecs'), icon: Package },
-      { path: '/mcp', label: t('mcpServers'), icon: Cpu },
-    ],
-  },
-  {
-    title: t('pluginManagement'),
-    items: [{ path: '/plugins', label: t('plugins'), icon: Puzzle }],
-  },
-  {
-    title: t('authorityControl'),
-    items: [
-      { path: '/users', label: t('users'), icon: UserCheck },
-      { path: '/roles', label: t('roles'), icon: ShieldAlert },
-      { path: '/permissions', label: t('permissions'), icon: Key },
-    ],
-  },
-  {
+const nacosNavGroups = computed(() => {
+  const groups = [
+    {
+      title: t('overview'),
+      items: [{ path: '/', label: t('dashboard'), icon: LayoutDashboard }],
+    },
+    {
+      title: t('configManagement'),
+      items: [
+        { path: '/configs', label: t('configList'), icon: FileCode },
+        { path: '/config/history', label: t('historicalVersions'), icon: History },
+        { path: '/config/listeners', label: t('listeningToQuery'), icon: Radio },
+        { path: '/config/sync', label: t('configSync'), icon: RefreshCw },
+      ],
+    },
+    {
+      title: t('serviceManagement'),
+      items: [
+        { path: '/services', label: t('serviceList'), icon: Server },
+        { path: '/subscribers', label: t('subscriberList'), icon: Users },
+      ],
+    },
+    {
+      title: t('aiRegistry'),
+      items: [
+        { path: '/skills', label: t('skills'), icon: Sparkles },
+        { path: '/prompts', label: t('prompts'), icon: MessageSquare },
+        { path: '/agents', label: t('agents'), icon: Bot },
+        { path: '/agentspecs', label: t('agentSpecs'), icon: Package },
+        { path: '/mcp', label: t('mcpServers'), icon: Cpu },
+      ],
+    },
+    {
+      title: t('pluginManagement'),
+      items: [{ path: '/plugins', label: t('plugins'), icon: Puzzle }],
+    },
+  ]
+
+  // Authority control is admin-only
+  if (batataStore.isGlobalAdmin) {
+    groups.push({
+      title: t('authorityControl'),
+      items: [
+        { path: '/users', label: t('users'), icon: UserCheck },
+        { path: '/roles', label: t('roles'), icon: ShieldAlert },
+        { path: '/permissions', label: t('permissions'), icon: Key },
+      ],
+    })
+  }
+
+  groups.push({
     title: '',
     items: [
       { path: '/namespaces', label: t('namespaces'), icon: Layers },
@@ -973,8 +980,10 @@ const nacosNavGroups = computed(() => [
       { path: '/settings', label: t('settingCenter'), icon: Cog },
       { path: '/copilot-settings', label: t('copilotSettings'), icon: Sparkles },
     ],
-  },
-])
+  })
+
+  return groups
+})
 
 const consulNavGroups = computed(() => {
   const groups = [

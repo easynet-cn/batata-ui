@@ -101,24 +101,24 @@ const nacosChildren: RouteRecordRaw[] = [
     component: () => import('../views/cluster/ClusterListView.vue'),
     meta: { titleKey: 'routeCluster' },
   },
-  // Authority Control
+  // Authority Control (admin-only)
   {
     path: 'users',
     name: 'users',
     component: () => import('../views/auth/UserListView.vue'),
-    meta: { titleKey: 'routeUsers' },
+    meta: { titleKey: 'routeUsers', requiresAdmin: true },
   },
   {
     path: 'roles',
     name: 'roles',
     component: () => import('../views/auth/RoleListView.vue'),
-    meta: { titleKey: 'routeRoles' },
+    meta: { titleKey: 'routeRoles', requiresAdmin: true },
   },
   {
     path: 'permissions',
     name: 'permissions',
     component: () => import('../views/auth/PermissionListView.vue'),
-    meta: { titleKey: 'routePermissions' },
+    meta: { titleKey: 'routePermissions', requiresAdmin: true },
   },
   // AI/MCP Management
   {
@@ -620,7 +620,10 @@ router.beforeEach((to, _from, next) => {
 
   if (to.meta.requiresAuth !== false && !authStore.isAuthenticated) {
     next('/login')
-  } else if (to.path === '/login' && authStore.isAuthenticated) {
+    return
+  }
+
+  if (to.path === '/login' && authStore.isAuthenticated) {
     switch (normalizedProvider) {
       case 'consul':
         next('/consul/dashboard')
@@ -628,9 +631,16 @@ router.beforeEach((to, _from, next) => {
       default:
         next('/')
     }
-  } else {
-    next()
+    return
   }
+
+  // Admin-only routes: block non-admins
+  if (to.meta.requiresAdmin && !authStore.isGlobalAdmin) {
+    next('/')
+    return
+  }
+
+  next()
 })
 
 export default router

@@ -23,6 +23,8 @@ import type {
   McpServerPayload,
   McpServerImportPayload,
   PluginConfigPayload,
+  PluginBackendInfo,
+  PluginBackendDetail,
   AuditLogItem,
   AuditLogSearch,
   PageResult,
@@ -151,18 +153,22 @@ class BatataApi {
         const message =
           typeof respData === 'string' ? respData : respData?.message || error.message || ''
 
-        // Auth errors - use status code, not message matching
-        if (status === 401 || status === 403) {
-          // Clear stored credentials
+        // 401 Unauthorized - token missing/expired → clear + redirect
+        if (status === 401) {
           storage.remove(config.storage.tokenKey)
           storage.remove(config.storage.usernameKey)
+          storage.remove(config.storage.userKey)
 
-          // Redirect to login (avoid redirect loop if already on login page)
           if (!window.location.pathname.includes('/login')) {
             window.location.href = '/login'
           }
 
-          throw new AuthError(message || 'Authentication failed. Please log in again.')
+          throw new AuthError(message || 'Session expired. Please log in again.')
+        }
+
+        // 403 Forbidden - authenticated but lacking permission → surface error, do NOT clear token
+        if (status === 403) {
+          throw new ApiError(403, message || 'You do not have permission to perform this action.')
         }
 
         // 422 Unprocessable Entity - validation errors
@@ -313,18 +319,22 @@ class BatataApi {
           const message =
             typeof respData === 'string' ? respData : respData?.message || error.message || ''
 
-          // Auth errors - use status code, not message matching
-          if (status === 401 || status === 403) {
-            // Clear stored credentials
+          // 401 Unauthorized - token missing/expired → clear + redirect
+          if (status === 401) {
             storage.remove(config.storage.tokenKey)
             storage.remove(config.storage.usernameKey)
+            storage.remove(config.storage.userKey)
 
-            // Redirect to login (avoid redirect loop if already on login page)
             if (!window.location.pathname.includes('/login')) {
               window.location.href = '/login'
             }
 
-            throw new AuthError(message || 'Authentication failed. Please log in again.')
+            throw new AuthError(message || 'Session expired. Please log in again.')
+          }
+
+          // 403 Forbidden - authenticated but lacking permission
+          if (status === 403) {
+            throw new ApiError(403, message || 'You do not have permission to perform this action.')
           }
 
           // 503 Service Unavailable - server is in maintenance/draining mode
@@ -503,23 +513,16 @@ class BatataApi {
   }
 
   // 配置监听
-  async getConfigListeners(params: {
-    dataId?: string
-    groupName?: string
-    namespaceId?: string
-    pageNo?: number
-    pageSize?: number
-  }) {
-    return this.instance.get<BatataResponse<PageResult<ConfigListenerInfo>>>(
-      '/cs/config/listener',
-      { params },
-    )
+  async getConfigListeners(params: { dataId?: string; groupName?: string; namespaceId?: string }) {
+    return this.instance.get<BatataResponse<ConfigListenerInfo | null>>('/cs/config/listener', {
+      params,
+    })
   }
 
   async getConfigListenersByIp(params: { ip: string; namespaceId?: string; all?: boolean }) {
-    return this.instance.get<
-      BatataResponse<{ queryType: string; listenersStatus: Record<string, string> }>
-    >('/cs/config/listener/ip', { params })
+    return this.instance.get<BatataResponse<ConfigListenerInfo>>('/cs/config/listener/ip', {
+      params,
+    })
   }
 
   // ============================================
@@ -1117,26 +1120,43 @@ class BatataApi {
   }
 
   // ============================================
-  // Plugin Management API
+  // Plugin Management API (/v3/console/plugin)
   // ============================================
 
-  // Plugin management is not available in Nacos v3 or Batata
-  async getPluginList(): Promise<never> {
-    throw new ApiError(501, 'Plugin management is not supported by the server')
+  async getPluginList(pluginType?: string) {
+    return this.instance.get<BatataResponse<PluginBackendInfo[]>>('/plugin/list', {
+      params: pluginType ? { pluginType } : undefined,
+    })
   }
 
-  async getPluginDetail(_name: string): Promise<never> {
-    throw new ApiError(501, 'Plugin management is not supported by the server')
+  async getPluginDetail(pluginType: string, pluginName: string) {
+    return this.instance.get<BatataResponse<PluginBackendDetail>>('/plugin', {
+      params: { pluginType, pluginName },
+    })
   }
 
-  // TODO: Backend does not yet support updating plugin status
-  async updatePluginStatus(_name: string, _enabled: boolean): Promise<never> {
-    throw new ApiError(501, 'Update plugin status is not supported by the server')
+  async updatePluginStatus(pluginType: string, pluginName: string, enabled: boolean) {
+    return this.instance.put<BatataResponse>('/plugin/status', null, {
+      params: { pluginType, pluginName, enabled },
+    })
   }
 
-  // TODO: Backend does not yet support updating plugin config
-  async updatePluginConfig(_name: string, _pluginConfig: PluginConfigPayload): Promise<never> {
-    throw new ApiError(501, 'Update plugin config is not supported by the server')
+  async updatePluginConfig(
+    pluginType: string,
+    pluginName: string,
+    pluginConfig: PluginConfigPayload,
+  ) {
+    return this.instance.put<BatataResponse>('/plugin/config', {
+      pluginType,
+      pluginName,
+      config: pluginConfig,
+    })
+  }
+
+  async getPluginAvailability(pluginType: string, pluginName: string) {
+    return this.instance.get<BatataResponse<Record<string, boolean>>>('/plugin/availability', {
+      params: { pluginType, pluginName },
+    })
   }
 
   // ============================================

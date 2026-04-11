@@ -219,14 +219,20 @@ describe('BatataApi', () => {
       expect(storageModule.remove).toHaveBeenCalledWith('batata-username')
     })
 
-    it('throws AuthError on 403', () => {
+    it('throws ApiError on 403 without clearing credentials', async () => {
+      const { storage: storageModule } = await import('@/composables/useStorage')
+
       const error = {
-        response: { status: 403, data: {} },
+        response: { status: 403, data: { message: 'Forbidden' } },
       }
 
+      vi.mocked(storageModule.remove).mockClear()
       const thrown = catchError(() => responseInterceptorRejected(error))
       expect(thrown).not.toBeNull()
-      expect(thrown!.name).toBe('AuthError')
+      expect(thrown!.name).toBe('ApiError')
+      expect((thrown as unknown as { code: number }).code).toBe(403)
+      // 403 should NOT clear the auth token (user is authenticated, just unauthorized)
+      expect(storageModule.remove).not.toHaveBeenCalledWith('batata-token')
     })
 
     it('throws ApiError for other HTTP errors', () => {

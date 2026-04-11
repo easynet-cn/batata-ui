@@ -332,7 +332,7 @@ import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import FormModal from '@/components/common/FormModal.vue'
-import type { PluginInfo, Namespace } from '@/types'
+import type { PluginInfo, PluginBackendInfo, PluginType, Namespace } from '@/types'
 
 defineProps<{
   namespace: Namespace
@@ -371,13 +371,37 @@ const enabledCount = computed(() => plugins.value.filter((p) => p.status === 'en
 const disabledCount = computed(() => plugins.value.filter((p) => p.status === 'disabled').length)
 const errorCount = computed(() => plugins.value.filter((p) => p.status === 'error').length)
 
+// Map backend plugin type to frontend PluginType enum
+const normalizePluginType = (backendType: string): PluginType => {
+  const map: Record<string, PluginType> = {
+    auth: 'auth',
+    'config-encryption': 'config',
+    config: 'config',
+    naming: 'naming',
+    datasource: 'datasource',
+  }
+  return map[backendType] || 'other'
+}
+
+const mapBackendPlugin = (p: PluginBackendInfo): PluginInfo => ({
+  name: p.pluginName,
+  type: normalizePluginType(p.pluginType),
+  version: p.version,
+  status: p.enabled ? 'enabled' : 'disabled',
+  description: p.description,
+  configurable: p.pluginType === 'auth' || p.pluginType === 'config-encryption',
+  metadata: { pluginType: p.pluginType },
+})
+
 // Methods
 const fetchPlugins = async () => {
   loading.value = true
   try {
-    await batataApi.getPluginList()
+    const response = await batataApi.getPluginList()
+    const list = response.data.data || []
+    plugins.value = list.map(mapBackendPlugin)
   } catch (error) {
-    logger.error('Plugin management is not supported:', error)
+    logger.error('Failed to fetch plugins:', error)
     toast.apiError(error)
   } finally {
     loading.value = false
@@ -398,8 +422,9 @@ const viewPluginDetail = (plugin: PluginInfo) => {
 }
 
 const togglePlugin = async (plugin: PluginInfo, enable: boolean) => {
+  const backendType = plugin.metadata?.pluginType || plugin.type
   try {
-    await batataApi.updatePluginStatus(plugin.name, enable)
+    await batataApi.updatePluginStatus(backendType, plugin.name, enable)
     plugin.status = enable ? 'enabled' : 'disabled'
     toast.success(enable ? t('pluginEnabled') : t('pluginDisabled'))
   } catch (error) {
@@ -426,8 +451,10 @@ const savePluginConfig = async () => {
 
   saving.value = true
   try {
-    await batataApi.updatePluginConfig(selectedPlugin.value.name, JSON.parse(configJson.value))
-    selectedPlugin.value.config = JSON.parse(configJson.value)
+    const backendType = selectedPlugin.value.metadata?.pluginType || selectedPlugin.value.type
+    const parsed = JSON.parse(configJson.value)
+    await batataApi.updatePluginConfig(backendType, selectedPlugin.value.name, parsed)
+    selectedPlugin.value.config = parsed
     showConfigModal.value = false
     toast.success(t('configSaved'))
   } catch (error) {

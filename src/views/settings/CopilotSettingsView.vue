@@ -156,7 +156,7 @@
               <div class="flex justify-between">
                 <span class="text-text-secondary">API Key</span>
                 <span :class="config.apiKey ? 'badge badge-success' : 'badge badge-warning'">
-                  {{ config.apiKey ? 'Configured' : 'Not Set' }}
+                  {{ config.apiKey ? t('configured') : t('notSet') }}
                 </span>
               </div>
               <div class="flex justify-between">
@@ -217,6 +217,9 @@ import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
 import { AVAILABLE_MODELS } from '@/types/copilot'
 import type { CopilotConfigUpdate } from '@/types/copilot'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 // State
 const saving = ref(false)

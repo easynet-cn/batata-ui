@@ -65,11 +65,8 @@ export interface ConfigHistoryInfo {
 }
 
 export interface ConfigListenerInfo {
-  dataId: string
-  groupName: string
-  lisentersGroupkeyStatus: string
-  md5: string
-  listeningIp?: string
+  queryType: string
+  listenersStatus: Record<string, string>
 }
 
 // ============================================
@@ -416,6 +413,20 @@ export interface PluginInfo {
   config?: Record<string, unknown>
   dependencies?: string[]
   metadata?: Record<string, string>
+}
+
+// Raw shape returned by /v3/console/plugin/list
+export interface PluginBackendInfo {
+  pluginType: string
+  pluginName: string
+  enabled: boolean
+  version: string
+  description: string
+}
+
+// Raw shape returned by /v3/console/plugin
+export interface PluginBackendDetail extends PluginBackendInfo {
+  config: Record<string, unknown>
 }
 
 // ============================================
