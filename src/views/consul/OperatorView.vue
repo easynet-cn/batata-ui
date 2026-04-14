@@ -6,10 +6,21 @@
         <h1 class="text-base font-semibold text-text-primary">{{ t('consulOperator') }}</h1>
         <p class="text-xs text-text-secondary mt-0.5">{{ t('consulOperatorDesc') }}</p>
       </div>
-      <button @click="loadData" class="btn btn-secondary btn-sm" :disabled="loading">
-        <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" />
-        {{ t('refresh') }}
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          @click="handleReloadAgent"
+          class="btn btn-secondary btn-sm"
+          :disabled="reloading"
+          :title="t('consulReloadAgentDesc')"
+        >
+          <RotateCcw class="w-3.5 h-3.5" :class="{ 'animate-spin': reloading }" />
+          {{ t('consulReloadAgent') }}
+        </button>
+        <button @click="loadData" class="btn btn-secondary btn-sm" :disabled="loading">
+          <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" />
+          {{ t('refresh') }}
+        </button>
+      </div>
     </div>
 
     <!-- Raft Configuration -->
@@ -230,6 +241,151 @@
       </div>
     </div>
 
+    <!-- LAN Cluster Members -->
+    <div class="card">
+      <div class="px-6 py-4 border-b border-border flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-text-primary">{{ t('consulLanMembers') }}</h3>
+        <span class="text-xs text-text-tertiary">{{ lanMembers.length }} {{ t('nodes') }}</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>{{ t('name') }}</th>
+              <th>{{ t('address') }}</th>
+              <th>{{ t('state') }}</th>
+              <th>{{ t('consulSerfTags') }}</th>
+              <th class="text-right">{{ t('actions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="!lanMembers.length && !loading">
+              <td colspan="5" class="text-center py-6 text-text-tertiary text-xs">
+                {{ t('noData') }}
+              </td>
+            </tr>
+            <tr v-for="m in lanMembers" :key="m.Name" class="hover:bg-bg-secondary">
+              <td class="font-medium text-text-primary">{{ m.Name }}</td>
+              <td class="font-mono text-xs text-text-secondary">{{ m.Addr }}:{{ m.Port }}</td>
+              <td>
+                <span :class="memberStatusClass(m.Status)">
+                  {{ memberStatusLabel(m.Status) }}
+                </span>
+              </td>
+              <td>
+                <span
+                  v-if="m.Tags?.role"
+                  class="badge bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 mr-1"
+                >
+                  {{ m.Tags.role }}
+                </span>
+                <span v-if="m.Tags?.dc" class="text-xs text-text-tertiary">dc={{ m.Tags.dc }}</span>
+              </td>
+              <td class="text-right">
+                <button
+                  v-if="m.Status === 3 || m.Status === 4"
+                  class="btn btn-ghost btn-sm text-red-600 hover:text-red-700"
+                  @click="openForceLeave(m.Name)"
+                  :title="t('consulForceLeaveDesc')"
+                >
+                  <LogOut class="w-3.5 h-3.5" />
+                  {{ t('consulForceLeave') }}
+                </button>
+                <span v-else class="text-xs text-text-tertiary">-</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- WAN Federation -->
+    <div class="card">
+      <div class="px-6 py-4 border-b border-border flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-text-primary">{{ t('consulWanFederation') }}</h3>
+        <span class="text-xs text-text-tertiary"
+          >{{ datacenters.length }} {{ t('consulDatacenters') }}</span
+        >
+      </div>
+      <div class="p-6 space-y-4">
+        <div v-if="datacenters.length > 0">
+          <div class="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
+            {{ t('consulKnownDatacenters') }}
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <span v-for="dc in datacenters" :key="dc" class="badge badge-info">{{ dc }}</span>
+          </div>
+        </div>
+        <div>
+          <div class="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
+            {{ t('consulWanMembers') }}
+          </div>
+          <div v-if="!wanMembers.length" class="text-xs text-text-tertiary py-3 text-center">
+            {{ t('consulWanMembersEmpty') }}
+          </div>
+          <div v-else class="overflow-x-auto">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>{{ t('name') }}</th>
+                  <th>{{ t('address') }}</th>
+                  <th>{{ t('consulDatacenter') }}</th>
+                  <th>{{ t('state') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="m in wanMembers" :key="m.Name" class="hover:bg-bg-secondary">
+                  <td class="font-medium text-text-primary">{{ m.Name }}</td>
+                  <td class="font-mono text-xs text-text-secondary">{{ m.Addr }}:{{ m.Port }}</td>
+                  <td>
+                    <span class="badge badge-info">{{ m.Tags?.dc || '-' }}</span>
+                  </td>
+                  <td>
+                    <span :class="memberStatusClass(m.Status)">
+                      {{ memberStatusLabel(m.Status) }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Force Leave Confirmation -->
+    <div
+      v-if="forceLeaveNode"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      @click.self="forceLeaveNode = null"
+    >
+      <div
+        class="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-md mx-4 border dark:border-gray-800"
+      >
+        <div class="p-6 border-b border-border">
+          <h3 class="text-base font-semibold text-text-primary">{{ t('consulForceLeave') }}</h3>
+        </div>
+        <div class="p-6">
+          <p class="text-sm text-text-primary mb-2">{{ t('consulForceLeaveConfirm') }}</p>
+          <p class="font-mono text-xs text-text-secondary">{{ forceLeaveNode }}</p>
+          <p class="mt-2 text-xs text-amber-600">{{ t('consulForceLeaveWarning') }}</p>
+        </div>
+        <div class="p-4 bg-bg-secondary rounded-b-3xl flex justify-end gap-2">
+          <button class="btn btn-secondary btn-sm" @click="forceLeaveNode = null">
+            {{ t('cancel') }}
+          </button>
+          <button
+            class="btn btn-primary btn-sm"
+            :disabled="forceLeaving"
+            @click="confirmForceLeave"
+          >
+            <Loader2 v-if="forceLeaving" class="w-3.5 h-3.5 animate-spin" />
+            {{ t('confirm') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Snapshot Actions -->
     <div class="card">
       <div class="px-6 py-4 border-b border-border">
@@ -251,12 +407,16 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, Wrench, Loader2, Download } from 'lucide-vue-next'
+import { RefreshCw, RotateCcw, Wrench, Loader2, Download, LogOut } from 'lucide-vue-next'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
 import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
-import type { ConsulRaftConfiguration, ConsulOperatorUsage } from '@/types/consul'
+import type {
+  ConsulRaftConfiguration,
+  ConsulOperatorUsage,
+  ConsulAgentMember,
+} from '@/types/consul'
 
 const { t } = useI18n()
 
@@ -264,9 +424,15 @@ const { t } = useI18n()
 const loading = ref(false)
 const downloading = ref(false)
 const transferring = ref(false)
+const reloading = ref(false)
+const forceLeaving = ref(false)
+const forceLeaveNode = ref<string | null>(null)
 const transferTargetId = ref('')
 const raftConfig = ref<ConsulRaftConfiguration | null>(null)
 const operatorUsage = ref<ConsulOperatorUsage | null>(null)
+const lanMembers = ref<ConsulAgentMember[]>([])
+const wanMembers = ref<ConsulAgentMember[]>([])
+const datacenters = ref<string[]>([])
 const autopilotHealth = ref<{
   Healthy: boolean
   FailureTolerance: number
@@ -296,10 +462,13 @@ const nonLeaderServers = computed(() => {
 async function loadData() {
   loading.value = true
   try {
-    const [raftRes, usageRes, autopilotRes] = await Promise.allSettled([
+    const [raftRes, usageRes, autopilotRes, lanRes, wanRes, dcRes] = await Promise.allSettled([
       consulApi.getRaftConfiguration(),
       consulApi.getOperatorUsage(),
       consulApi.getAutopilotHealth(),
+      consulApi.getAgentMembers(false),
+      consulApi.getAgentMembers(true),
+      consulApi.getDatacenters(),
     ])
     if (raftRes.status === 'fulfilled') {
       raftConfig.value = raftRes.value.data
@@ -310,11 +479,83 @@ async function loadData() {
     if (autopilotRes.status === 'fulfilled') {
       autopilotHealth.value = autopilotRes.value.data
     }
+    if (lanRes.status === 'fulfilled') {
+      lanMembers.value = lanRes.value.data || []
+    }
+    if (wanRes.status === 'fulfilled') {
+      wanMembers.value = wanRes.value.data || []
+    }
+    if (dcRes.status === 'fulfilled') {
+      datacenters.value = dcRes.value.data || []
+    }
   } catch (error) {
     logger.error('Failed to fetch operator data:', error)
     toast.apiError(error)
   } finally {
     loading.value = false
+  }
+}
+
+function memberStatusLabel(status: number): string {
+  switch (status) {
+    case 1:
+      return 'alive'
+    case 2:
+      return 'leaving'
+    case 3:
+      return 'left'
+    case 4:
+      return 'failed'
+    default:
+      return 'unknown'
+  }
+}
+
+function memberStatusClass(status: number): string {
+  switch (status) {
+    case 1:
+      return 'badge badge-success'
+    case 2:
+      return 'badge badge-warning'
+    case 3:
+      return 'badge'
+    case 4:
+      return 'badge badge-danger'
+    default:
+      return 'badge'
+  }
+}
+
+function openForceLeave(name: string) {
+  forceLeaveNode.value = name
+}
+
+async function confirmForceLeave() {
+  if (!forceLeaveNode.value) return
+  forceLeaving.value = true
+  try {
+    await consulApi.forceLeaveNode(forceLeaveNode.value)
+    toast.success(t('success'))
+    forceLeaveNode.value = null
+    await loadData()
+  } catch (error) {
+    logger.error('Failed to force-leave node:', error)
+    toast.apiError(error)
+  } finally {
+    forceLeaving.value = false
+  }
+}
+
+async function handleReloadAgent() {
+  reloading.value = true
+  try {
+    await consulApi.reloadAgent()
+    toast.success(t('consulReloadAgentSuccess'))
+  } catch (error) {
+    logger.error('Failed to reload agent:', error)
+    toast.apiError(error)
+  } finally {
+    reloading.value = false
   }
 }
 

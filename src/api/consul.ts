@@ -149,12 +149,22 @@ class ConsulApi {
   // Agent API
   // ============================================
 
-  async getAgentMembers() {
-    return this.instance.get<ConsulAgentMember[]>('/agent/members')
+  async getAgentMembers(wan?: boolean) {
+    return this.instance.get<ConsulAgentMember[]>('/agent/members', {
+      params: wan ? { wan: '1' } : undefined,
+    })
   }
 
   async getAgentSelf() {
     return this.instance.get<ConsulAgentSelf>('/agent/self')
+  }
+
+  async forceLeaveNode(node: string) {
+    return this.instance.put<boolean>(`/agent/force-leave/${encodeURIComponent(node)}`)
+  }
+
+  async reloadAgent() {
+    return this.instance.put<boolean>('/agent/reload')
   }
 
   async registerService(data: Record<string, unknown>) {

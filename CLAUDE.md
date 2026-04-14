@@ -91,8 +91,7 @@ src/
 │   ├── tracing/      # 链路追踪
 │   ├── plugin/       # 插件管理
 │   ├── settings/     # 系统设置
-│   ├── LoginView.vue
-│   └── RegisterView.vue
+│   └── LoginView.vue
 ├── App.vue           # 根组件
 └── main.ts          # 应用入口
 ```

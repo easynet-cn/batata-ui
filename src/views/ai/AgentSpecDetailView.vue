@@ -148,13 +148,7 @@
             <h3 class="text-sm font-medium text-text-primary">
               {{ t('agentSpecContent') }} - v{{ selectedVersion }}
             </h3>
-            <button
-              @click="
-                versionContent = null
-                selectedVersion = null
-              "
-              class="btn btn-ghost btn-sm"
-            >
+            <button @click="clearVersion" class="btn btn-ghost btn-sm">
               <X class="w-3.5 h-3.5" />
             </button>
           </div>
@@ -297,6 +291,11 @@ const loading = ref(false)
 const detail = ref<AgentSpecDetail | null>(null)
 const selectedVersion = ref<string | null>(null)
 const versionContent = ref<AgentSpecDocument | null>(null)
+
+function clearVersion() {
+  versionContent.value = null
+  selectedVersion.value = null
+}
 
 // Modals
 const showDeleteModal = ref(false)

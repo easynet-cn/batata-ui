@@ -9,12 +9,14 @@ import { useTheme } from '@/composables/useTheme'
 import batataApi from '@/api/batata'
 import consulApi from '@/api/consul'
 import { storage } from '@/composables/useStorage'
+import { useProvider } from '@/composables/useProvider'
 
 const { t, language, setLanguage } = useI18n()
 const router = useRouter()
 const batataStore = useBatataStore()
 const authStore = useAuthStore()
 const { isDark, toggleTheme } = useTheme()
+const { setProvider } = useProvider()
 
 const username = ref('')
 const password = ref('')
@@ -137,6 +139,19 @@ const continueWithoutLogin = () => {
   // Allow anonymous access - set user with empty token
   authStore.setConsulAclEnabled(false)
   router.push('/consul/dashboard')
+}
+
+const enterConsul = () => {
+  setProvider('consul')
+  if (authStore.consulAclEnabled) {
+    // Stay on login page; UI re-renders into the Consul ACL form
+    loginError.value = ''
+    if (oidcProviders.value.length === 0) {
+      fetchOidcProviders()
+    }
+  } else {
+    router.replace('/consul/dashboard')
+  }
 }
 
 const toggleLanguage = () => {
@@ -351,6 +366,20 @@ const toggleLanguage = () => {
               {{ t('signIn') }}
             </template>
           </button>
+
+          <div class="pt-2 border-t border-gray-100 dark:border-gray-800">
+            <button
+              type="button"
+              @click="enterConsul"
+              class="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-950/30 hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900/40 transition-colors"
+            >
+              <span>{{ t('enterConsul') }}</span>
+              <span aria-hidden="true">→</span>
+            </button>
+            <p class="mt-2 text-xs text-center text-gray-400 dark:text-gray-500">
+              {{ authStore.consulAclEnabled ? t('consulAclRequired') : t('consulNoAclHint') }}
+            </p>
+          </div>
         </form>
 
         <div v-if="isConsulAcl" class="text-center">
@@ -361,15 +390,6 @@ const toggleLanguage = () => {
           >
             {{ t('consulContinueWithout') }}
           </button>
-        </div>
-
-        <div v-if="!isConsulAcl" class="text-center">
-          <router-link
-            to="/register"
-            class="text-gray-400 hover:text-blue-500 text-sm transition-colors"
-          >
-            {{ t('noAccount') }}
-          </router-link>
         </div>
       </div>
     </div>

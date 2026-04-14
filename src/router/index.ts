@@ -517,12 +517,6 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
-      path: '/register',
-      name: 'register',
-      component: () => import('../views/RegisterView.vue'),
-      meta: { requiresAuth: false },
-    },
-    {
       path: '/admin-init',
       name: 'admin-init',
       component: () => import('../views/AdminInitView.vue'),

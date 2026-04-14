@@ -13,6 +13,9 @@ import type {
   SubscriberInfo,
   Namespace,
   NodeInfo,
+  ClusterHealth,
+  ClusterLeader,
+  ClusterNodeStateUpdate,
   ServerState,
   UserInfo,
   RoleInfo,
@@ -758,21 +761,27 @@ class BatataApi {
   // 集群管理 API
   // ============================================
 
-  async getClusterNodes(params?: { keyword?: string }) {
+  async getClusterNodes(params?: { keyword?: string; pageNo?: number; pageSize?: number }) {
     return this.instance.get<BatataResponse<NodeInfo[]>>('/core/cluster/nodes', { params })
   }
 
-  // Nacos V1/V2 defined leave/delete but returns 405 "not allow to use temporarily"; V3 removed it entirely
-  async leaveClusterNode(_address: string): Promise<never> {
-    throw new ApiError(501, 'Leave cluster node is not supported by the server')
+  async getClusterHealth() {
+    return this.instance.get<BatataResponse<ClusterHealth>>('/core/cluster/health')
   }
 
-  // TODO: Backend does not yet support updating cluster nodes directly
-  async updateClusterNode(_data: {
-    address: string
-    metadata?: Record<string, string>
-  }): Promise<never> {
-    throw new ApiError(501, 'Update cluster node is not supported by the server')
+  async getClusterLeader() {
+    return this.instance.get<BatataResponse<ClusterLeader>>('/core/cluster/leader')
+  }
+
+  async updateClusterNodeState(address: string, state: string) {
+    return this.instance.put<BatataResponse<ClusterNodeStateUpdate>>(
+      `/core/cluster/node/${encodeURIComponent(address)}/state`,
+      { state },
+    )
+  }
+
+  async refreshClusterSelf() {
+    return this.instance.post<BatataResponse<boolean>>('/core/cluster/self/refresh')
   }
 
   // ============================================
@@ -1104,19 +1113,6 @@ class BatataApi {
       })
     }
     return this.deleteBetaConfig(dataId, groupName, namespaceId)
-  }
-
-  // ============================================
-  // User Registration API
-  // ============================================
-
-  async register(data: { username: string; password: string }) {
-    const formData = new URLSearchParams()
-    formData.append('username', data.username)
-    formData.append('password', data.password)
-    return this.getAuthInstance().post<BatataResponse>('/user', formData, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    })
   }
 
   // ============================================

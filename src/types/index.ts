@@ -169,10 +169,35 @@ export interface ServerState {
 // 集群管理类型
 // ============================================
 
+export type ClusterNodeState = 'UP' | 'DOWN' | 'SUSPICIOUS' | 'STARTING' | 'ISOLATION'
+
+export interface ClusterHealth {
+  status: string
+  total: number
+  up: number
+  down: number
+  suspicious?: number
+  starting?: number
+  isolation?: number
+}
+
+export interface ClusterLeader {
+  leader?: string
+  isLeader?: boolean
+  hasLeader?: boolean
+}
+
+export interface ClusterNodeStateUpdate {
+  success: boolean
+  previousState: string
+  newState: string
+  address: string
+}
+
 export interface NodeInfo {
   ip: string
   port: number
-  state: 'UP' | 'DOWN' | 'SUSPICIOUS'
+  state: ClusterNodeState
   address: string
   failAccessCnt?: number
   grpcReportEnabled?: boolean
