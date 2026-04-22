@@ -10,6 +10,7 @@ import batataApi from '@/api/batata'
 import consulApi from '@/api/consul'
 import { storage } from '@/composables/useStorage'
 import { useProvider } from '@/composables/useProvider'
+import { switchProviderRoutes } from '@/router'
 
 const { t, language, setLanguage } = useI18n()
 const router = useRouter()
@@ -143,6 +144,7 @@ const continueWithoutLogin = () => {
 
 const enterConsul = () => {
   setProvider('consul')
+  switchProviderRoutes('consul')
   if (authStore.consulAclEnabled) {
     // Stay on login page; UI re-renders into the Consul ACL form
     loginError.value = ''
