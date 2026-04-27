@@ -1,28 +1,3 @@
-<script setup lang="ts">
-import { computed } from 'vue'
-
-const props = withDefaults(
-  defineProps<{
-    type?: 'text' | 'card' | 'table' | 'avatar'
-    lines?: number
-    rows?: number
-  }>(),
-  {
-    type: 'text',
-    lines: 3,
-    rows: 5,
-  },
-)
-
-// Generate random widths for text lines to look more natural
-const lineWidths = computed(() => {
-  const widths = ['w-full', 'w-5/6', 'w-4/6', 'w-3/4', 'w-2/3']
-  return Array.from({ length: props.lines }, (_, i) =>
-    i === props.lines - 1 ? widths[Math.floor(Math.random() * (widths.length - 1)) + 1] : 'w-full',
-  )
-})
-</script>
-
 <template>
   <!-- Text skeleton -->
   <div v-if="type === 'text'" class="space-y-3">
@@ -93,3 +68,28 @@ const lineWidths = computed(() => {
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+
+const props = withDefaults(
+  defineProps<{
+    type?: 'text' | 'card' | 'table' | 'avatar'
+    lines?: number
+    rows?: number
+  }>(),
+  {
+    type: 'text',
+    lines: 3,
+    rows: 5,
+  },
+)
+
+// Generate random widths for text lines to look more natural
+const lineWidths = computed(() => {
+  const widths = ['w-full', 'w-5/6', 'w-4/6', 'w-3/4', 'w-2/3']
+  return Array.from({ length: props.lines }, (_, i) =>
+    i === props.lines - 1 ? widths[Math.floor(Math.random() * (widths.length - 1)) + 1] : 'w-full',
+  )
+})
+</script>

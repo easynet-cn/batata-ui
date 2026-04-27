@@ -1,16 +1,3 @@
-<script setup lang="ts">
-import { type Component } from 'vue'
-import { ChevronRight } from 'lucide-vue-next'
-
-defineProps<{
-  items: Array<{
-    label: string
-    to?: string
-    icon?: Component
-  }>
-}>()
-</script>
-
 <template>
   <nav aria-label="Breadcrumb">
     <ol class="flex items-center gap-1 text-sm">
@@ -49,3 +36,16 @@ defineProps<{
     </ol>
   </nav>
 </template>
+
+<script setup lang="ts">
+import { type Component } from 'vue'
+import { ChevronRight } from 'lucide-vue-next'
+
+defineProps<{
+  items: Array<{
+    label: string
+    to?: string
+    icon?: Component
+  }>
+}>()
+</script>

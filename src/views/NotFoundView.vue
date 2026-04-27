@@ -1,22 +1,3 @@
-<script setup lang="ts">
-import { useRouter } from 'vue-router'
-import { useI18n } from '@/i18n'
-import { useProvider } from '@/composables/useProvider'
-import { Home, ArrowLeft } from 'lucide-vue-next'
-
-const router = useRouter()
-const { t } = useI18n()
-const { providerBgClass, providerHoverBgClass } = useProvider()
-
-function goHome() {
-  router.push('/')
-}
-
-function goBack() {
-  router.back()
-}
-</script>
-
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4">
     <div class="text-center max-w-md">
@@ -50,3 +31,22 @@ function goBack() {
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { useRouter } from 'vue-router'
+import { useI18n } from '@/i18n'
+import { useProvider } from '@/composables/useProvider'
+import { Home, ArrowLeft } from 'lucide-vue-next'
+
+const router = useRouter()
+const { t } = useI18n()
+const { providerBgClass, providerHoverBgClass } = useProvider()
+
+function goHome() {
+  router.push('/')
+}
+
+function goBack() {
+  router.back()
+}
+</script>

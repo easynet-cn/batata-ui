@@ -1,50 +1,3 @@
-<script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useI18n } from '@/i18n'
-import { useAuthStore } from '@/stores/auth'
-import { storage } from '@/composables/useStorage'
-
-const { t } = useI18n()
-const router = useRouter()
-const route = useRoute()
-const authStore = useAuthStore()
-
-const status = ref<'processing' | 'success' | 'error'>('processing')
-const errorMessage = ref('')
-
-onMounted(async () => {
-  const code = route.query.code as string
-  const state = route.query.state as string
-  const authMethod = storage.get('consul_oidc_auth_method') as string
-
-  if (!code || !state || !authMethod) {
-    status.value = 'error'
-    errorMessage.value = t('consulOidcLoginFailed')
-    setTimeout(() => router.replace('/login'), 3000)
-    return
-  }
-
-  try {
-    const success = await authStore.completeOIDCLogin(authMethod, code, state)
-    if (success) {
-      status.value = 'success'
-      // Clean up stored auth method
-      storage.remove('consul_oidc_auth_method')
-      setTimeout(() => router.replace('/consul/dashboard'), 1000)
-    } else {
-      status.value = 'error'
-      errorMessage.value = authStore.error || t('consulOidcLoginFailed')
-      setTimeout(() => router.replace('/login'), 3000)
-    }
-  } catch {
-    status.value = 'error'
-    errorMessage.value = t('consulOidcLoginFailed')
-    setTimeout(() => router.replace('/login'), 3000)
-  }
-})
-</script>
-
 <template>
   <div
     class="min-h-screen bg-[#f0f2f5] dark:bg-gray-950 flex flex-col items-center justify-center p-4 transition-colors duration-300"
@@ -118,3 +71,50 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from '@/i18n'
+import { useAuthStore } from '@/stores/auth'
+import { storage } from '@/composables/useStorage'
+
+const { t } = useI18n()
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
+
+const status = ref<'processing' | 'success' | 'error'>('processing')
+const errorMessage = ref('')
+
+onMounted(async () => {
+  const code = route.query.code as string
+  const state = route.query.state as string
+  const authMethod = storage.get('consul_oidc_auth_method') as string
+
+  if (!code || !state || !authMethod) {
+    status.value = 'error'
+    errorMessage.value = t('consulOidcLoginFailed')
+    setTimeout(() => router.replace('/login'), 3000)
+    return
+  }
+
+  try {
+    const success = await authStore.completeOIDCLogin(authMethod, code, state)
+    if (success) {
+      status.value = 'success'
+      // Clean up stored auth method
+      storage.remove('consul_oidc_auth_method')
+      setTimeout(() => router.replace('/consul/dashboard'), 1000)
+    } else {
+      status.value = 'error'
+      errorMessage.value = authStore.error || t('consulOidcLoginFailed')
+      setTimeout(() => router.replace('/login'), 3000)
+    }
+  } catch {
+    status.value = 'error'
+    errorMessage.value = t('consulOidcLoginFailed')
+    setTimeout(() => router.replace('/login'), 3000)
+  }
+})
+</script>

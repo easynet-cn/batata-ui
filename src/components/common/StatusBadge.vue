@@ -1,3 +1,13 @@
+<template>
+  <span
+    class="inline-flex items-center gap-1.5 font-bold rounded-lg"
+    :class="[statusColors.bg, statusColors.text, sizeClasses]"
+  >
+    <span class="rounded-full shrink-0" :class="[statusColors.dot, dotSize]" />
+    {{ displayLabel }}
+  </span>
+</template>
+
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from '@/i18n'
@@ -75,13 +85,3 @@ const sizeClasses = computed(() =>
 
 const dotSize = computed(() => (props.size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2'))
 </script>
-
-<template>
-  <span
-    class="inline-flex items-center gap-1.5 font-bold rounded-lg"
-    :class="[statusColors.bg, statusColors.text, sizeClasses]"
-  >
-    <span class="rounded-full shrink-0" :class="[statusColors.dot, dotSize]" />
-    {{ displayLabel }}
-  </span>
-</template>

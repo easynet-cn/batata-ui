@@ -1,3 +1,17 @@
+<template>
+  <button
+    type="button"
+    class="btn btn-secondary inline-flex items-center gap-1.5 transition-colors"
+    :class="size === 'sm' ? 'btn-sm' : ''"
+    :title="copied ? t('copied') : t('copy')"
+    @click="copyToClipboard"
+  >
+    <Check v-if="copied" :size="size === 'sm' ? 13 : 16" class="text-green-500" />
+    <Copy v-else :size="size === 'sm' ? 13 : 16" />
+    <span v-if="label || copied">{{ copied ? t('copied') : label }}</span>
+  </button>
+</template>
+
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Copy, Check } from 'lucide-vue-next'
@@ -33,17 +47,3 @@ async function copyToClipboard() {
   }
 }
 </script>
-
-<template>
-  <button
-    type="button"
-    class="btn btn-secondary inline-flex items-center gap-1.5 transition-colors"
-    :class="size === 'sm' ? 'btn-sm' : ''"
-    :title="copied ? t('copied') : t('copy')"
-    @click="copyToClipboard"
-  >
-    <Check v-if="copied" :size="size === 'sm' ? 13 : 16" class="text-green-500" />
-    <Copy v-else :size="size === 'sm' ? 13 : 16" />
-    <span v-if="label || copied">{{ copied ? t('copied') : label }}</span>
-  </button>
-</template>

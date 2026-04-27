@@ -916,7 +916,12 @@ const handleSwitchProvider = (p: 'batata' | 'consul') => {
       router.push('/consul/dashboard')
       break
     default:
-      router.push('/')
+      // Batata mode requires authentication, redirect to login if not authenticated
+      if (!batataStore.isAuthenticated) {
+        router.push('/login')
+      } else {
+        router.push('/')
+      }
   }
 }
 

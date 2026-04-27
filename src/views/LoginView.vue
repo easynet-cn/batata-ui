@@ -1,166 +1,3 @@
-<script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { Moon, Sun, Languages } from 'lucide-vue-next'
-import { useI18n } from '@/i18n'
-import { useBatataStore } from '@/stores/batata'
-import { useAuthStore } from '@/stores/auth'
-import { useTheme } from '@/composables/useTheme'
-import batataApi from '@/api/batata'
-import consulApi from '@/api/consul'
-import { storage } from '@/composables/useStorage'
-import { useProvider } from '@/composables/useProvider'
-import { switchProviderRoutes } from '@/router'
-
-const { t, language, setLanguage } = useI18n()
-const router = useRouter()
-const batataStore = useBatataStore()
-const authStore = useAuthStore()
-const { isDark, toggleTheme } = useTheme()
-const { setProvider } = useProvider()
-
-const username = ref('')
-const password = ref('')
-const consulToken = ref('')
-const isLoading = ref(false)
-const loginError = ref('')
-
-// SSO / OIDC state
-const consulLoginTab = ref<'token' | 'sso'>('token')
-const oidcProviders = ref<Array<{ Name: string; DisplayName?: string; Kind: string }>>([])
-const selectedOidcProvider = ref('')
-const oidcLoading = ref(false)
-
-const provider = computed(() => {
-  const p = storage.get('batata_provider') || 'batata'
-  return p === 'null' || !p ? 'batata' : (p as string)
-})
-
-const isConsulAcl = computed(() => provider.value === 'consul' && authStore.consulAclEnabled)
-
-onMounted(async () => {
-  try {
-    const res = await batataApi.getServerState()
-    const state = res.data
-
-    // Set consul ACL state
-    if (state.consul_acl_enabled === 'true') {
-      authStore.setConsulAclEnabled(true)
-    } else {
-      authStore.setConsulAclEnabled(false)
-    }
-
-    // Consul with ACL disabled: redirect directly
-    if (provider.value === 'consul' && !authStore.consulAclEnabled) {
-      router.replace('/consul/dashboard')
-      return
-    }
-
-    // Batata: check if admin init is needed
-    if (provider.value !== 'consul' && state.auth_admin_request === 'true') {
-      router.replace('/admin-init')
-    }
-  } catch {
-    // ignore - server might not be ready
-  }
-
-  // Fetch OIDC providers for Consul ACL mode
-  if (isConsulAcl.value) {
-    await fetchOidcProviders()
-  }
-})
-
-async function fetchOidcProviders() {
-  try {
-    const res = await consulApi.listOIDCAuthMethods()
-    oidcProviders.value = res.data || []
-    if (oidcProviders.value.length > 0) {
-      selectedOidcProvider.value = oidcProviders.value[0].Name
-    }
-  } catch {
-    // OIDC not available - that's fine, token login still works
-    oidcProviders.value = []
-  }
-}
-
-const handleSubmit = async () => {
-  isLoading.value = true
-  loginError.value = ''
-  try {
-    if (isConsulAcl.value) {
-      // Consul ACL token login
-      const success = await batataStore.loginWithToken(consulToken.value)
-      if (success) {
-        router.push('/consul/dashboard')
-      } else {
-        loginError.value = batataStore.error || t('consulTokenLoginFailed')
-      }
-    } else {
-      // Batata username/password login
-      const success = await batataStore.login(username.value, password.value)
-      if (success) {
-        router.push('/')
-      } else {
-        loginError.value = batataStore.error || t('loginFailed')
-      }
-    }
-  } catch {
-    loginError.value = isConsulAcl.value ? t('consulTokenLoginFailed') : t('loginFailed')
-  } finally {
-    isLoading.value = false
-  }
-}
-
-async function handleOidcLogin() {
-  if (!selectedOidcProvider.value) return
-
-  oidcLoading.value = true
-  loginError.value = ''
-
-  try {
-    const redirectURI = window.location.origin + '/oidc/callback'
-    // Save auth method to localStorage so callback page can retrieve it
-    storage.set('consul_oidc_auth_method', selectedOidcProvider.value)
-
-    const authURL = await authStore.loginWithOIDC(selectedOidcProvider.value, redirectURI)
-    if (authURL) {
-      // Redirect current page to the OIDC auth URL
-      window.location.href = authURL
-    } else {
-      loginError.value = authStore.error || t('consulOidcLoginFailed')
-    }
-  } catch {
-    loginError.value = t('consulOidcLoginFailed')
-  } finally {
-    oidcLoading.value = false
-  }
-}
-
-const continueWithoutLogin = () => {
-  // Allow anonymous access - set user with empty token
-  authStore.setConsulAclEnabled(false)
-  router.push('/consul/dashboard')
-}
-
-const enterConsul = () => {
-  setProvider('consul')
-  switchProviderRoutes('consul')
-  if (authStore.consulAclEnabled) {
-    // Stay on login page; UI re-renders into the Consul ACL form
-    loginError.value = ''
-    if (oidcProviders.value.length === 0) {
-      fetchOidcProviders()
-    }
-  } else {
-    router.replace('/consul/dashboard')
-  }
-}
-
-const toggleLanguage = () => {
-  setLanguage(language.value === 'zh' ? 'en' : 'zh')
-}
-</script>
-
 <template>
   <div
     class="min-h-screen bg-[#f0f2f5] dark:bg-gray-950 flex flex-col items-center justify-center p-4 transition-colors duration-300 relative"
@@ -397,3 +234,166 @@ const toggleLanguage = () => {
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { Moon, Sun, Languages } from 'lucide-vue-next'
+import { useI18n } from '@/i18n'
+import { useBatataStore } from '@/stores/batata'
+import { useAuthStore } from '@/stores/auth'
+import { useTheme } from '@/composables/useTheme'
+import batataApi from '@/api/batata'
+import consulApi from '@/api/consul'
+import { storage } from '@/composables/useStorage'
+import { useProvider } from '@/composables/useProvider'
+import { switchProviderRoutes } from '@/router'
+
+const { t, language, setLanguage } = useI18n()
+const router = useRouter()
+const batataStore = useBatataStore()
+const authStore = useAuthStore()
+const { isDark, toggleTheme } = useTheme()
+const { setProvider } = useProvider()
+
+const username = ref('')
+const password = ref('')
+const consulToken = ref('')
+const isLoading = ref(false)
+const loginError = ref('')
+
+// SSO / OIDC state
+const consulLoginTab = ref<'token' | 'sso'>('token')
+const oidcProviders = ref<Array<{ Name: string; DisplayName?: string; Kind: string }>>([])
+const selectedOidcProvider = ref('')
+const oidcLoading = ref(false)
+
+const provider = computed(() => {
+  const p = storage.get('batata_provider') || 'batata'
+  return p === 'null' || !p ? 'batata' : (p as string)
+})
+
+const isConsulAcl = computed(() => provider.value === 'consul' && authStore.consulAclEnabled)
+
+onMounted(async () => {
+  try {
+    const res = await batataApi.getServerState()
+    const state = res.data
+
+    // Set consul ACL state
+    if (state.consul_acl_enabled === 'true') {
+      authStore.setConsulAclEnabled(true)
+    } else {
+      authStore.setConsulAclEnabled(false)
+    }
+
+    // Consul with ACL disabled: redirect directly
+    if (provider.value === 'consul' && !authStore.consulAclEnabled) {
+      router.replace('/consul/dashboard')
+      return
+    }
+
+    // Batata: check if admin init is needed
+    if (provider.value !== 'consul' && state.auth_admin_request === 'true') {
+      router.replace('/admin-init')
+    }
+  } catch {
+    // ignore - server might not be ready
+  }
+
+  // Fetch OIDC providers for Consul ACL mode
+  if (isConsulAcl.value) {
+    await fetchOidcProviders()
+  }
+})
+
+async function fetchOidcProviders() {
+  try {
+    const res = await consulApi.listOIDCAuthMethods()
+    oidcProviders.value = res.data || []
+    if (oidcProviders.value.length > 0) {
+      selectedOidcProvider.value = oidcProviders.value[0].Name
+    }
+  } catch {
+    // OIDC not available - that's fine, token login still works
+    oidcProviders.value = []
+  }
+}
+
+const handleSubmit = async () => {
+  isLoading.value = true
+  loginError.value = ''
+  try {
+    if (isConsulAcl.value) {
+      // Consul ACL token login
+      const success = await batataStore.loginWithToken(consulToken.value)
+      if (success) {
+        router.push('/consul/dashboard')
+      } else {
+        loginError.value = batataStore.error || t('consulTokenLoginFailed')
+      }
+    } else {
+      // Batata username/password login
+      const success = await batataStore.login(username.value, password.value)
+      if (success) {
+        router.push('/')
+      } else {
+        loginError.value = batataStore.error || t('loginFailed')
+      }
+    }
+  } catch {
+    loginError.value = isConsulAcl.value ? t('consulTokenLoginFailed') : t('loginFailed')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function handleOidcLogin() {
+  if (!selectedOidcProvider.value) return
+
+  oidcLoading.value = true
+  loginError.value = ''
+
+  try {
+    const redirectURI = window.location.origin + '/oidc/callback'
+    // Save auth method to localStorage so callback page can retrieve it
+    storage.set('consul_oidc_auth_method', selectedOidcProvider.value)
+
+    const authURL = await authStore.loginWithOIDC(selectedOidcProvider.value, redirectURI)
+    if (authURL) {
+      // Redirect current page to the OIDC auth URL
+      window.location.href = authURL
+    } else {
+      loginError.value = authStore.error || t('consulOidcLoginFailed')
+    }
+  } catch {
+    loginError.value = t('consulOidcLoginFailed')
+  } finally {
+    oidcLoading.value = false
+  }
+}
+
+const continueWithoutLogin = () => {
+  // Allow anonymous access - set user with empty token
+  authStore.setConsulAclEnabled(false)
+  router.push('/consul/dashboard')
+}
+
+const enterConsul = () => {
+  setProvider('consul')
+  switchProviderRoutes('consul')
+  if (authStore.consulAclEnabled) {
+    // Stay on login page; UI re-renders into the Consul ACL form
+    loginError.value = ''
+    if (oidcProviders.value.length === 0) {
+      fetchOidcProviders()
+    }
+  } else {
+    router.replace('/consul/dashboard')
+  }
+}
+
+const toggleLanguage = () => {
+  setLanguage(language.value === 'zh' ? 'en' : 'zh')
+}
+</script>

@@ -1,70 +1,3 @@
-<script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { Moon, Sun, Languages, ShieldAlert } from 'lucide-vue-next'
-import { useI18n } from '@/i18n'
-import { useTheme } from '@/composables/useTheme'
-import batataApi from '@/api/batata'
-import { storage } from '@/composables/useStorage'
-import { config } from '@/config'
-
-const { t, language, setLanguage } = useI18n()
-const router = useRouter()
-const { isDark, toggleTheme } = useTheme()
-
-const password = ref('')
-const isLoading = ref(false)
-const errorMsg = ref('')
-
-onMounted(async () => {
-  try {
-    const res = await batataApi.getServerState()
-    if (res.data.auth_admin_request !== 'true') {
-      router.replace('/login')
-    }
-  } catch {
-    router.replace('/login')
-  }
-})
-
-const handleSubmit = async () => {
-  if (!password.value) return
-
-  isLoading.value = true
-  errorMsg.value = ''
-
-  try {
-    const res = await batataApi.initAdmin(password.value)
-    const { accessToken, username } = res.data
-
-    storage.set(config.storage.tokenKey, accessToken)
-    storage.set(config.storage.usernameKey, username)
-    storage.setJSON(config.storage.userKey, { name: username })
-
-    router.replace('/')
-  } catch (err: unknown) {
-    if (
-      err &&
-      typeof err === 'object' &&
-      'status' in err &&
-      (err as { status: number }).status === 409
-    ) {
-      errorMsg.value = t('adminAlreadyExists')
-    } else if (err && typeof err === 'object' && 'message' in err) {
-      errorMsg.value = (err as { message: string }).message
-    } else {
-      errorMsg.value = t('loginFailed')
-    }
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const toggleLanguage = () => {
-  setLanguage(language.value === 'zh' ? 'en' : 'zh')
-}
-</script>
-
 <template>
   <div
     class="min-h-screen bg-[#f0f2f5] dark:bg-gray-950 flex flex-col items-center justify-center p-4 transition-colors duration-300 relative"
@@ -178,3 +111,70 @@ const toggleLanguage = () => {
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { Moon, Sun, Languages, ShieldAlert } from 'lucide-vue-next'
+import { useI18n } from '@/i18n'
+import { useTheme } from '@/composables/useTheme'
+import batataApi from '@/api/batata'
+import { storage } from '@/composables/useStorage'
+import { config } from '@/config'
+
+const { t, language, setLanguage } = useI18n()
+const router = useRouter()
+const { isDark, toggleTheme } = useTheme()
+
+const password = ref('')
+const isLoading = ref(false)
+const errorMsg = ref('')
+
+onMounted(async () => {
+  try {
+    const res = await batataApi.getServerState()
+    if (res.data.auth_admin_request !== 'true') {
+      router.replace('/login')
+    }
+  } catch {
+    router.replace('/login')
+  }
+})
+
+const handleSubmit = async () => {
+  if (!password.value) return
+
+  isLoading.value = true
+  errorMsg.value = ''
+
+  try {
+    const res = await batataApi.initAdmin(password.value)
+    const { accessToken, username } = res.data
+
+    storage.set(config.storage.tokenKey, accessToken)
+    storage.set(config.storage.usernameKey, username)
+    storage.setJSON(config.storage.userKey, { name: username })
+
+    router.replace('/')
+  } catch (err: unknown) {
+    if (
+      err &&
+      typeof err === 'object' &&
+      'status' in err &&
+      (err as { status: number }).status === 409
+    ) {
+      errorMsg.value = t('adminAlreadyExists')
+    } else if (err && typeof err === 'object' && 'message' in err) {
+      errorMsg.value = (err as { message: string }).message
+    } else {
+      errorMsg.value = t('loginFailed')
+    }
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const toggleLanguage = () => {
+  setLanguage(language.value === 'zh' ? 'en' : 'zh')
+}
+</script>
