@@ -144,7 +144,8 @@ function getThemeExtension(dark: boolean): Extension {
 }
 
 // Suppress the Mod-Enter keybinding from basicSetup so it doesn't conflict
-const suppressedKeymap = keymap.of(defaultKeymap)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const suppressedKeymap = keymap.of(defaultKeymap as any)
 
 onMounted(() => {
   if (!editorContainer.value) return
