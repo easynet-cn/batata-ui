@@ -115,7 +115,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Search, RotateCcw, Loader2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ArrowLeft, Search, RotateCcw, Loader2, ChevronLeft, ChevronRight } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { logger } from '@/utils/logger'

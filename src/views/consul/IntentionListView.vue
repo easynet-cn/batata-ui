@@ -368,7 +368,7 @@ import {
   ArrowRightFromLine,
   ArrowRightToLine,
   Search,
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'

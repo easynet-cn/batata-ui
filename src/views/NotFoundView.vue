@@ -36,7 +36,7 @@
 import { useRouter } from 'vue-router'
 import { useI18n } from '@/i18n'
 import { useProvider } from '@/composables/useProvider'
-import { Home, ArrowLeft } from 'lucide-vue-next'
+import { Home, ArrowLeft } from '@lucide/vue'
 
 const router = useRouter()
 const { t } = useI18n()

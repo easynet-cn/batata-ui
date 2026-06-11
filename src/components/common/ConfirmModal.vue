@@ -42,7 +42,7 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
-import { X, Loader2 } from 'lucide-vue-next'
+import { X, Loader2 } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 
 const { t } = useI18n()

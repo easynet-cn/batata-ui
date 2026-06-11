@@ -291,7 +291,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { Search, RotateCcw, Plus, Eye, Pencil, Users, Trash2, Loader2, Code } from 'lucide-vue-next'
+import { Search, RotateCcw, Plus, Eye, Pencil, Users, Trash2, Loader2, Code } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { logger } from '@/utils/logger'

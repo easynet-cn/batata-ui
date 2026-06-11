@@ -137,7 +137,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Save, RefreshCw } from 'lucide-vue-next'
+import { ArrowLeft, Save, RefreshCw } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
 import { logger } from '@/utils/logger'

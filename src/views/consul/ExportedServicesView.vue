@@ -131,7 +131,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { RefreshCw, ExternalLink, Loader2 } from 'lucide-vue-next'
+import { RefreshCw, ExternalLink, Loader2 } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
 import { toast } from '@/utils/error'

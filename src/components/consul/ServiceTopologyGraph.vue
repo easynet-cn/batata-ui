@@ -33,7 +33,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { GitBranch } from 'lucide-vue-next'
+import { GitBranch } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import '@/utils/echarts' // Register tree-shaken echarts components
 import VChart from 'vue-echarts'

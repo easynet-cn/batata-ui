@@ -211,7 +211,7 @@ import {
   Info,
   HelpCircle,
   Loader2,
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'

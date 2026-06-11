@@ -240,15 +240,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  ArrowLeft,
-  Braces,
-  CheckCircle,
-  Loader2,
-  Lock,
-  Unlock,
-  FlaskConical,
-} from 'lucide-vue-next'
+import { ArrowLeft, Braces, CheckCircle, Loader2, Lock, Unlock, FlaskConical } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'

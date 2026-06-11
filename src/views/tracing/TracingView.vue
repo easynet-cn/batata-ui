@@ -361,7 +361,7 @@ import {
   XCircle,
   ArrowRight,
   Copy,
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import { logger } from '@/utils/logger'
 import batataApi from '@/api/batata'

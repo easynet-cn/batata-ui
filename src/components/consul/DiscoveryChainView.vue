@@ -136,7 +136,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Loader2, Route, GitBranch, Target } from 'lucide-vue-next'
+import { Loader2, Route, GitBranch, Target } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
 import { logger } from '@/utils/logger'

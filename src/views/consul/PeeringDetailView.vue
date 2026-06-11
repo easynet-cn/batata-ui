@@ -124,7 +124,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { ArrowLeft, Loader2 } from 'lucide-vue-next'
+import { ArrowLeft, Loader2 } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
 import { toast } from '@/utils/error'

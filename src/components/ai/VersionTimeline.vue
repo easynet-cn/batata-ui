@@ -129,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import { Eye, Download, Send, Trash2, Rocket, Zap, Wifi, WifiOff, FilePlus } from 'lucide-vue-next'
+import { Eye, Download, Send, Trash2, Rocket, Zap, Wifi, WifiOff, FilePlus } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import { useVersionStatus } from '@/composables/useVersionStatus'
 import PipelineStatusDisplay from '@/components/ai/PipelineStatusDisplay.vue'

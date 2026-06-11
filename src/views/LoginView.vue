@@ -238,7 +238,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Moon, Sun, Languages } from 'lucide-vue-next'
+import { Moon, Sun, Languages } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import { useBatataStore } from '@/stores/batata'
 import { useAuthStore } from '@/stores/auth'

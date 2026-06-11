@@ -176,7 +176,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Search, RotateCcw, Loader2 } from 'lucide-vue-next'
+import { Search, RotateCcw, Loader2 } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { logger } from '@/utils/logger'

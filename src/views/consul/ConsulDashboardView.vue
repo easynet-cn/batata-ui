@@ -320,7 +320,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Server, Network, HeartPulse, Globe, Database, RefreshCw } from 'lucide-vue-next'
+import { Server, Network, HeartPulse, Globe, Database, RefreshCw } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'

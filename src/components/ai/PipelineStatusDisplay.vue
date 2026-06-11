@@ -75,7 +75,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CheckCircle, XCircle, Clock, Loader2 } from 'lucide-vue-next'
+import { CheckCircle, XCircle, Clock, Loader2 } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import type { PublishPipelineInfo } from '@/types'
 

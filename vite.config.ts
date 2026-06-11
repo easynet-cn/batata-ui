@@ -142,7 +142,7 @@ export default defineConfig(({ mode }) => {
 
     // Optimize dependencies
     optimizeDeps: {
-      include: ['vue', 'vue-router', 'pinia', 'axios', 'lucide-vue-next'],
+      include: ['vue', 'vue-router', 'pinia', 'axios', '@lucide/vue'],
     },
   }
 })

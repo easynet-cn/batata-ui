@@ -39,7 +39,7 @@
 
 <script setup lang="ts">
 import { type Component } from 'vue'
-import { ChevronRight } from 'lucide-vue-next'
+import { ChevronRight } from '@lucide/vue'
 
 defineProps<{
   items: Array<{

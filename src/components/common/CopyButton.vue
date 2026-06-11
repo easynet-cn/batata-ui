@@ -14,7 +14,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Copy, Check } from 'lucide-vue-next'
+import { Copy, Check } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 
 const { t } = useI18n()

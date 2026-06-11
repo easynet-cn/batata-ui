@@ -115,7 +115,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Moon, Sun, Languages, ShieldAlert } from 'lucide-vue-next'
+import { Moon, Sun, Languages, ShieldAlert } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import { useTheme } from '@/composables/useTheme'
 import batataApi from '@/api/batata'

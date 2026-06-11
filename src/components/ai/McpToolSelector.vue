@@ -77,7 +77,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { ChevronDown, Wrench, Loader2 } from 'lucide-vue-next'
+import { ChevronDown, Wrench, Loader2 } from '@lucide/vue'
 import batataApi from '@/api/batata'
 import { useBatataStore } from '@/stores/batata'
 import type { SelectedMcpTool } from '@/types/copilot'

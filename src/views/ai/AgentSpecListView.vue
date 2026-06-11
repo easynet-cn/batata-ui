@@ -243,7 +243,7 @@ import {
   Globe,
   FileCode,
   ExternalLink,
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { useListView } from '@/composables/useListView'

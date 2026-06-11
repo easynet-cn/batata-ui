@@ -228,7 +228,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { Pencil, Trash2, ArrowLeft, RefreshCw, AlertTriangle, Copy } from 'lucide-vue-next'
+import { Pencil, Trash2, ArrowLeft, RefreshCw, AlertTriangle, Copy } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import { logger } from '@/utils/logger'

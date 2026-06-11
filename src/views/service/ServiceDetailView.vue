@@ -414,7 +414,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Pencil, Users, Loader2, Server, Power, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, Pencil, Users, Loader2, Server, Power, Trash2 } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'

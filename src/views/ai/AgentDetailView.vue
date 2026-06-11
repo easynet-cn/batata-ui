@@ -165,7 +165,7 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Pencil, Trash2, Loader2, Server, Wrench } from 'lucide-vue-next'
+import { ArrowLeft, Pencil, Trash2, Loader2, Server, Wrench } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { useDetailView } from '@/composables/useDetailView'

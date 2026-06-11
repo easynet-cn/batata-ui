@@ -149,7 +149,7 @@ import { logger } from '@/utils/logger'
 import type { ConfigHistoryInfo } from '@/types'
 import CodeEditor from '@/components/common/CodeEditor.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
-import { ArrowLeft, Loader2, AlertTriangle, RotateCcw } from 'lucide-vue-next'
+import { ArrowLeft, Loader2, AlertTriangle, RotateCcw } from '@lucide/vue'
 
 const router = useRouter()
 const route = useRoute()

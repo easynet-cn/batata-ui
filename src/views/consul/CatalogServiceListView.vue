@@ -197,7 +197,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Search, RefreshCw, Eye, Loader2 } from 'lucide-vue-next'
+import { Search, RefreshCw, Eye, Loader2 } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import { logger } from '@/utils/logger'

@@ -397,7 +397,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, RefreshCw, Loader2, Eye } from 'lucide-vue-next'
+import { ArrowLeft, RefreshCw, Loader2, Eye } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'

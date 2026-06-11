@@ -124,7 +124,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { X, Sparkles, Wand2, Loader2, Square, Check, ChevronRight } from 'lucide-vue-next'
+import { X, Sparkles, Wand2, Loader2, Square, Check, ChevronRight } from '@lucide/vue'
 import { buildSSEUrl, startSSEStream, parseJsonFromContent } from '@/utils/sse'
 import type { SSEStreamHandle } from '@/utils/sse'
 import type { SkillOptimizationPayload } from '@/types/copilot'

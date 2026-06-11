@@ -215,7 +215,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { RefreshCw, Eye, Trash2, Loader2, Copy, Plus, Pencil, Search } from 'lucide-vue-next'
+import { RefreshCw, Eye, Trash2, Loader2, Copy, Plus, Pencil, Search } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import consulApi from '@/api/consul'

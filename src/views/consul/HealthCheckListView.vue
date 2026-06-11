@@ -218,7 +218,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, Eye, Loader2, Search } from 'lucide-vue-next'
+import { RefreshCw, Eye, Loader2, Search } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import { useConsulStore } from '@/stores/consul'
 import { toast } from '@/utils/error'

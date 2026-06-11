@@ -407,7 +407,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, RotateCcw, Wrench, Loader2, Download, LogOut } from 'lucide-vue-next'
+import { RefreshCw, RotateCcw, Wrench, Loader2, Download, LogOut } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
 import { toast } from '@/utils/error'

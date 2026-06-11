@@ -260,7 +260,7 @@ import {
   CheckCircle,
   Activity,
   Plus,
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { init as echartsInit } from '@/utils/echarts'
 import type { ECharts, EChartsOption } from '@/utils/echarts'
 import { useI18n } from '@/i18n'

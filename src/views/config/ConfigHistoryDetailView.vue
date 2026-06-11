@@ -170,7 +170,7 @@ import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
 import type { ConfigHistoryInfo } from '@/types'
 import CodeEditor from '@/components/common/CodeEditor.vue'
-import { ArrowLeft, Loader2, FileText, Copy, RotateCcw } from 'lucide-vue-next'
+import { ArrowLeft, Loader2, FileText, Copy, RotateCcw } from '@lucide/vue'
 
 const router = useRouter()
 const route = useRoute()

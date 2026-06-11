@@ -12,7 +12,7 @@ vi.mock('@/i18n', () => ({
 }))
 
 // Mock lucide icons
-vi.mock('lucide-vue-next', () => ({
+vi.mock('@lucide/vue', () => ({
   ChevronLeft: { template: '<span class="icon-left" />' },
   ChevronRight: { template: '<span class="icon-right" />' },
 }))

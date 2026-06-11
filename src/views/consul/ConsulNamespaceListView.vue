@@ -165,7 +165,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { RefreshCw, Trash2, Loader2, Plus } from 'lucide-vue-next'
+import { RefreshCw, Trash2, Loader2, Plus } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
 import { toast } from '@/utils/error'

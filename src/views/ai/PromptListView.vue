@@ -197,7 +197,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Search, Trash2, Loader2, Eye, FileText, RotateCcw } from 'lucide-vue-next'
+import { Plus, Search, Trash2, Loader2, Eye, FileText, RotateCcw } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { useListView } from '@/composables/useListView'

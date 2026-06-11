@@ -98,7 +98,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Bug, Play, Loader2, Square, Eraser, ChevronRight } from 'lucide-vue-next'
+import { Bug, Play, Loader2, Square, Eraser, ChevronRight } from '@lucide/vue'
 import { buildSSEUrl, startSSEStream } from '@/utils/sse'
 import type { SSEStreamHandle } from '@/utils/sse'
 import type { PromptDebugPayload } from '@/types/copilot'

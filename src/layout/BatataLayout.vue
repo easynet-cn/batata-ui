@@ -590,7 +590,7 @@ import {
   MessageSquare,
   Package,
   FolderTree,
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { useI18n, type Language } from '@/i18n'
 import type { Namespace } from '@/types'
 import { useBatataStore } from '@/stores/batata'

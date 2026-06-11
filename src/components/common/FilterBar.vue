@@ -21,7 +21,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Search, RotateCcw } from 'lucide-vue-next'
+import { Search, RotateCcw } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 
 const { t } = useI18n()

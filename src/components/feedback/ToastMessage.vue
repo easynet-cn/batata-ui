@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-vue-next'
+import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from '@lucide/vue'
 import { toast } from '@/utils/error'
 
 type ToastType = 'success' | 'error' | 'warning' | 'info'

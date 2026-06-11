@@ -132,7 +132,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, RefreshCw, Pencil, Loader2, Code } from 'lucide-vue-next'
+import { ArrowLeft, RefreshCw, Pencil, Loader2, Code } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'

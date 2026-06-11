@@ -15,7 +15,7 @@
 
 <script setup lang="ts">
 import { type Component } from 'vue'
-import { Inbox } from 'lucide-vue-next'
+import { Inbox } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 
 const { t } = useI18n()

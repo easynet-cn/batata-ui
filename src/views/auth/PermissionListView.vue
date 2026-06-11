@@ -159,7 +159,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Plus, Search, Trash2, Loader2 } from 'lucide-vue-next'
+import { Plus, Search, Trash2, Loader2 } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'

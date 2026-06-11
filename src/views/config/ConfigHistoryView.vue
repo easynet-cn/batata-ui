@@ -325,7 +325,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Loader2, Eye, GitCompare, RotateCcw, Search, X } from 'lucide-vue-next'
+import { ArrowLeft, Loader2, Eye, GitCompare, RotateCcw, Search, X } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'

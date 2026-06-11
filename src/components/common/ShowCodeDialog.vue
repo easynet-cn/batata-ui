@@ -43,7 +43,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { X, Copy } from 'lucide-vue-next'
+import { X, Copy } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import CodeEditor from '@/components/common/CodeEditor.vue'
 import { logger } from '@/utils/logger'

@@ -295,7 +295,7 @@ import {
   Info,
   ExternalLink,
   Loader2,
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import { storage } from '@/composables/useStorage'
 import { logger } from '@/utils/logger'
