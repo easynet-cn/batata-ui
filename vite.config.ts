@@ -75,38 +75,48 @@ export default defineConfig(({ mode }) => {
 
     build: {
       target: 'esnext',
-      minify: 'terser',
-      cssMinify: 'lightningcss',
       sourcemap: mode !== 'production',
-      rollupOptions: {
+      rolldownOptions: {
         output: {
-          manualChunks(id) {
-            // Vendor chunk splitting
-            if (id.includes('node_modules')) {
-              if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router')) {
-                return 'vue-vendor'
-              }
-              if (id.includes('echarts') || id.includes('zrender')) {
-                return 'echarts'
-              }
-              if (
-                id.includes('codemirror') ||
-                id.includes('@codemirror') ||
-                id.includes('@lezer')
-              ) {
-                return 'codemirror'
-              }
-              if (id.includes('lucide')) {
-                return 'icons'
-              }
-              if (id.includes('axios')) {
-                return 'http'
-              }
-              if (id.includes('zod')) {
-                return 'validation'
-              }
-              return 'vendor'
-            }
+          // Vite 8 uses codeSplitting (Rolldown) instead of manualChunks (Rollup)
+          codeSplitting: {
+            groups: [
+              {
+                name: 'vue-vendor',
+                test: /node_modules[\\/](vue|pinia|vue-router)/,
+                priority: 20,
+              },
+              {
+                name: 'echarts',
+                test: /node_modules[\\/](echarts|zrender)/,
+                priority: 15,
+              },
+              {
+                name: 'codemirror',
+                test: /node_modules[\\/](@codemirror|codemirror|@lezer)/,
+                priority: 15,
+              },
+              {
+                name: 'icons',
+                test: /node_modules[\\/](@lucide|lucide)/,
+                priority: 15,
+              },
+              {
+                name: 'http',
+                test: /node_modules[\\/]axios/,
+                priority: 15,
+              },
+              {
+                name: 'validation',
+                test: /node_modules[\\/]zod/,
+                priority: 15,
+              },
+              {
+                name: 'vendor',
+                test: /node_modules/,
+                priority: 10,
+              },
+            ],
           },
           // Asset file naming
           chunkFileNames: 'assets/js/[name]-[hash].js',
