@@ -312,7 +312,7 @@ export interface AgentInfo {
 // Provider Type
 // ============================================
 
-export type ProviderType = 'batata' | 'consul'
+export type ProviderType = 'batata' | 'consul' | 'apollo'
 
 // ============================================
 // Settings Types

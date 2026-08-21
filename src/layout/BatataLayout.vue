@@ -82,8 +82,8 @@
         class="h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-5 shrink-0 z-10 shadow-sm"
       >
         <div class="flex items-center space-x-4">
-          <!-- Provider Switcher (shown when consul is enabled on server) -->
-          <template v-if="consulEnabled">
+          <!-- Provider Switcher (shown when consul/apollo is enabled on server) -->
+          <template v-if="consulEnabled || apolloEnabled">
             <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
               <button
                 @click="handleSwitchProvider('batata')"
@@ -107,6 +107,18 @@
                 ]"
               >
                 CONSUL
+              </button>
+              <button
+                v-if="apolloEnabled"
+                @click="handleSwitchProvider('apollo')"
+                :class="[
+                  'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
+                  provider === 'apollo'
+                    ? 'bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
+                ]"
+              >
+                APOLLO
               </button>
             </div>
 
@@ -586,13 +598,17 @@ import {
   Zap,
   Wrench,
   KeyRound,
+  KeySquare,
+  Upload,
   Sparkles,
+  Star,
   MessageSquare,
   Package,
   FolderTree,
+  Boxes,
 } from '@lucide/vue'
 import { useI18n, type Language } from '@/i18n'
-import type { Namespace } from '@/types'
+import type { Namespace, ProviderType } from '@/types'
 import { useBatataStore } from '@/stores/batata'
 import { useConsulStore } from '@/stores/consul'
 import { useConsulAbilities } from '@/composables/useConsulAbilities'
@@ -628,12 +644,14 @@ const { isDark, toggleTheme } = useTheme()
 const {
   provider,
   consulEnabled,
+  apolloEnabled,
   providerBgClass,
   providerShadowClass,
   providerTextClass,
   providerLetter,
   setProvider,
   setConsulEnabled,
+  setApolloEnabled,
   consoleUiEnabled,
   setConsoleUiEnabled,
 } = useProvider()
@@ -740,6 +758,8 @@ const fetchServerState = async () => {
     const state = response.data
     const consulOn = state?.consul_enabled === 'true'
     setConsulEnabled(consulOn)
+    const apolloOn = state?.apollo_enabled === 'true'
+    setApolloEnabled(apolloOn)
     // Set console UI enabled state (default to true if not specified)
     setConsoleUiEnabled(state?.console_ui_enabled !== 'false')
     // If consul is not enabled but user was on consul provider, switch back to batata
@@ -748,10 +768,17 @@ const fetchServerState = async () => {
       switchProviderRoutes('batata')
       router.push('/')
     }
+    // If apollo is not enabled but user was on apollo provider, switch back to batata
+    if (!apolloOn && provider.value === 'apollo') {
+      setProvider('batata')
+      switchProviderRoutes('batata')
+      router.push('/')
+    }
   } catch {
     // Default to disabled on error
     setConsulEnabled(false)
-    if (provider.value === 'consul') {
+    setApolloEnabled(false)
+    if (provider.value === 'consul' || provider.value === 'apollo') {
       setProvider('batata')
       switchProviderRoutes('batata')
       router.push('/')
@@ -906,7 +933,7 @@ const isActiveRoute = (path: string) => {
   return false
 }
 
-const handleSwitchProvider = (p: 'batata' | 'consul') => {
+const handleSwitchProvider = (p: ProviderType) => {
   if (provider.value === p) return
   setProvider(p)
   switchProviderRoutes(p)
@@ -914,6 +941,9 @@ const handleSwitchProvider = (p: 'batata' | 'consul') => {
     case 'consul':
       initConsul()
       router.push('/consul/dashboard')
+      break
+    case 'apollo':
+      router.push('/apollo/apps')
       break
     default:
       // Batata mode requires authentication, redirect to login if not authenticated
@@ -1080,10 +1110,43 @@ const consulNavGroups = computed(() => {
   return groups
 })
 
+const apolloNavGroups = computed(() => {
+  const groups = [
+    {
+      title: t('overview'),
+      items: [{ path: '/apollo/apps', label: t('apolloApps'), icon: Boxes }],
+    },
+    {
+      title: t('configManagement'),
+      items: [
+        { path: '/apollo/namespace', label: t('apolloItems'), icon: FileCode },
+        { path: '/apollo/releases', label: t('apolloReleases'), icon: GitBranch },
+        { path: '/apollo/clusters', label: t('apolloClusters'), icon: Network },
+        { path: '/apollo/app-namespaces', label: t('apolloAppNamespaces'), icon: Layers },
+        { path: '/apollo/access-keys', label: t('apolloAccessKeys'), icon: KeyRound },
+        { path: '/apollo/instances', label: t('apolloInstances'), icon: Server },
+        { path: '/apollo/import-export', label: t('apolloImportExport'), icon: Upload },
+      ],
+    },
+    {
+      title: t('system'),
+      items: [
+        { path: '/apollo/global-search', label: t('apolloGlobalSearch'), icon: Globe },
+        { path: '/apollo/consumers', label: t('apolloConsumers'), icon: KeySquare },
+        { path: '/apollo/favorites', label: t('apolloFavorites'), icon: Star },
+        { path: '/apollo/audit', label: t('apolloAudit'), icon: Shield },
+      ],
+    },
+  ]
+  return groups
+})
+
 const navGroups = computed(() => {
   switch (provider.value) {
     case 'consul':
       return consulNavGroups.value
+    case 'apollo':
+      return apolloNavGroups.value
     default:
       return nacosNavGroups.value
   }

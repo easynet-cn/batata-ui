@@ -50,6 +50,7 @@ import {
   createSession,
   destroySession,
 } from '../helpers/consul-api'
+import { apolloApiRequest } from '../helpers/apollo-api'
 
 export interface RegisteredResource {
   cleanup: () => Promise<void>
@@ -80,6 +81,7 @@ export const test = base.extend<{
   sessionListPage: SessionListPage
   api: APIRequestContext
   consulApi: APIRequestContext
+  apolloApi: APIRequestContext
   cleanup: Array<() => Promise<void>>
 }>({
   servicePage: async ({ page }, use) => {
@@ -143,6 +145,11 @@ export const test = base.extend<{
   },
   consulApi: async ({}, use) => {
     const ctx = await consulApiRequest()
+    await use(ctx)
+    await ctx.dispose()
+  },
+  apolloApi: async ({}, use) => {
+    const ctx = await apolloApiRequest()
     await use(ctx)
     await ctx.dispose()
   },

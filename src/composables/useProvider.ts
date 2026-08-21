@@ -6,6 +6,7 @@ const STORAGE_KEY = 'batata_provider'
 
 const provider = ref<ProviderType>((storage.get(STORAGE_KEY) as ProviderType) || 'batata')
 const consulEnabled = ref(false)
+const apolloEnabled = ref(false)
 const consoleUiEnabled = ref(true)
 
 // Provider change callbacks
@@ -14,12 +15,15 @@ const onChangeCallbacks: Array<(p: ProviderType) => void> = []
 export function useProvider() {
   const isBatata = computed(() => provider.value === 'batata')
   const isConsul = computed(() => provider.value === 'consul')
+  const isApollo = computed(() => provider.value === 'apollo')
 
   // Tailwind class helpers for provider-aware styling
   const providerColor = computed(() => {
     switch (provider.value) {
       case 'consul':
         return 'fuchsia'
+      case 'apollo':
+        return 'emerald'
       default:
         return 'blue'
     }
@@ -29,6 +33,8 @@ export function useProvider() {
     switch (provider.value) {
       case 'consul':
         return 'bg-fuchsia-600'
+      case 'apollo':
+        return 'bg-emerald-600'
       default:
         return 'bg-blue-600'
     }
@@ -38,6 +44,8 @@ export function useProvider() {
     switch (provider.value) {
       case 'consul':
         return 'hover:bg-fuchsia-700'
+      case 'apollo':
+        return 'hover:bg-emerald-700'
       default:
         return 'hover:bg-blue-700'
     }
@@ -47,6 +55,8 @@ export function useProvider() {
     switch (provider.value) {
       case 'consul':
         return 'text-fuchsia-600'
+      case 'apollo':
+        return 'text-emerald-600'
       default:
         return 'text-blue-600'
     }
@@ -56,6 +66,8 @@ export function useProvider() {
     switch (provider.value) {
       case 'consul':
         return 'shadow-fuchsia-600/30'
+      case 'apollo':
+        return 'shadow-emerald-600/30'
       default:
         return 'shadow-blue-600/30'
     }
@@ -65,6 +77,8 @@ export function useProvider() {
     switch (provider.value) {
       case 'consul':
         return 'C'
+      case 'apollo':
+        return 'A'
       default:
         return 'B'
     }
@@ -85,6 +99,10 @@ export function useProvider() {
     consulEnabled.value = enabled
   }
 
+  function setApolloEnabled(enabled: boolean) {
+    apolloEnabled.value = enabled
+  }
+
   function setConsoleUiEnabled(enabled: boolean) {
     consoleUiEnabled.value = enabled
   }
@@ -97,7 +115,9 @@ export function useProvider() {
     provider,
     isBatata,
     isConsul,
+    isApollo,
     consulEnabled,
+    apolloEnabled,
     consoleUiEnabled,
     providerColor,
     providerBgClass,
@@ -107,6 +127,7 @@ export function useProvider() {
     providerLetter,
     setProvider,
     setConsulEnabled,
+    setApolloEnabled,
     setConsoleUiEnabled,
     onProviderChange,
   }

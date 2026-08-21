@@ -554,10 +554,98 @@ function getInitialChildren(): RouteRecordRaw[] {
   switch (normalizedProvider) {
     case 'consul':
       return consulChildren
+    case 'apollo':
+      return apolloChildren
     default:
       return nacosChildren
   }
 }
+
+// Apollo route children
+const apolloChildren: RouteRecordRaw[] = [
+  {
+    path: 'apollo',
+    redirect: 'apollo/apps',
+  },
+  {
+    path: 'apollo/apps',
+    name: 'apollo-apps',
+    component: () => import('../views/apollo/ApolloAppListView.vue'),
+    meta: { titleKey: 'apolloApps' },
+  },
+  {
+    path: 'apollo/app',
+    name: 'apollo-app',
+    component: () => import('../views/apollo/ApolloAppDetailView.vue'),
+    meta: { titleKey: 'apolloApps', tab: 'items' },
+  },
+  {
+    path: 'apollo/namespace',
+    name: 'apollo-namespace',
+    component: () => import('../views/apollo/ApolloAppDetailView.vue'),
+    meta: { titleKey: 'apolloItems', tab: 'items' },
+  },
+  {
+    path: 'apollo/releases',
+    name: 'apollo-releases',
+    component: () => import('../views/apollo/ApolloAppDetailView.vue'),
+    meta: { titleKey: 'apolloReleases', tab: 'history' },
+  },
+  {
+    path: 'apollo/clusters',
+    name: 'apollo-clusters',
+    component: () => import('../views/apollo/ApolloClustersView.vue'),
+    meta: { titleKey: 'apolloClusters' },
+  },
+  {
+    path: 'apollo/access-keys',
+    name: 'apollo-access-keys',
+    component: () => import('../views/apollo/ApolloAccessKeysView.vue'),
+    meta: { titleKey: 'apolloAccessKeys' },
+  },
+  {
+    path: 'apollo/app-namespaces',
+    name: 'apollo-app-namespaces',
+    component: () => import('../views/apollo/ApolloAppNamespacesView.vue'),
+    meta: { titleKey: 'apolloAppNamespaces' },
+  },
+  {
+    path: 'apollo/import-export',
+    name: 'apollo-import-export',
+    component: () => import('../views/apollo/ApolloImportExportView.vue'),
+    meta: { titleKey: 'apolloImportExport' },
+  },
+  {
+    path: 'apollo/global-search',
+    name: 'apollo-global-search',
+    component: () => import('../views/apollo/ApolloGlobalSearchView.vue'),
+    meta: { titleKey: 'apolloGlobalSearch' },
+  },
+  {
+    path: 'apollo/consumers',
+    name: 'apollo-consumers',
+    component: () => import('../views/apollo/ApolloConsumersView.vue'),
+    meta: { titleKey: 'apolloConsumers' },
+  },
+  {
+    path: 'apollo/favorites',
+    name: 'apollo-favorites',
+    component: () => import('../views/apollo/ApolloFavoritesView.vue'),
+    meta: { titleKey: 'apolloFavorites' },
+  },
+  {
+    path: 'apollo/audit',
+    name: 'apollo-audit',
+    component: () => import('../views/apollo/ApolloAuditView.vue'),
+    meta: { titleKey: 'apolloAudit' },
+  },
+  {
+    path: 'apollo/instances',
+    name: 'apollo-instances',
+    component: () => import('../views/apollo/ApolloAppDetailView.vue'),
+    meta: { titleKey: 'apolloInstances', tab: 'instances' },
+  },
+]
 
 /**
  * Switch route tree when provider changes.
@@ -568,6 +656,9 @@ export function switchProviderRoutes(provider: ProviderType) {
   switch (provider) {
     case 'consul':
       children = consulChildren
+      break
+    case 'apollo':
+      children = apolloChildren
       break
     default:
       children = nacosChildren
