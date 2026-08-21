@@ -5,14 +5,14 @@
 
 interface AuditLogApiItem {
   id: number
-  gmtCreate: string
+  createdTime: string
   operator: string
-  sourceIp?: string
+  operatorIp?: string
   resourceType: string
-  operation: string
-  resourceId?: string
+  operationType: string
+  resourceName?: string
   result: string
-  details?: string
+  detail?: string
   errorMessage?: string
 }
 
@@ -60,22 +60,22 @@ const RESOURCE_TYPE_MAP: Record<string, AuditLogInternal['resourceType']> = {
  */
 export function mapAuditLogItem(item: AuditLogApiItem): AuditLogInternal {
   let details: unknown
-  if (item.details) {
+  if (item.detail) {
     try {
-      details = JSON.parse(item.details)
+      details = JSON.parse(item.detail)
     } catch {
-      details = item.details
+      details = item.detail
     }
   }
 
   return {
     id: String(item.id),
-    timestamp: new Date(item.gmtCreate).getTime(),
+    timestamp: new Date(item.createdTime).getTime(),
     username: item.operator,
-    ip: item.sourceIp || 'unknown',
+    ip: item.operatorIp || 'unknown',
     resourceType: RESOURCE_TYPE_MAP[item.resourceType] || 'config',
-    action: OPERATION_MAP[item.operation] || 'create',
-    resourceName: item.resourceId || '',
+    action: OPERATION_MAP[item.operationType] || 'create',
+    resourceName: item.resourceName || '',
     success: item.result === 'SUCCESS',
     details,
     errorMessage: item.errorMessage,

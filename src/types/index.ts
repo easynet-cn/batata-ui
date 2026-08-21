@@ -373,16 +373,15 @@ export type AuditResourceType =
 
 export interface AuditLogItem {
   id: number
-  operation: AuditOperation
-  resourceType: AuditResourceType
-  resourceId?: string
-  tenantId?: string
+  operationType: string
+  resourceType: string
+  resourceName?: string
   operator: string
-  sourceIp?: string
-  result: 'SUCCESS' | 'FAILURE'
+  operatorIp?: string
+  result: string
+  detail?: string
   errorMessage?: string
-  details?: string
-  gmtCreate: string
+  createdTime: string
 }
 
 export interface AuditLogSearch {

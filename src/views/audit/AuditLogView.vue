@@ -269,8 +269,7 @@
           <label class="text-xs text-text-secondary">{{ t('changeDetails') }}</label>
           <pre
             class="mt-2 p-3 bg-gray-900 text-gray-100 rounded-lg text-xs font-mono overflow-auto max-h-48"
-            >{{ JSON.stringify(selectedLog.details, null, 2) }}</pre
-          >
+            >{{ JSON.stringify(selectedLog.details, null, 2) }}</pre>
         </div>
 
         <!-- Error Message -->
@@ -313,6 +312,8 @@ import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import AppPagination from '@/components/common/AppPagination.vue'
+import { getTimeRange } from '@/utils/date'
+import { mapAuditLogItem } from '@/utils/mappers'
 import type { Namespace, AuditLogItem } from '@/types'
 
 // Internal view type that maps from API response
@@ -354,11 +355,9 @@ const filters = reactive({
 })
 
 // Helper to calculate time range (uses shared utility)
-const { getTimeRange: getTimeRangeUtil } = await import('@/utils/date')
-const getTimeRangeForFilters = () => getTimeRangeUtil(filters.timeRange)
+const getTimeRangeForFilters = () => getTimeRange(filters.timeRange)
 
 // Map API response to internal type (uses shared mapper)
-const { mapAuditLogItem } = await import('@/utils/mappers')
 const mapApiLogToInternal = (item: AuditLogItem): AuditLog =>
   mapAuditLogItem(item as Parameters<typeof mapAuditLogItem>[0]) as unknown as AuditLog
 
