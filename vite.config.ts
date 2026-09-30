@@ -11,7 +11,7 @@ import { visualizer } from 'rollup-plugin-visualizer'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:8848'
+  const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:8081'
   const consulProxyTarget = env.VITE_CONSUL_PROXY_TARGET || 'http://localhost:8500'
   const apolloProxyTarget = env.VITE_APOLLO_PROXY_TARGET || 'http://localhost:8080'
 

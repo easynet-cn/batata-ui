@@ -1,3 +1,10 @@
-minimumReleaseAgeExclude:
-  - '@lucide/vue@1.33.0'
-  - vite@8.2.2
+minimumReleaseAgeExclude: []
+minimumReleaseAgeExcludePrune: true
+
+overrides:
+  # Keep the whole CodeMirror tree on a single major version.
+  # Range (not a pinned version) so `ncu -u` can bump @codemirror/state to the
+  # latest 6.x and the entire tree follows automatically, avoiding TS2322
+  # caused by duplicate @codemirror/state type copies. Bump to "7" when
+  # CodeMirror ships a breaking 7.0 major release.
+  '@codemirror/state': '6'
