@@ -45,6 +45,9 @@
       <div v-if="loadingTools" class="text-center py-4">
         <Loader2 class="w-5 h-5 animate-spin mx-auto text-primary" />
       </div>
+      <div v-else-if="toolsError" class="text-xs text-danger text-center py-3">
+        {{ toolsError }}
+      </div>
       <div v-else-if="filteredTools.length > 0" class="max-h-[200px] overflow-y-auto space-y-1">
         <label
           v-for="tool in filteredTools"
@@ -109,6 +112,7 @@ const searchKeyword = ref('')
 const servers = ref<McpServerBasic[]>([])
 const tools = ref<McpTool[]>([])
 const loadingTools = ref(false)
+const toolsError = ref('')
 
 const selectedTools = computed(() => props.modelValue)
 
@@ -140,6 +144,7 @@ const toggleTool = (tool: McpTool) => {
 
 const handleServerChange = async () => {
   tools.value = []
+  toolsError.value = ''
   searchKeyword.value = ''
   if (!selectedServer.value) return
 
@@ -162,8 +167,8 @@ const handleServerChange = async () => {
         }
       }
     }
-  } catch {
-    tools.value = []
+  } catch (err) {
+    toolsError.value = err instanceof Error ? err.message : '加载工具失败'
   } finally {
     loadingTools.value = false
   }

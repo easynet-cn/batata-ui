@@ -1,4 +1,53 @@
-import type { McpFrontEndpointConfig, McpServiceRef, McpEndpointInfo } from '@/types/mcp'
+import type {
+  McpFrontEndpointConfig,
+  McpServiceRef,
+  McpEndpointInfo,
+  McpServerDetailInfo,
+} from '@/types/mcp'
+
+/** Normalized endpoint entry built from either source of the server detail. */
+export interface NormalizedEndpoint {
+  protocol: string
+  address: string
+  port: string
+  path: string
+  url: string
+}
+
+/**
+ * Extract all front-end endpoints from a server detail, regardless of whether
+ * they come from `frontendEndpoints` or `remoteServerConfig.frontEndpointConfigList`.
+ */
+export function extractEndpoints(detail?: McpServerDetailInfo | null): NormalizedEndpoint[] {
+  const list: NormalizedEndpoint[] = []
+  if (!detail) return list
+
+  for (const ep of detail.frontendEndpoints || []) {
+    list.push({
+      protocol: ep.protocol,
+      address: ep.address,
+      port: ep.port,
+      path: ep.path || '',
+      url: `${ep.protocol}://${ep.address}:${ep.port}${ep.path || ''}`,
+    })
+  }
+
+  for (const ep of detail.remoteServerConfig?.frontEndpointConfigList || []) {
+    if (typeof ep.endpointData === 'string' && ep.endpointData) {
+      const info = parseEndpointString(ep.endpointData)
+      const path = ep.path || info.path || ''
+      list.push({
+        protocol: ep.protocol || ep.type || info.protocol,
+        address: info.address,
+        port: info.port,
+        path,
+        url: `${info.protocol}://${info.address}:${info.port}${path}`,
+      })
+    }
+  }
+
+  return list
+}
 
 /** Split a URL-like endpoint string into protocol, host, port, path. */
 export function parseEndpointString(endpoint: string): McpEndpointInfo {

@@ -169,9 +169,14 @@ import AiResourceStatusControls from '@/components/ai/AiResourceStatusControls.v
 import VersionLifecycleActionBar from '@/components/ai/VersionLifecycleActionBar.vue'
 import CreateDraftFromVersionButton from '@/components/ai/CreateDraftFromVersionButton.vue'
 import VisibilityAuthorizationDialog from '@/components/ai/VisibilityAuthorizationDialog.vue'
-import { getMcpVersionActions } from '@/components/ai/mcp/mcp-lifecycle'
+import {
+  getMcpVersionActions,
+  getMcpStatusBadgeClass,
+  getMcpVersionStatusLabel,
+} from '@/components/ai/mcp/mcp-lifecycle'
+import { extractEndpoints } from '@/components/ai/mcp/endpoint-utils'
 import { parsePipelineInfo } from '@/components/ai/version-lifecycle'
-import type { McpServerVersionSummary, McpVersionStatus } from '@/types/mcp'
+import type { McpServerVersionSummary, McpVersionStatus, McpVersionIdentity } from '@/types/mcp'
 import type { Namespace } from '@/types'
 
 const props = defineProps<{
@@ -197,8 +202,8 @@ const detail = computed(() => store.currentMcp)
 const selectedVersion = computed(() => store.selectedVersion)
 
 const currentVersionStatus = computed(() => {
-  const matched = versions.value.find((v) => v.version === selectedVersion.value)
-  return matched?.status || ''
+  // Version lifecycle status only comes from the versions list API.
+  return versions.value.find((v) => v.version === selectedVersion.value)?.status || ''
 })
 
 const versions = ref<McpServerVersionSummary[]>([])
@@ -207,59 +212,13 @@ const visibilityDialogOpen = ref(false)
 const scope = ref<'PUBLIC' | 'PRIVATE'>('PRIVATE')
 
 const hasEndpoints = computed(() => endpointList.value.length > 0)
-const endpointList = computed(() => {
-  const list: { protocol: string; url: string }[] = []
-  const fe = detail.value?.frontendEndpoints
-  if (fe) {
-    for (const ep of fe) {
-      list.push({
-        protocol: ep.protocol,
-        url: `${ep.protocol}://${ep.address}:${ep.port}${ep.path || ''}`,
-      })
-    }
-  }
-  const remote = detail.value?.remoteServerConfig?.frontEndpointConfigList
-  if (remote) {
-    for (const ep of remote) {
-      if (typeof ep.endpointData === 'string') {
-        list.push({
-          protocol: ep.protocol || ep.type || 'http',
-          url: ep.endpointData + (ep.path || ''),
-        })
-      }
-    }
-  }
-  return list
-})
+const endpointList = computed(() =>
+  extractEndpoints(detail.value).map((e) => ({ protocol: e.protocol, url: e.url })),
+)
 
-const statusBadgeClass = computed(() => {
-  const s = currentVersionStatus.value
-  switch (s) {
-    case 'online':
-      return 'badge-success'
-    case 'draft':
-      return 'badge-info'
-    case 'reviewing':
-    case 'reviewed':
-      return 'badge-warning'
-    case 'offline':
-      return 'badge-secondary'
-    default:
-      return 'badge'
-  }
-})
+const statusBadgeClass = computed(() => getMcpStatusBadgeClass(currentVersionStatus.value))
 
-const statusLabel = computed(() => {
-  const s = currentVersionStatus.value
-  const map: Record<string, string> = {
-    online: '已上线',
-    offline: '已下线',
-    draft: '草稿',
-    reviewing: '审核中',
-    reviewed: '已审核',
-  }
-  return map[s as string] || s || '—'
-})
+const statusLabel = computed(() => getMcpVersionStatusLabel(currentVersionStatus.value) || '—')
 
 interface LifecycleActionDef {
   key: string
@@ -292,14 +251,7 @@ const availableActions = computed<LifecycleActionDef[]>(() => {
 })
 
 function versionStatusLabel(s?: string): string {
-  const map: Record<string, string> = {
-    draft: '草稿',
-    reviewing: '审核中',
-    reviewed: '已审核',
-    online: '已上线',
-    offline: '已下线',
-  }
-  return map[s as string] || s || ''
+  return getMcpVersionStatusLabel(s)
 }
 
 async function reload() {
@@ -307,6 +259,7 @@ async function reload() {
   store.clearError()
   await store.fetchMcpDetail(namespaceId.value, mcpName.value, selectedVersion.value || undefined)
   await loadVersions()
+  await loadVersionDetail()
 }
 
 async function loadVersions() {
@@ -324,53 +277,65 @@ async function loadVersions() {
   }
 }
 
-function onVersionChange() {
+// `getMcpServer` does not return scope; fetch it from the version detail.
+async function loadVersionDetail() {
+  const version = selectedVersion.value
+  if (!mcpName.value || !version) return
+  try {
+    const response = await mcpApi.getVersion({
+      namespaceId: namespaceId.value,
+      mcpName: mcpName.value,
+      version,
+    })
+    const s = response.data.data?.scope
+    if (s === 'PUBLIC' || s === 'PRIVATE') scope.value = s
+  } catch {
+    // keep current scope on failure
+  }
+}
+
+async function onVersionChange() {
   const v = selectedVersion.value
   if (v) {
-    store.fetchMcpDetail(namespaceId.value, mcpName.value, v)
+    await store.fetchMcpDetail(namespaceId.value, mcpName.value, v)
+    await loadVersionDetail()
   }
+}
+
+// Maps a lifecycle action key to the mcpApi method that performs it.
+// `editDraft` is handled separately (navigation, not an API call).
+const LIFECYCLE_API_METHODS: Record<string, keyof typeof mcpApi> = {
+  submit: 'submit',
+  publish: 'publish',
+  forcePublish: 'forcePublish',
+  redraft: 'redraft',
+  online: 'online',
+  offline: 'offline',
+  deleteDraft: 'deleteDraft',
 }
 
 async function handleLifecycleAction(action: string) {
   if (!mcpName.value || !selectedVersion.value) return
+  if (action === 'editDraft') {
+    router.push({
+      name: 'mcp-edit',
+      query: { mcpName: mcpName.value, namespaceId: namespaceId.value },
+    })
+    return
+  }
+  const method = LIFECYCLE_API_METHODS[action]
+  if (!method) return
   actionLoading.value = true
   try {
-    const identity = {
+    const identity: McpVersionIdentity = {
       namespaceId: namespaceId.value,
       mcpName: mcpName.value,
       version: selectedVersion.value,
     }
-    switch (action) {
-      case 'editDraft':
-        router.push({
-          name: 'mcp-edit',
-          query: { mcpName: mcpName.value, namespaceId: namespaceId.value },
-        })
-        break
-      case 'submit':
-        await mcpApi.submit(identity)
-        break
-      case 'publish':
-        await mcpApi.publish(identity)
-        break
-      case 'forcePublish':
-        await mcpApi.forcePublish(identity)
-        break
-      case 'redraft':
-        await mcpApi.redraft(identity)
-        break
-      case 'online':
-        await mcpApi.online(identity)
-        break
-      case 'offline':
-        await mcpApi.offline(identity)
-        break
-      case 'deleteDraft':
-        await mcpApi.deleteDraft(identity)
-        break
-    }
+    await (mcpApi[method] as (identity: McpVersionIdentity) => Promise<unknown>)(identity)
     await reload()
   } catch (err) {
+    store.error = err instanceof Error ? err.message : '操作失败'
     console.error('Lifecycle action failed:', err)
   } finally {
     actionLoading.value = false
@@ -378,8 +343,15 @@ async function handleLifecycleAction(action: string) {
 }
 
 async function handleCreateDraft() {
-  // For simplicity, navigate to editor to create a new draft
-  router.push({ name: 'mcp-new' })
+  // Navigate to editor pre-filled with the current version's data, bumping the version number.
+  router.push({
+    name: 'mcp-new',
+    query: {
+      mcpName: mcpName.value,
+      namespaceId: namespaceId.value,
+      fromVersion: selectedVersion.value || detail.value?.versionDetail?.version || '',
+    },
+  })
 }
 
 async function handleToggleEnabled(enabled: boolean) {
@@ -392,6 +364,7 @@ async function handleToggleEnabled(enabled: boolean) {
     })
     await reload()
   } catch (err) {
+    store.error = err instanceof Error ? err.message : '切换启用状态失败'
     console.error('Toggle enabled failed:', err)
   }
 }
@@ -406,6 +379,7 @@ async function handleScopeChange(newScope: string) {
       scope: scope.value,
     })
   } catch (err) {
+    store.error = err instanceof Error ? err.message : '修改可见性失败'
     console.error('Scope change failed:', err)
   }
 }

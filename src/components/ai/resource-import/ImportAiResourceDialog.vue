@@ -312,6 +312,20 @@ const validationToken = ref('')
 const validatedImportItems = ref<Map<string, AiResourceImportItem>>(new Map())
 const selectedKeys = ref<Set<string>>(new Set())
 
+// Abort in-flight requests when the dialog is closed or a new request starts.
+let abortController: AbortController | null = null
+
+function newAbortSignal(): AbortSignal {
+  abortController?.abort()
+  abortController = new AbortController()
+  return abortController.signal
+}
+
+function abortAll() {
+  abortController?.abort()
+  abortController = null
+}
+
 const selectedSource = computed(() => sources.value.find((s) => s.sourceId === sourceId.value))
 
 const validationMap = computed(() => {
@@ -453,14 +467,17 @@ async function searchCandidates(
   if (!targetSourceId) return
   loading.value = true
   try {
-    const response = await aiResourceImportApi.search({
-      namespaceId: props.namespaceId,
-      resourceType: props.resourceType,
-      sourceId: targetSourceId,
-      query: targetQuery.trim() || undefined,
-      cursor: cursor || undefined,
-      limit: DEFAULT_PAGE_SIZE,
-    })
+    const response = await aiResourceImportApi.search(
+      {
+        namespaceId: props.namespaceId,
+        resourceType: props.resourceType,
+        sourceId: targetSourceId,
+        query: targetQuery.trim() || undefined,
+        cursor: cursor || undefined,
+        limit: DEFAULT_PAGE_SIZE,
+      },
+      newAbortSignal(),
+    )
     const items = response.data.data?.items || []
     if (append) {
       const keys = new Set(candidates.value.map(itemKey))
@@ -477,6 +494,7 @@ async function searchCandidates(
     nextCursor.value = response.data.data?.nextCursor || ''
     hasMore.value = !!response.data.data?.hasMore
   } catch (err) {
+    if (err instanceof Error && err.name === 'CanceledError') return
     errorMessage.value = err instanceof Error ? err.message : '搜索失败'
   } finally {
     loading.value = false
@@ -486,7 +504,10 @@ async function searchCandidates(
 async function loadSources() {
   loading.value = true
   try {
-    const response = await aiResourceImportApi.listSources({ resourceType: props.resourceType })
+    const response = await aiResourceImportApi.listSources(
+      { resourceType: props.resourceType },
+      newAbortSignal(),
+    )
     const enabledSources = (response.data.data || []).filter((s) => s.enabled !== false)
     sources.value = enabledSources
     const firstSourceId = enabledSources[0]?.sourceId || ''
@@ -495,6 +516,7 @@ async function loadSources() {
       await searchCandidates(firstSourceId, false, '', '')
     }
   } catch (err) {
+    if (err instanceof Error && err.name === 'CanceledError') return
     errorMessage.value = err instanceof Error ? err.message : '加载导入源失败'
   } finally {
     loading.value = false
@@ -558,13 +580,16 @@ async function validateSelected() {
   loading.value = true
   errorMessage.value = ''
   try {
-    const response = await aiResourceImportApi.validate({
-      namespaceId: props.namespaceId,
-      resourceType: props.resourceType,
-      sourceId: sourceId.value,
-      selectedItems: JSON.stringify(items),
-      overwriteExisting: overwriteExisting.value,
-    })
+    const response = await aiResourceImportApi.validate(
+      {
+        namespaceId: props.namespaceId,
+        resourceType: props.resourceType,
+        sourceId: sourceId.value,
+        selectedItems: JSON.stringify(items),
+        overwriteExisting: overwriteExisting.value,
+      },
+      newAbortSignal(),
+    )
     const nextValidationItems = response.data.data?.items || []
     const nextValidationMap = new Map(nextValidationItems.map((item) => [itemKey(item), item]))
 
@@ -587,6 +612,7 @@ async function validateSelected() {
     })
     selectedKeys.value = nextSelected
   } catch (err) {
+    if (err instanceof Error && err.name === 'CanceledError') return
     errorMessage.value = err instanceof Error ? err.message : '校验失败'
   } finally {
     loading.value = false
@@ -600,15 +626,18 @@ async function executeImport(allImportable = false) {
   executing.value = true
   errorMessage.value = ''
   try {
-    const response = await aiResourceImportApi.execute({
-      namespaceId: props.namespaceId,
-      resourceType: props.resourceType,
-      sourceId: sourceId.value,
-      selectedItems: JSON.stringify(items),
-      overwriteExisting: overwriteExisting.value,
-      skipInvalid: skipInvalid.value,
-      validationToken: validationToken.value,
-    })
+    const response = await aiResourceImportApi.execute(
+      {
+        namespaceId: props.namespaceId,
+        resourceType: props.resourceType,
+        sourceId: sourceId.value,
+        selectedItems: JSON.stringify(items),
+        overwriteExisting: overwriteExisting.value,
+        skipInvalid: skipInvalid.value,
+        validationToken: validationToken.value,
+      },
+      newAbortSignal(),
+    )
     const data = response.data.data || {}
     if (data.failedCount) {
       errorMessage.value = `导入结果：成功 ${data.successCount || 0}，失败 ${data.failedCount || 0}，跳过 ${data.skippedCount || 0}`
@@ -618,6 +647,7 @@ async function executeImport(allImportable = false) {
     emit('success')
     handleClose()
   } catch (err) {
+    if (err instanceof Error && err.name === 'CanceledError') return
     errorMessage.value = err instanceof Error ? err.message : '导入失败'
   } finally {
     executing.value = false
@@ -625,6 +655,7 @@ async function executeImport(allImportable = false) {
 }
 
 function handleClose() {
+  abortAll()
   emit('update:modelValue', false)
 }
 

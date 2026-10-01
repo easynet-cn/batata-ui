@@ -259,8 +259,15 @@ export interface McpVersionIdentity {
   version: string
 }
 
-export type McpDraftData = Omit<McpCreateData, 'mcpName' | 'namespaceId'> &
-  McpVersionIdentity & { resourceSpecification?: string }
+export type McpDraftData = {
+  namespaceId?: string
+  mcpName: string
+  version: string
+  serverSpecification: string
+  toolSpecification?: string
+  endpointSpecification?: string
+  resourceSpecification?: string
+}
 
 // ===== Create/Update =====
 

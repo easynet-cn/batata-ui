@@ -49,3 +49,34 @@ export function isMcpLifecycleUnavailable(error: unknown): boolean {
   const message = `${String(response.data?.message || '')} ${String(response.data?.data || '')}`
   return message.includes('LIFECYCLE_MANAGED')
 }
+
+// ===== Status display mappings =====
+
+export const MCP_VERSION_STATUS_LABELS: Record<string, string> = {
+  draft: '草稿',
+  reviewing: '审核中',
+  reviewed: '已审核',
+  online: '已上线',
+  offline: '已下线',
+}
+
+export function getMcpVersionStatusLabel(status?: string): string {
+  if (!status) return ''
+  return MCP_VERSION_STATUS_LABELS[status] || status
+}
+
+export function getMcpStatusBadgeClass(status?: string): string {
+  switch (status) {
+    case 'online':
+      return 'badge-success'
+    case 'draft':
+      return 'badge-info'
+    case 'reviewing':
+    case 'reviewed':
+      return 'badge-warning'
+    case 'offline':
+      return 'badge-secondary'
+    default:
+      return 'badge'
+  }
+}

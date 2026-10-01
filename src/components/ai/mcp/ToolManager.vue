@@ -81,7 +81,7 @@
         <div class="mt-2">
           <label class="text-[10px] text-text-tertiary mb-1 block">inputSchema (JSON)</label>
           <textarea
-            :value="formatJson(tool.inputSchema)"
+            :value="getSchemaDisplay(index)"
             rows="4"
             class="input font-mono text-[10px] w-full"
             placeholder='{ "type": "object", "properties": {} }'
@@ -118,6 +118,9 @@ const importForm = ref({
 
 // Local copy to avoid mutating the prop directly
 const localTools = ref<McpTool[]>(props.tools.map((t) => ({ ...t })))
+// Holds raw (possibly invalid) JSON text per tool index so invalid input is
+// never written back into `inputSchema` and sent to the backend.
+const rawSchemaTexts = ref<Record<number, string>>({})
 
 watch(
   () => props.tools,
@@ -144,6 +147,7 @@ function addTool() {
 
 function removeTool(index: number) {
   localTools.value.splice(index, 1)
+  delete rawSchemaTexts.value[index]
   emitTools()
 }
 
@@ -157,13 +161,26 @@ function formatJson(schema: unknown): string {
 }
 
 function onSchemaChange(index: number, raw: string) {
-  try {
-    localTools.value[index].inputSchema = raw.trim() ? JSON.parse(raw) : {}
-  } catch {
-    // leave invalid text as-is; user will fix
-    localTools.value[index].inputSchema = { _raw: raw } as unknown as Record<string, unknown>
+  if (raw.trim()) {
+    try {
+      localTools.value[index].inputSchema = JSON.parse(raw)
+      delete rawSchemaTexts.value[index]
+    } catch {
+      // Keep invalid text out of inputSchema; store it separately for display.
+      rawSchemaTexts.value[index] = raw
+      localTools.value[index].inputSchema = {}
+    }
+  } else {
+    localTools.value[index].inputSchema = {}
+    delete rawSchemaTexts.value[index]
   }
   emitTools()
+}
+
+function getSchemaDisplay(index: number): string {
+  // Show the raw (invalid) text if present, otherwise the formatted schema.
+  if (rawSchemaTexts.value[index] !== undefined) return rawSchemaTexts.value[index]
+  return formatJson(localTools.value[index].inputSchema)
 }
 
 async function handleImport() {

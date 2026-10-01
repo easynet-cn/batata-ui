@@ -119,6 +119,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, Loader2 } from '@lucide/vue'
 import { mcpApi } from '@/api/mcp'
 import ToolManager from '@/components/ai/mcp/ToolManager.vue'
+import { extractEndpoints } from '@/components/ai/mcp/endpoint-utils'
+import { nextMcpVersion } from '@/components/ai/mcp/version-utils'
 import type { McpTool, McpServerDetailInfo, McpDraftData } from '@/types/mcp'
 import type { Namespace } from '@/types'
 
@@ -137,7 +139,7 @@ const namespaceId = computed(
 const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
-const currentVersion = ref<string>('1')
+const currentVersion = ref<string>('1.0.0')
 
 interface EditorForm {
   name: string
@@ -174,19 +176,15 @@ async function loadDetail() {
     form.value.description = detail.description || ''
     form.value.frontProtocol = detail.frontProtocol || 'mcp-sse'
     form.value.tools = detail.toolSpec?.tools ? [...detail.toolSpec.tools] : []
-    currentVersion.value = detail.versionDetail?.version || detail.version || '1'
+    const sourceVersion = detail.versionDetail?.version || detail.version || '1.0.0'
+    // If creating a draft from an existing version, bump the patch number.
+    currentVersion.value = route.query.fromVersion ? nextMcpVersion(sourceVersion) : sourceVersion
 
-    // Try to extract baseUrl/path from frontendEndpoints or remoteServerConfig
-    const fe = detail.frontendEndpoints?.[0]
-    if (fe) {
-      form.value.baseUrl = `${fe.protocol}://${fe.address}:${fe.port}`
-      form.value.path = fe.path || ''
-    } else if (detail.remoteServerConfig?.frontEndpointConfigList?.[0]) {
-      const ep = detail.remoteServerConfig.frontEndpointConfigList[0]
-      if (typeof ep.endpointData === 'string') {
-        form.value.baseUrl = ep.endpointData
-      }
-      form.value.path = ep.path || ''
+    // Extract baseUrl/path from the first available endpoint
+    const first = extractEndpoints(detail)[0]
+    if (first) {
+      form.value.baseUrl = `${first.protocol}://${first.address}:${first.port}`
+      form.value.path = first.path || ''
     }
   } catch (err) {
     error.value = err instanceof Error ? err.message : '加载失败'
