@@ -83,7 +83,7 @@ const form = reactive({
 
 // Methods
 const goBack = () => {
-  router.push('/ai/agent-specs')
+  router.push('/agentspecs')
 }
 
 const handleSubmit = async () => {
@@ -98,7 +98,7 @@ const handleSubmit = async () => {
       namespaceId: namespace.value,
       agentSpecName: form.name.trim(),
     })
-    router.push(`/ai/agent-specs/detail?agentSpecName=${encodeURIComponent(form.name.trim())}`)
+    router.push(`/agentspec/detail?agentSpecName=${encodeURIComponent(form.name.trim())}`)
   } catch (error) {
     logger.error('Failed to create agent spec:', error)
     toast.apiError(error)

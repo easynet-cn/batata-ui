@@ -20,11 +20,8 @@ import type {
   UserInfo,
   RoleInfo,
   PermissionInfo,
-  McpServerInfo,
   AgentInfo,
   AgentPayload,
-  McpServerPayload,
-  McpServerImportPayload,
   PluginConfigPayload,
   PluginBackendInfo,
   PluginBackendDetail,
@@ -899,95 +896,8 @@ class BatataApi {
   }
 
   // ============================================
-  // MCP Management API (/v3/console/ai/mcp)
-  // Aligned with Nacos V3 Console API
+  // MCP Management API — moved to src/api/mcp.ts
   // ============================================
-
-  async getMcpServerList(params?: {
-    pageNo?: number
-    pageSize?: number
-    namespaceId?: string
-    search?: string
-  }) {
-    return this.instance.get<BatataResponse<PageResult<McpServerInfo>>>('/ai/mcp/list', {
-      params: {
-        pageNo: params?.pageNo,
-        pageSize: params?.pageSize,
-        namespaceId: params?.namespaceId,
-        mcpName: params?.search || undefined,
-        search: params?.search ? 'blur' : undefined,
-      },
-    })
-  }
-
-  async getMcpServerDetail(namespace: string, name: string) {
-    return this.instance.get<BatataResponse<McpServerInfo>>('/ai/mcp', {
-      params: {
-        namespaceId: namespace,
-        mcpName: name,
-      },
-    })
-  }
-
-  async createMcpServer(data: McpServerPayload) {
-    return this.instance.post<BatataResponse>('/ai/mcp', data)
-  }
-
-  async updateMcpServer(namespace: string, name: string, data: Partial<McpServerPayload>) {
-    return this.instance.put<BatataResponse>('/ai/mcp', data, {
-      params: {
-        namespaceId: namespace,
-        mcpName: name,
-      },
-    })
-  }
-
-  async deleteMcpServer(namespace: string, name: string) {
-    return this.instance.delete<BatataResponse>('/ai/mcp', {
-      params: {
-        namespaceId: namespace,
-        mcpName: name,
-      },
-    })
-  }
-
-  async importMcpServers(data: McpServerImportPayload) {
-    return this.instance.post<BatataResponse>('/ai/mcp/import', data)
-  }
-
-  async importToolsFromMcp(params: {
-    transportType: string
-    baseUrl: string
-    endpoint: string
-    authToken?: string
-  }) {
-    return this.instance.get<BatataResponse>('/ai/mcp/importToolsFromMcp', { params })
-  }
-
-  async validateMcpImport(data: { content: string }) {
-    return this.instance.post<BatataResponse>('/ai/mcp/import/validate', data)
-  }
-
-  async executeMcpImport(data: { content: string; namespace?: string; overwrite?: boolean }) {
-    return this.instance.post<BatataResponse>('/ai/mcp/import/execute', data)
-  }
-
-  async validateOpenApiSpec(data: { content: string; format?: string }) {
-    return this.instance.post<
-      BatataResponse<{
-        tools: Array<{ name: string; description: string; inputSchema?: Record<string, unknown> }>
-      }>
-    >('/ai/mcp/openapi/validate', data)
-  }
-
-  async importOpenApiTools(data: {
-    mcpServerName?: string
-    content: string
-    format?: string
-    selectedTools?: string[]
-  }) {
-    return this.instance.post<BatataResponse>('/ai/mcp/openapi/import', data)
-  }
 
   // ============================================
   // Agent (A2A) Management API (/v3/console/ai/a2a)

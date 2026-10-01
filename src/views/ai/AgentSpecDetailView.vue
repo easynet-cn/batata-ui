@@ -372,11 +372,11 @@ const handleDownloadVersion = async (version: string) => {
 // Status helpers removed - now handled by VersionTimeline component
 
 const goBack = () => {
-  router.push('/ai/agent-specs')
+  router.push('/agentspecs')
 }
 
 const handleEditDraft = () => {
-  router.push(`/ai/agent-specs/draft?agentSpecName=${encodeURIComponent(agentSpecName.value)}`)
+  router.push(`/agentspec/draft?agentSpecName=${encodeURIComponent(agentSpecName.value)}`)
 }
 
 const handleCreateDraft = async (basedOnVersion?: string) => {
@@ -507,7 +507,7 @@ const confirmDelete = async () => {
   try {
     await batataApi.deleteAgentSpec(namespace.value, agentSpecName.value)
     showDeleteModal.value = false
-    router.push('/ai/agent-specs')
+    router.push('/agentspecs')
   } catch (error) {
     logger.error('Failed to delete agent spec:', error)
     toast.apiError(error)

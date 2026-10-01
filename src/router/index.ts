@@ -188,6 +188,12 @@ const nacosChildren: RouteRecordRaw[] = [
     component: () => import('../views/ai/SkillDetailView.vue'),
     meta: { titleKey: 'routeSkillDetail' },
   },
+  {
+    path: 'skill/draft',
+    name: 'skill-draft',
+    component: () => import('../views/ai/SkillEditorView.vue'),
+    meta: { titleKey: 'routeSkillDraft' },
+  },
   // AgentSpec Management
   {
     path: 'agentspecs',
@@ -206,6 +212,12 @@ const nacosChildren: RouteRecordRaw[] = [
     name: 'agentspec-detail',
     component: () => import('../views/ai/AgentSpecDetailView.vue'),
     meta: { titleKey: 'routeAgentSpecDetail' },
+  },
+  {
+    path: 'agentspec/draft',
+    name: 'agentspec-draft',
+    component: () => import('../views/ai/AgentSpecEditorView.vue'),
+    meta: { titleKey: 'routeAgentSpecDraft' },
   },
   // Prompt Management
   {

@@ -34,7 +34,6 @@ declare global {
   const getCurrentInstance: typeof import('vue').getCurrentInstance
   const getCurrentScope: typeof import('vue').getCurrentScope
   const getCurrentWatcher: typeof import('vue').getCurrentWatcher
-  const getRelativeTime: typeof import('./utils/date').getRelativeTime
   const getTimeRange: typeof import('./utils/date').getTimeRange
   const h: typeof import('vue').h
   const handleError: typeof import('./utils/error').handleError

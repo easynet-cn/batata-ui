@@ -39,14 +39,41 @@
 
             <div>
               <label class="block text-xs font-medium text-text-primary mb-1">
-                {{ t('model') }}
+                {{ t('agentDisplayName') }}
               </label>
-              <select v-model="form.model" class="input">
-                <option value="">{{ t('defaultModel') }}</option>
-                <option value="gpt-3">GPT-4</option>
-                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                <option value="claude-3-opus">Claude 3 Opus</option>
-                <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+              <input v-model="form.displayName" type="text" class="input" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-text-primary mb-1">
+                {{ t('agentVersion') }}
+              </label>
+              <input v-model="form.version" type="text" class="input" placeholder="1.0.0" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-text-primary mb-1">
+                {{ t('agentUrl') }} <span class="text-danger">*</span>
+              </label>
+              <input v-model="form.url" type="text" class="input" placeholder="https://..." />
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-text-primary mb-1">
+                {{ t('agentProtocolVersion') }}
+              </label>
+              <input v-model="form.protocolVersion" type="text" class="input" placeholder="1.0" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-text-primary mb-1">
+                {{ t('agentPreferredTransport') }}
+              </label>
+              <select v-model="form.preferredTransport" class="input">
+                <option value="">{{ t('defaultValue') }}</option>
+                <option value="JSONRPC">JSONRPC</option>
+                <option value="HTTP+JSON">HTTP+JSON</option>
+                <option value="SSE">SSE</option>
               </select>
             </div>
           </div>
@@ -75,138 +102,151 @@
           </div>
         </div>
 
-        <!-- System Prompt -->
+        <!-- Capabilities -->
         <div class="space-y-3">
           <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2">
-            {{ t('systemPrompt') }}
+            {{ t('agentCapabilities') }}
           </h3>
-
-          <div>
-            <textarea
-              v-model="form.systemPrompt"
-              class="input min-h-[150px] font-mono text-sm"
-              :placeholder="t('systemPromptPlaceholder')"
-            />
-            <p class="text-xs text-text-tertiary mt-1">{{ t('systemPromptHint') }}</p>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <label
+              v-for="cap in capabilityKeys"
+              :key="cap.key"
+              class="flex items-center gap-2 text-sm text-text-primary"
+            >
+              <input
+                v-model="form.capabilities[cap.key]"
+                type="checkbox"
+                class="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary"
+              />
+              {{ t(cap.label) }}
+            </label>
           </div>
         </div>
 
-        <!-- MCP Servers -->
+        <!-- Modes -->
         <div class="space-y-3">
           <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2">
-            {{ t('mcpServersConfig') }}
+            {{ t('agentModes') }}
           </h3>
-
-          <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('selectMcpServers') }}
-            </label>
-            <div class="space-y-2 max-h-48 overflow-y-auto border border-border rounded-lg p-3">
-              <div v-if="loadingMcp" class="text-center py-4">
-                <Loader2 class="w-5 h-5 animate-spin mx-auto text-primary" />
-              </div>
-              <template v-else-if="availableMcpServers.length === 0">
-                <p class="text-text-tertiary text-sm text-center py-4">
-                  {{ t('noMcpServersAvailable') }}
-                </p>
-              </template>
-              <template v-else>
-                <label
-                  v-for="server in availableMcpServers"
-                  :key="server.id"
-                  class="flex items-center gap-2 p-2 rounded-lg hover:bg-bg-secondary cursor-pointer"
-                >
-                  <input
-                    v-model="form.mcpServers"
-                    :value="server.id"
-                    type="checkbox"
-                    class="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary"
-                  />
-                  <div class="flex-1">
-                    <span class="font-medium text-text-primary">{{ server.name }}</span>
-                    <span :class="['ml-2', getTypeClass(server.type)]">{{ server.type }}</span>
-                  </div>
-                  <span :class="server.enabled ? 'badge badge-success' : 'badge badge-danger'">
-                    {{ server.enabled ? t('enabled') : t('disabled') }}
-                  </span>
-                </label>
-              </template>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-text-primary mb-1">
+                {{ t('agentInputModes') }}
+              </label>
+              <input
+                v-model="form.inputModes"
+                type="text"
+                class="input"
+                placeholder="text, application/json"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-text-primary mb-1">
+                {{ t('agentOutputModes') }}
+              </label>
+              <input
+                v-model="form.outputModes"
+                type="text"
+                class="input"
+                placeholder="text, application/json"
+              />
             </div>
           </div>
         </div>
 
-        <!-- Tools Config -->
+        <!-- Skills -->
         <div class="space-y-3">
-          <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2">
-            {{ t('toolsConfig') }}
-          </h3>
+          <div class="flex items-center justify-between border-b border-border pb-2">
+            <h3 class="text-sm font-medium text-text-primary">{{ t('agentSkills') }}</h3>
+            <button @click="addSkill" class="btn btn-secondary btn-sm">
+              <Plus class="w-3.5 h-3.5" />
+              {{ t('agentAddSkill') }}
+            </button>
+          </div>
 
-          <div class="flex items-center gap-2">
+          <div v-if="form.skills.length === 0" class="text-xs text-text-tertiary">
+            {{ t('agentNoSkills') }}
+          </div>
+          <div
+            v-for="(skill, index) in form.skills"
+            :key="index"
+            class="grid grid-cols-1 md:grid-cols-12 gap-2 items-start"
+          >
             <input
-              id="useAllTools"
-              v-model="form.useAllTools"
-              type="checkbox"
-              class="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary"
+              v-model="skill.name"
+              type="text"
+              class="input md:col-span-4"
+              :placeholder="t('agentSkillName')"
             />
-            <label for="useAllTools" class="text-sm text-text-primary">
-              {{ t('useAllAvailableTools') }}
-            </label>
-          </div>
-
-          <div v-if="!form.useAllTools">
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('allowedTools') }}
-            </label>
-            <textarea
-              v-model="form.allowedTools"
-              class="input min-h-[80px] font-mono"
-              :placeholder="t('allowedToolsPlaceholder')"
+            <input
+              v-model="skill.description"
+              type="text"
+              class="input md:col-span-6"
+              :placeholder="t('agentSkillDescription')"
             />
-            <p class="text-xs text-text-tertiary mt-1">{{ t('oneToolPerLine') }}</p>
+            <input
+              v-model.number="skill.proficiency"
+              type="number"
+              min="0"
+              max="100"
+              class="input md:col-span-1"
+              :title="t('agentSkillProficiency')"
+            />
+            <button
+              @click="removeSkill(index)"
+              class="btn btn-ghost btn-sm text-danger md:col-span-1"
+              :title="t('agentRemoveSkill')"
+            >
+              <Trash2 class="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
-        <!-- Advanced Settings -->
+        <!-- Provider & Extras -->
         <div class="space-y-3">
           <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2">
-            {{ t('advancedSettings') }}
+            {{ t('agentProvider') }}
           </h3>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-medium text-text-primary mb-1">
-                {{ t('temperature') }}
+                {{ t('agentProviderOrg') }}
+              </label>
+              <input v-model="form.providerOrganization" type="text" class="input" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-text-primary mb-1">
+                {{ t('agentProviderUrl') }}
               </label>
               <input
-                v-model.number="form.temperature"
-                type="number"
-                min="0"
-                max="2"
-                step="0.1"
+                v-model="form.providerUrl"
+                type="text"
                 class="input"
+                placeholder="https://..."
               />
-              <p class="text-xs text-text-tertiary mt-1">0-2, {{ t('defaultValue') }}: 0.7</p>
             </div>
-
             <div>
               <label class="block text-xs font-medium text-text-primary mb-1">
-                {{ t('maxTokens') }}
-              </label>
-              <input v-model.number="form.maxTokens" type="number" min="1" class="input" />
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-text-primary mb-1">
-                {{ t('maxIterations') }}
+                {{ t('agentDocumentationUrl') }}
               </label>
               <input
-                v-model.number="form.maxIterations"
-                type="number"
-                min="1"
-                max="100"
+                v-model="form.documentationUrl"
+                type="text"
                 class="input"
+                placeholder="https://..."
               />
-              <p class="text-xs text-text-tertiary mt-1">{{ t('defaultValue') }}: 10</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-text-primary mb-1">
+                {{ t('agentIconUrl') }}
+              </label>
+              <input v-model="form.iconUrl" type="text" class="input" placeholder="https://..." />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-xs font-medium text-text-primary mb-1">
+                {{ t('agentTags') }}
+              </label>
+              <input v-model="form.tags" type="text" class="input" placeholder="tag1, tag2" />
             </div>
           </div>
         </div>
@@ -229,14 +269,14 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, Loader2 } from '@lucide/vue'
+import { ArrowLeft, Loader2, Plus, Trash2 } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
-import type { McpServerInfo, Namespace, AgentPayload } from '@/types'
+import type { Namespace, AgentPayload, AgentCapabilities } from '@/types'
 
-defineProps<{
+const props = defineProps<{
   namespace: Namespace
 }>()
 
@@ -247,43 +287,70 @@ const { t } = useI18n()
 // State
 const loading = ref(false)
 const saving = ref(false)
-const loadingMcp = ref(false)
-const availableMcpServers = ref<McpServerInfo[]>([])
+
+const capabilityKeys: Array<{
+  key: 'streaming' | 'multiTurn' | 'toolUse' | 'fileAttachments' | 'images' | 'audio' | 'video'
+  label:
+    | 'agentCapStreaming'
+    | 'agentCapMultiTurn'
+    | 'agentCapToolUse'
+    | 'agentCapFileAttachments'
+    | 'agentCapImages'
+    | 'agentCapAudio'
+    | 'agentCapVideo'
+}> = [
+  { key: 'streaming', label: 'agentCapStreaming' },
+  { key: 'multiTurn', label: 'agentCapMultiTurn' },
+  { key: 'toolUse', label: 'agentCapToolUse' },
+  { key: 'fileAttachments', label: 'agentCapFileAttachments' },
+  { key: 'images', label: 'agentCapImages' },
+  { key: 'audio', label: 'agentCapAudio' },
+  { key: 'video', label: 'agentCapVideo' },
+]
 
 const form = reactive({
-  id: '',
   name: '',
-  model: '',
+  displayName: '',
+  version: '',
+  url: '',
+  protocolVersion: '1.0',
+  preferredTransport: '',
   description: '',
   enabled: true,
-  systemPrompt: '',
-  mcpServers: [] as string[],
-  useAllTools: true,
-  allowedTools: '',
-  temperature: 0.7,
-  maxTokens: 4096,
-  maxIterations: 10,
+  capabilities: {
+    streaming: false,
+    multiTurn: false,
+    toolUse: false,
+    fileAttachments: false,
+    images: false,
+    audio: false,
+    video: false,
+  } as Required<
+    Pick<
+      AgentCapabilities,
+      'streaming' | 'multiTurn' | 'toolUse' | 'fileAttachments' | 'images' | 'audio' | 'video'
+    >
+  >,
+  inputModes: '',
+  outputModes: '',
+  skills: [] as Array<{ name: string; description: string; proficiency: number }>,
+  providerOrganization: '',
+  providerUrl: '',
+  documentationUrl: '',
+  iconUrl: '',
+  tags: '',
 })
 
 // Computed
 const isEdit = computed(() => !!route.query.name)
 
-// Methods
-const fetchMcpServers = async () => {
-  loadingMcp.value = true
-  try {
-    const response = await batataApi.getMcpServerList({
-      pageNo: 1,
-      pageSize: 100,
-    })
-    availableMcpServers.value = response.data.data.pageItems || []
-  } catch (error) {
-    logger.error('Failed to fetch MCP servers:', error)
-  } finally {
-    loadingMcp.value = false
-  }
-}
+const splitList = (value: string) =>
+  value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
 
+// Methods
 const fetchAgent = async () => {
   const namespace = route.query.namespace as string
   const name = route.query.name as string
@@ -293,20 +360,42 @@ const fetchAgent = async () => {
   try {
     const response = await batataApi.getAgentDetail(namespace, name)
     const agent = response.data.data
+    if (!agent) return
+
     Object.assign(form, {
-      id: agent.id,
-      name: agent.name,
-      model: agent.model || '',
+      name: agent.name || '',
+      displayName: agent.displayName || '',
+      version: agent.version || '',
+      url: agent.url || '',
+      protocolVersion: agent.protocolVersion || '1.0',
+      preferredTransport: agent.preferredTransport || '',
       description: agent.description || '',
-      enabled: agent.enabled,
-      systemPrompt: agent.systemPrompt || '',
-      mcpServers: agent.mcpServers || [],
-      useAllTools: !agent.tools || agent.tools.length === 0,
-      allowedTools: agent.tools?.join('\n') || '',
-      temperature: agent.temperature ?? 0.7,
-      maxTokens: agent.maxTokens ?? 4096,
-      maxIterations: agent.maxIterations ?? 10,
+      enabled: agent.enabled ?? true,
+      inputModes: agent.defaultInputModes?.join(', ') || '',
+      outputModes: agent.defaultOutputModes?.join(', ') || '',
+      skills: (agent.skills || []).map((s) => ({
+        name: s.name || '',
+        description: s.description || '',
+        proficiency: s.proficiency ?? 0,
+      })),
+      providerOrganization: agent.provider?.organization || '',
+      providerUrl: agent.provider?.url || '',
+      documentationUrl: agent.documentationUrl || '',
+      iconUrl: agent.iconUrl || '',
+      tags: agent.tags?.join(', ') || '',
     })
+
+    if (agent.capabilities) {
+      Object.assign(form.capabilities, {
+        streaming: !!agent.capabilities.streaming,
+        multiTurn: !!agent.capabilities.multiTurn,
+        toolUse: !!agent.capabilities.toolUse,
+        fileAttachments: !!agent.capabilities.fileAttachments,
+        images: !!agent.capabilities.images,
+        audio: !!agent.capabilities.audio,
+        video: !!agent.capabilities.video,
+      })
+    }
   } catch (error) {
     logger.error('Failed to fetch agent:', error)
   } finally {
@@ -314,45 +403,63 @@ const fetchAgent = async () => {
   }
 }
 
-const getTypeClass = (type: string) => {
-  const classes: Record<string, string> = {
-    stdio: 'badge badge-info',
-    sse: 'badge badge-success',
-    http: 'badge badge-primary',
-  }
-  return classes[type] || 'badge'
+const addSkill = () => {
+  form.skills.push({ name: '', description: '', proficiency: 0 })
+}
+
+const removeSkill = (index: number) => {
+  form.skills.splice(index, 1)
 }
 
 const goBack = () => {
   router.push('/agents')
 }
 
+const buildPayload = (): AgentPayload => ({
+  card: {
+    name: form.name,
+    displayName: form.displayName || undefined,
+    description: form.description || undefined,
+    version: form.version || undefined,
+    url: form.url || undefined,
+    protocolVersion: form.protocolVersion || undefined,
+    preferredTransport: form.preferredTransport || undefined,
+    capabilities: { ...form.capabilities },
+    skills: form.skills
+      .filter((s) => s.name)
+      .map((s) => ({
+        name: s.name,
+        description: s.description || undefined,
+        proficiency: s.proficiency ?? undefined,
+      })),
+    defaultInputModes: splitList(form.inputModes),
+    defaultOutputModes: splitList(form.outputModes),
+    provider:
+      form.providerOrganization || form.providerUrl
+        ? {
+            organization: form.providerOrganization || undefined,
+            url: form.providerUrl || undefined,
+          }
+        : undefined,
+    documentationUrl: form.documentationUrl || undefined,
+    iconUrl: form.iconUrl || undefined,
+    tags: splitList(form.tags),
+  },
+  namespace: props.namespace?.namespace || 'public',
+})
+
 const handleSubmit = async () => {
-  if (!form.name) {
+  if (!form.name || !form.url) {
     toast.warning(t('requiredFieldsMissing'))
     return
   }
 
   saving.value = true
   try {
-    const payload: AgentPayload = {
-      name: form.name,
-      model: form.model || undefined,
-      description: form.description,
-      enabled: form.enabled,
-      systemPrompt: form.systemPrompt,
-      mcpServers: form.mcpServers,
-      temperature: form.temperature,
-      maxTokens: form.maxTokens,
-      maxIterations: form.maxIterations,
-    }
-
-    if (!form.useAllTools && form.allowedTools) {
-      payload.tools = form.allowedTools.split('\n').filter(Boolean)
-    }
+    const payload = buildPayload()
 
     if (isEdit.value) {
-      const namespace = (route.query.namespace as string) || 'default'
+      const namespace = (route.query.namespace as string) || props.namespace?.namespace || 'public'
       const name = route.query.name as string
       await batataApi.updateAgent(namespace, name, payload)
     } else {
@@ -362,6 +469,7 @@ const handleSubmit = async () => {
     router.push('/agents')
   } catch (error) {
     logger.error('Failed to save agent:', error)
+    toast.apiError(error)
   } finally {
     saving.value = false
   }
@@ -369,7 +477,6 @@ const handleSubmit = async () => {
 
 // Lifecycle
 onMounted(() => {
-  fetchMcpServers()
   fetchAgent()
 })
 </script>

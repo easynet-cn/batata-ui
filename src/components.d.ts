@@ -11,19 +11,25 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AiResourceStatusControls: typeof import('./components/ai/AiResourceStatusControls.vue')['default']
+    AiVersionSelectOption: typeof import('./components/ai/AiVersionSelectOption.vue')['default']
     AppBreadcrumb: typeof import('./components/common/AppBreadcrumb.vue')['default']
     AppPagination: typeof import('./components/common/AppPagination.vue')['default']
     BizTagList: typeof import('./components/common/BizTagList.vue')['default']
     CodeEditor: typeof import('./components/common/CodeEditor.vue')['default']
     ConfirmModal: typeof import('./components/common/ConfirmModal.vue')['default']
     CopyButton: typeof import('./components/common/CopyButton.vue')['default']
+    CreateDraftFromVersionButton: typeof import('./components/ai/CreateDraftFromVersionButton.vue')['default']
     DataTable: typeof import('./components/common/DataTable.vue')['default']
     DiffEditor: typeof import('./components/common/DiffEditor.vue')['default']
     DiscoveryChainView: typeof import('./components/consul/DiscoveryChainView.vue')['default']
     EmptyState: typeof import('./components/common/EmptyState.vue')['default']
     FilterBar: typeof import('./components/common/FilterBar.vue')['default']
     FormModal: typeof import('./components/common/FormModal.vue')['default']
+    ImportAiResourceDialog: typeof import('./components/ai/resource-import/ImportAiResourceDialog.vue')['default']
     KeyValueEditor: typeof import('./components/common/KeyValueEditor.vue')['default']
+    McpCard: typeof import('./components/ai/mcp/McpCard.vue')['default']
+    McpToolList: typeof import('./components/ai/mcp/McpToolList.vue')['default']
     McpToolSelector: typeof import('./components/ai/McpToolSelector.vue')['default']
     PipelineStatusDisplay: typeof import('./components/ai/PipelineStatusDisplay.vue')['default']
     PromptDebugPanel: typeof import('./components/ai/PromptDebugPanel.vue')['default']
@@ -37,6 +43,9 @@ declare module 'vue' {
     SkillOptimizeDialog: typeof import('./components/ai/SkillOptimizeDialog.vue')['default']
     StatusBadge: typeof import('./components/common/StatusBadge.vue')['default']
     ToastMessage: typeof import('./components/feedback/ToastMessage.vue')['default']
+    ToolManager: typeof import('./components/ai/mcp/ToolManager.vue')['default']
+    VersionLifecycleActionBar: typeof import('./components/ai/VersionLifecycleActionBar.vue')['default']
     VersionTimeline: typeof import('./components/ai/VersionTimeline.vue')['default']
+    VisibilityAuthorizationDialog: typeof import('./components/ai/VisibilityAuthorizationDialog.vue')['default']
   }
 }

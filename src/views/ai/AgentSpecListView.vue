@@ -306,10 +306,10 @@ const handleReset = () => {
 }
 
 const handleCreate = () => {
-  router.push('/ai/agent-specs/new')
+  router.push('/agentspec/new')
 }
 
 const handleViewDetail = (item: AgentSpecListItem) => {
-  router.push(`/ai/agent-specs/detail?agentSpecName=${encodeURIComponent(item.name)}`)
+  router.push(`/agentspec/detail?agentSpecName=${encodeURIComponent(item.name)}`)
 }
 </script>

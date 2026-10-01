@@ -243,59 +243,65 @@ export interface PermissionInfo {
 // AI/MCP 管理类型
 // ============================================
 
-export interface McpSecurityConfig {
-  upstream?: {
-    scheme: 'none' | 'apiKey' | 'bearerToken' | 'basicAuth'
-    credentialId?: string
-    credential?: string
-  }
-  downstream?: {
-    scheme: 'none' | 'apiKey' | 'bearerToken' | 'passthrough'
-    passthrough?: boolean
-  }
+export * from './mcp'
+
+export interface AgentCapabilities {
+  streaming?: boolean
+  multiTurn?: boolean
+  toolUse?: boolean
+  fileAttachments?: boolean
+  images?: boolean
+  audio?: boolean
+  video?: boolean
+  maxContextLength?: number
+  maxOutputTokens?: number
 }
 
-export interface McpServerInfo {
-  id: string
+export interface AgentSkill {
   name: string
-  namespace?: string
-  type: 'stdio' | 'sse' | 'http' | 'mcp-sse' | 'mcp-streamable' | 'dubbo' | 'off'
-  enabled: boolean
   description?: string
-  // stdio type fields
-  command?: string
-  args?: string[]
-  env?: Record<string, string>
-  // sse/http/mcp-sse/mcp-streamable/dubbo type fields
+  proficiency?: number
+  examples?: string[]
+}
+
+export interface AgentProvider {
+  organization?: string
   url?: string
-  headers?: Record<string, string>
-  // tools
-  autoDiscoverTools?: boolean
-  allowedTools?: string[]
-  tools?: McpToolInfo[]
-  toolCount?: number
-  // security
-  security?: McpSecurityConfig
-  // metadata
-  metadata?: Record<string, string>
-  createTime?: number
-  modifyTime?: number
 }
 
-export interface McpToolInfo {
+/** A2A AgentCard (camelCase, mirrors batata `model/ai/a2a.rs::AgentCard`) */
+export interface AgentCard {
   name: string
+  displayName?: string
   description?: string
-  inputSchema?: Record<string, unknown>
-  enabled?: boolean
+  version?: string
+  url?: string
+  protocolVersion?: string
+  capabilities?: AgentCapabilities
+  skills?: AgentSkill[]
+  defaultInputModes?: string[]
+  defaultOutputModes?: string[]
+  preferredTransport?: string
+  provider?: AgentProvider
+  documentationUrl?: string
+  iconUrl?: string
+  supportsAuthenticatedExtendedCard?: boolean
   metadata?: Record<string, string>
+  tags?: string[]
 }
 
-export interface AgentInfo {
-  id: string
-  name: string
+/**
+ * Registered agent returned by the console API. `RegisteredAgent` flattens the
+ * card, so AgentCard fields appear at the top level.
+ */
+export interface AgentInfo extends AgentCard {
+  id?: string
   namespace?: string
-  enabled: boolean
-  description?: string
+  healthStatus?: string
+  registeredAt?: number
+  updatedAt?: number
+  enabled?: boolean
+  // Legacy LLM-agent fields (kept optional; the A2A backend has no such fields)
   model?: string
   systemPrompt?: string
   mcpServers?: string[]
@@ -303,7 +309,6 @@ export interface AgentInfo {
   temperature?: number
   maxTokens?: number
   maxIterations?: number
-  metadata?: Record<string, string>
   createTime?: number
   modifyTime?: number
 }
@@ -457,40 +462,10 @@ export interface PluginBackendDetail extends PluginBackendInfo {
 // API Payload Types
 // ============================================
 
-export interface McpServerPayload {
-  name: string
-  namespace?: string
-  type: 'stdio' | 'sse' | 'http' | 'mcp-sse' | 'mcp-streamable' | 'dubbo' | 'off'
-  enabled?: boolean
-  description?: string
-  command?: string
-  args?: string[]
-  env?: Record<string, string>
-  url?: string
-  headers?: Record<string, string>
-  autoDiscoverTools?: boolean
-  allowedTools?: string[]
-  security?: McpSecurityConfig
-  metadata?: Record<string, string>
-}
-
+/** Register/update request body: `{ card, namespace }` (mirrors AgentRegistrationRequest) */
 export interface AgentPayload {
-  name: string
+  card: AgentCard
   namespace?: string
-  enabled?: boolean
-  description?: string
-  model?: string
-  systemPrompt?: string
-  mcpServers?: string[]
-  tools?: string[]
-  temperature?: number
-  maxTokens?: number
-  maxIterations?: number
-  metadata?: Record<string, string>
-}
-
-export interface McpServerImportPayload {
-  servers: McpServerPayload[]
 }
 
 export interface PluginConfigPayload {
@@ -611,6 +586,7 @@ export interface PublishPipelineInfo {
   executionId: string
   status: PipelineExecutionStatus
   pipeline: PipelineNode[]
+  historical?: boolean
 }
 
 // ============================================

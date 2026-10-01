@@ -78,7 +78,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ChevronDown, Wrench, Loader2 } from '@lucide/vue'
-import batataApi from '@/api/batata'
+import { mcpApi } from '@/api/mcp'
 import { useBatataStore } from '@/stores/batata'
 import type { SelectedMcpTool } from '@/types/copilot'
 
@@ -145,7 +145,10 @@ const handleServerChange = async () => {
 
   loadingTools.value = true
   try {
-    const response = await batataApi.getMcpServerDetail(namespace.value, selectedServer.value)
+    const response = await mcpApi.getMcpServer({
+      namespaceId: namespace.value,
+      mcpName: selectedServer.value,
+    })
     const detail = response.data.data
     // Extract tools from server detail — tools may be in toolSpec.tools or tools array
     if (detail && typeof detail === 'object') {
@@ -170,7 +173,7 @@ const handleServerChange = async () => {
 watch(isOpen, async (open) => {
   if (open && servers.value.length === 0) {
     try {
-      const response = await batataApi.getMcpServerList({
+      const response = await mcpApi.listMcpServers({
         namespaceId: namespace.value,
         pageNo: 1,
         pageSize: 200,

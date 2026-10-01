@@ -49,12 +49,16 @@
                 <Bot class="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h3 class="font-medium text-text-primary">{{ agent.name }}</h3>
-                <p class="text-xs text-text-tertiary">{{ agent.model || 'default' }}</p>
+                <h3 class="font-medium text-text-primary">
+                  {{ agent.displayName || agent.name }}
+                </h3>
+                <p class="text-xs text-text-tertiary truncate max-w-[200px]">
+                  {{ agent.url || '-' }}
+                </p>
               </div>
             </div>
-            <span :class="agent.enabled ? 'badge badge-success' : 'badge badge-danger'">
-              {{ agent.enabled ? t('enabled') : t('disabled') }}
+            <span v-if="agent.healthStatus" class="badge badge-secondary">
+              {{ agent.healthStatus }}
             </span>
           </div>
 
@@ -64,25 +68,19 @@
 
           <div class="flex items-center gap-2 text-xs text-text-tertiary mb-4">
             <span class="flex items-center gap-1">
-              <Server class="w-3 h-3" />
-              {{ agent.mcpServers?.length || 0 }} {{ t('mcpServers') }}
-            </span>
-            <span class="flex items-center gap-1">
               <Wrench class="w-3 h-3" />
-              {{ agent.tools?.length || 0 }} {{ t('tools') }}
+              {{ agent.skills?.length || 0 }} {{ t('agentSkills') }}
             </span>
+            <span v-if="agent.preferredTransport" class="flex items-center gap-1">
+              <Server class="w-3 h-3" />
+              {{ agent.preferredTransport }}
+            </span>
+            <span v-if="agent.version" class="flex items-center gap-1">v{{ agent.version }}</span>
           </div>
 
           <div class="flex items-center justify-end gap-1 pt-3 border-t border-border">
             <button @click="handleEdit(agent)" class="btn btn-ghost btn-sm" :title="t('edit')">
               <Pencil class="w-3.5 h-3.5" />
-            </button>
-            <button
-              @click="handleToggleStatus(agent)"
-              class="btn btn-ghost btn-sm"
-              :title="agent.enabled ? t('disable') : t('enable')"
-            >
-              <component :is="agent.enabled ? PowerOff : Power" class="w-3.5 h-3.5" />
             </button>
             <button
               @click="handleDelete(agent)"
@@ -120,23 +118,10 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import {
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  Loader2,
-  Power,
-  PowerOff,
-  Bot,
-  Server,
-  Wrench,
-} from '@lucide/vue'
+import { Plus, Search, Pencil, Trash2, Loader2, Bot, Server, Wrench } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
 import { useListView } from '@/composables/useListView'
-import { toast } from '@/utils/error'
-import { logger } from '@/utils/logger'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import AppPagination from '@/components/common/AppPagination.vue'
 import type { AgentInfo } from '@/types'
@@ -155,7 +140,6 @@ const {
   itemToDelete,
   handleDelete,
   confirmDelete,
-  fetchItems,
   handleSearch,
   handlePageChange,
 } = useListView<AgentInfo>({
@@ -171,21 +155,7 @@ const handleCreate = () => {
 
 const handleEdit = (agent: AgentInfo) => {
   router.push(
-    `/agent/edit?namespace=${encodeURIComponent(agent.namespace || 'default')}&name=${encodeURIComponent(agent.name)}`,
+    `/agent/edit?namespace=${encodeURIComponent(agent.namespace || 'public')}&name=${encodeURIComponent(agent.name)}`,
   )
-}
-
-const handleToggleStatus = async (agent: AgentInfo) => {
-  try {
-    const ns = agent.namespace || 'default'
-    await batataApi.updateAgent(ns, agent.name, {
-      ...agent,
-      enabled: !agent.enabled,
-    })
-    fetchItems()
-  } catch (error) {
-    logger.error('Failed to toggle agent status:', error)
-    toast.apiError(error)
-  }
 }
 </script>

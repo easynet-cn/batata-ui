@@ -11,3 +11,25 @@ dist/
 e2e/.auth/
 e2e-report/
 test-results/
+
+# Environment files (local only; .env.development/.env.production are shared)
+.env
+.env.local
+.env.*.local
+
+# Other package managers (this project uses pnpm)
+yarn.lock
+package-lock.json
+
+# Test artifacts
+coverage/
+playwright-report/
+blob-report/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# IDE
+.idea/
+
+.trae/

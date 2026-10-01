@@ -1,7 +1,7 @@
 <template>
   <div class="card">
     <div class="p-4 border-b border-border">
-      <h3 class="text-sm font-medium text-text-primary">{{ t('skillVersions') }}</h3>
+      <h3 class="text-sm font-medium text-text-primary">{{ title || t('skillVersions') }}</h3>
     </div>
     <div v-if="versions.length === 0" class="p-6 text-center text-text-secondary">
       {{ t('noVersions') }}
@@ -61,8 +61,8 @@
                 <Trash2 class="w-3.5 h-3.5" />
               </button>
             </template>
-            <!-- Reviewing: Publish / Force Publish -->
-            <template v-if="ver.status === 'reviewing'">
+            <!-- Reviewing / Reviewed: Publish / Force Publish -->
+            <template v-if="ver.status === 'reviewing' || ver.status === 'reviewed'">
               <button
                 @click.stop="$emit('publish', ver.version)"
                 class="btn btn-ghost btn-sm text-emerald-600"
@@ -76,6 +76,13 @@
                 :title="t('forcePublish')"
               >
                 <Zap class="w-3.5 h-3.5" />
+              </button>
+              <button
+                @click.stop="$emit('redraft', ver.version)"
+                class="btn btn-ghost btn-sm"
+                :title="t('mcpRedraft')"
+              >
+                <Undo2 class="w-3.5 h-3.5" />
               </button>
             </template>
             <!-- Online: Offline -->
@@ -129,14 +136,25 @@
 </template>
 
 <script setup lang="ts">
-import { Eye, Download, Send, Trash2, Rocket, Zap, Wifi, WifiOff, FilePlus } from '@lucide/vue'
+import {
+  Eye,
+  Download,
+  Send,
+  Trash2,
+  Rocket,
+  Zap,
+  Wifi,
+  WifiOff,
+  FilePlus,
+  Undo2,
+} from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import { useVersionStatus } from '@/composables/useVersionStatus'
 import PipelineStatusDisplay from '@/components/ai/PipelineStatusDisplay.vue'
 
 interface VersionItem {
   version: string
-  status: 'draft' | 'reviewing' | 'online' | 'offline'
+  status: 'draft' | 'reviewing' | 'reviewed' | 'online' | 'offline'
   author?: string
   srcUser?: string
   description?: string
@@ -152,6 +170,7 @@ defineProps<{
   editingVersion?: string | null
   reviewingVersion?: string | null
   showDownload?: boolean
+  title?: string
 }>()
 
 defineEmits<{
@@ -161,6 +180,7 @@ defineEmits<{
   submit: [version: string]
   publish: [version: string]
   forcePublish: [version: string]
+  redraft: [version: string]
   online: [version: string]
   offline: [version: string]
   deleteDraft: []

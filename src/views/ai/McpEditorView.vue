@@ -1,484 +1,263 @@
 <template>
-  <div class="space-y-3">
-    <!-- Page Header -->
+  <div class="mcp-editor space-y-3">
+    <!-- Header -->
     <div class="flex items-center gap-3">
       <button @click="goBack" class="btn btn-ghost btn-sm">
         <ArrowLeft class="w-3.5 h-3.5" />
       </button>
       <div>
         <h1 class="text-base font-semibold text-text-primary">
-          {{ isEdit ? t('editMcpServer') : t('createMcpServer') }}
+          {{ isEdit ? '编辑 MCP 服务' : '新建 MCP 服务' }}
         </h1>
         <p class="text-xs text-text-secondary mt-0.5">
-          {{ isEdit ? t('editMcpServerDesc') : t('createMcpServerDesc') }}
+          {{ isEdit ? '修改 MCP 服务配置并保存为新版本' : '创建一个新的 MCP 服务' }}
         </p>
       </div>
     </div>
 
-    <!-- Form -->
-    <div class="card">
-      <div class="p-6 space-y-3">
-        <!-- Basic Info -->
-        <div class="space-y-3">
-          <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2">
-            {{ t('basicInfo') }}
-          </h3>
+    <div v-if="error" class="p-3 rounded border border-danger/30 bg-danger/5 text-xs text-danger">
+      {{ error }}
+    </div>
 
+    <div v-if="loading" class="card p-8 text-center text-sm text-text-tertiary">加载中...</div>
+
+    <template v-else>
+      <!-- Basic Info -->
+      <div class="card">
+        <div class="p-4 space-y-3">
+          <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2">
+            基本信息
+          </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-medium text-text-primary mb-1">
-                {{ t('serverName') }} <span class="text-danger">*</span>
+                服务名称 <span class="text-danger">*</span>
               </label>
               <input
                 v-model="form.name"
                 type="text"
                 class="input"
-                :placeholder="t('serverNamePlaceholder')"
+                :disabled="isEdit"
+                placeholder="例如: my-mcp-server"
               />
             </div>
-
             <div>
-              <label class="block text-xs font-medium text-text-primary mb-1">
-                {{ t('serverType') }} <span class="text-danger">*</span>
-              </label>
-              <select v-model="form.type" class="input">
-                <option value="stdio">Stdio</option>
-                <option value="mcp-sse">MCP-SSE</option>
-                <option value="mcp-streamable">MCP-Streamable</option>
+              <label class="block text-xs font-medium text-text-primary mb-1">协议类型</label>
+              <select v-model="form.frontProtocol" class="input">
+                <option value="mcp-sse">MCP SSE</option>
+                <option value="mcp-streamable">MCP Streamable HTTP</option>
+                <option value="stdio">STDIO</option>
                 <option value="http">HTTP</option>
                 <option value="dubbo">Dubbo</option>
-                <option value="off">{{ t('protocolOff') }}</option>
               </select>
             </div>
           </div>
-
           <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('description') }}
-            </label>
-            <textarea
-              v-model="form.description"
-              class="input min-h-[80px]"
-              :placeholder="t('descriptionPlaceholder')"
-            />
+            <label class="block text-xs font-medium text-text-primary mb-1">描述</label>
+            <textarea v-model="form.description" rows="2" class="input" placeholder="服务描述" />
           </div>
-
-          <div class="flex items-center gap-2">
-            <input
-              id="enabled"
-              v-model="form.enabled"
-              type="checkbox"
-              class="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary"
-            />
-            <label for="enabled" class="text-sm text-text-primary">
-              {{ t('enableServer') }}
-            </label>
-          </div>
-        </div>
-
-        <!-- Connection Config -->
-        <div class="space-y-3">
-          <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2">
-            {{ t('connectionConfig') }}
-          </h3>
-
-          <!-- Off type: no connection config needed -->
-          <div
-            v-if="form.type === 'off'"
-            class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl text-sm text-text-secondary"
-          >
-            {{ t('protocolOffDesc') }}
-          </div>
-
-          <!-- STDIO Config -->
-          <template v-else-if="form.type === 'stdio'">
-            <div>
-              <label class="block text-xs font-medium text-text-primary mb-1">
-                {{ t('command') }} <span class="text-danger">*</span>
-              </label>
-              <input
-                v-model="form.command"
-                type="text"
-                class="input font-mono"
-                placeholder="npx -y @modelcontextprotocol/server-xxx"
-              />
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-text-primary mb-1">
-                {{ t('args') }}
-              </label>
-              <input
-                v-model="form.args"
-                type="text"
-                class="input font-mono"
-                :placeholder="t('argsPlaceholder')"
-              />
-              <p class="text-xs text-text-tertiary mt-1">{{ t('argsHint') }}</p>
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-text-primary mb-1">
-                {{ t('envVars') }}
-              </label>
-              <textarea
-                v-model="form.env"
-                class="input min-h-[100px] font-mono"
-                :placeholder="t('envVarsPlaceholder')"
-              />
-              <p class="text-xs text-text-tertiary mt-1">{{ t('envVarsHint') }}</p>
-            </div>
-          </template>
-
-          <!-- URL-based Config (SSE/HTTP/MCP-SSE/MCP-Streamable/Dubbo) -->
-          <template v-else>
-            <div>
-              <label class="block text-xs font-medium text-text-primary mb-1">
-                {{ t('serverUrl') }} <span class="text-danger">*</span>
-              </label>
-              <input
-                v-model="form.url"
-                type="text"
-                class="input font-mono"
-                :placeholder="urlPlaceholder"
-              />
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-text-primary mb-1">
-                {{ t('headers') }}
-              </label>
-              <textarea
-                v-model="form.headers"
-                class="input min-h-[100px] font-mono"
-                :placeholder="t('headersPlaceholder')"
-              />
-              <p class="text-xs text-text-tertiary mt-1">{{ t('headersHint') }}</p>
-            </div>
-          </template>
-        </div>
-
-        <!-- Tools Config -->
-        <div class="space-y-3">
-          <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2">
-            {{ t('toolsConfig') }}
-          </h3>
-
-          <div class="flex items-center gap-2">
-            <input
-              id="autoDiscoverTools"
-              v-model="form.autoDiscoverTools"
-              type="checkbox"
-              class="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary"
-            />
-            <label for="autoDiscoverTools" class="text-sm text-text-primary">
-              {{ t('autoDiscoverTools') }}
-            </label>
-          </div>
-
-          <div v-if="!form.autoDiscoverTools">
-            <label class="block text-xs font-medium text-text-primary mb-1">
-              {{ t('allowedTools') }}
-            </label>
-            <textarea
-              v-model="form.allowedTools"
-              class="input min-h-[80px] font-mono"
-              :placeholder="t('allowedToolsPlaceholder')"
-            />
-            <p class="text-xs text-text-tertiary mt-1">{{ t('allowedToolsHint') }}</p>
-          </div>
-        </div>
-
-        <!-- Security Config -->
-        <div class="space-y-3">
-          <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2">
-            {{ t('securityConfig') }}
-          </h3>
-
-          <!-- Upstream Security -->
-          <div class="space-y-2">
-            <div class="flex items-center gap-2">
-              <Shield class="w-3.5 h-3.5 text-text-tertiary" />
-              <label class="text-xs font-medium text-text-primary">
-                {{ t('upstreamSecurity') }}
-              </label>
-            </div>
-            <p class="text-xs text-text-tertiary ml-5">{{ t('upstreamSecurityHint') }}</p>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 ml-5">
-              <div>
-                <label class="block text-xs font-medium text-text-primary mb-1">
-                  {{ t('securityScheme') }}
-                </label>
-                <select v-model="form.upstreamScheme" class="input">
-                  <option value="none">{{ t('schemeNone') }}</option>
-                  <option value="apiKey">{{ t('schemeApiKey') }}</option>
-                  <option value="bearerToken">{{ t('schemeBearerToken') }}</option>
-                  <option value="basicAuth">{{ t('schemeBasicAuth') }}</option>
-                </select>
-              </div>
-              <div v-if="form.upstreamScheme !== 'none'">
-                <label class="block text-xs font-medium text-text-primary mb-1">
-                  {{ t('credentialId') }}
-                </label>
-                <input
-                  v-model="form.upstreamCredentialId"
-                  type="text"
-                  class="input"
-                  placeholder="e.g. X-API-Key"
-                />
-              </div>
-              <div v-if="form.upstreamScheme !== 'none'">
-                <label class="block text-xs font-medium text-text-primary mb-1">
-                  {{ t('credentialValue') }}
-                </label>
-                <input
-                  v-model="form.upstreamCredential"
-                  type="password"
-                  class="input"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Downstream Security -->
-          <div class="space-y-2">
-            <div class="flex items-center gap-2">
-              <ShieldCheck class="w-3.5 h-3.5 text-text-tertiary" />
-              <label class="text-xs font-medium text-text-primary">
-                {{ t('downstreamSecurity') }}
-              </label>
-            </div>
-            <p class="text-xs text-text-tertiary ml-5">{{ t('downstreamSecurityHint') }}</p>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 ml-5">
-              <div>
-                <label class="block text-xs font-medium text-text-primary mb-1">
-                  {{ t('securityScheme') }}
-                </label>
-                <select v-model="form.downstreamScheme" class="input">
-                  <option value="none">{{ t('schemeNone') }}</option>
-                  <option value="apiKey">{{ t('schemeApiKey') }}</option>
-                  <option value="bearerToken">{{ t('schemeBearerToken') }}</option>
-                  <option value="passthrough">{{ t('schemePassthrough') }}</option>
-                </select>
-              </div>
-            </div>
-            <div
-              v-if="form.downstreamScheme === 'passthrough'"
-              class="ml-5 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg"
-            >
-              <p class="text-xs text-blue-700 dark:text-blue-400">
-                {{ t('passthroughDesc') }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="flex items-center justify-end gap-3 pt-3 border-t border-border">
-          <button @click="goBack" class="btn btn-secondary">
-            {{ t('cancel') }}
-          </button>
-          <button @click="handleSubmit" class="btn btn-primary" :disabled="saving">
-            <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
-            {{ isEdit ? t('save') : t('create') }}
-          </button>
         </div>
       </div>
-    </div>
+
+      <!-- Endpoint -->
+      <div class="card">
+        <div class="p-4 space-y-3">
+          <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2">
+            端点配置
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-text-primary mb-1">Base URL</label>
+              <input
+                v-model="form.baseUrl"
+                type="text"
+                class="input"
+                placeholder="https://api.example.com"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-text-primary mb-1">Path</label>
+              <input v-model="form.path" type="text" class="input" placeholder="/mcp" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-text-primary mb-1">
+              Auth Token (可选)
+            </label>
+            <input
+              v-model="form.authToken"
+              type="text"
+              class="input"
+              placeholder="Bearer token 或 API key"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Tools -->
+      <div class="card">
+        <div class="p-4">
+          <ToolManager v-model:tools="form.tools" />
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-end gap-2">
+        <button class="btn btn-secondary" @click="goBack">取消</button>
+        <button class="btn btn-primary" :disabled="saving || !form.name" @click="handleSave">
+          <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
+          {{ isEdit ? '保存' : '创建' }}
+        </button>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, Loader2, Shield, ShieldCheck } from '@lucide/vue'
-import { useI18n } from '@/i18n'
-import batataApi from '@/api/batata'
-import { toast } from '@/utils/error'
-import { logger } from '@/utils/logger'
-import type { Namespace, McpServerPayload } from '@/types'
+import { ArrowLeft, Loader2 } from '@lucide/vue'
+import { mcpApi } from '@/api/mcp'
+import ToolManager from '@/components/ai/mcp/ToolManager.vue'
+import type { McpTool, McpServerDetailInfo, McpDraftData } from '@/types/mcp'
+import type { Namespace } from '@/types'
 
-defineProps<{
-  namespace: Namespace
+const props = defineProps<{
+  namespace?: Namespace
 }>()
 
 const router = useRouter()
 const route = useRoute()
-const { t } = useI18n()
 
-// State
+const isEdit = computed(() => !!route.query.mcpName)
+const namespaceId = computed(
+  () => (route.query.namespaceId as string) || props.namespace?.namespace || 'public',
+)
+
 const loading = ref(false)
 const saving = ref(false)
+const error = ref('')
+const currentVersion = ref<string>('1')
 
-const form = reactive({
-  id: '',
+interface EditorForm {
+  name: string
+  description: string
+  frontProtocol: string
+  baseUrl: string
+  path: string
+  authToken: string
+  tools: McpTool[]
+}
+
+const form = ref<EditorForm>({
   name: '',
-  type: 'stdio',
   description: '',
-  enabled: true,
-  command: '',
-  args: '',
-  env: '',
-  url: '',
-  headers: '',
-  autoDiscoverTools: true,
-  allowedTools: '',
-  // Security
-  upstreamScheme: 'none',
-  upstreamCredentialId: '',
-  upstreamCredential: '',
-  downstreamScheme: 'none',
+  frontProtocol: 'mcp-sse',
+  baseUrl: '',
+  path: '',
+  authToken: '',
+  tools: [],
 })
 
-// Computed
-const isEdit = computed(() => !!route.query.name)
-
-const isUrlBased = computed(() => !['stdio', 'off'].includes(form.type))
-
-const urlPlaceholder = computed(() => {
-  const placeholders: Record<string, string> = {
-    sse: 'http://localhost:3000/sse',
-    'mcp-sse': 'http://localhost:3000/sse',
-    'mcp-streamable': 'http://localhost:3000/mcp',
-    http: 'http://localhost:3000',
-    dubbo: 'dubbo://localhost:20880',
-  }
-  return placeholders[form.type] || 'http://localhost:3000'
-})
-
-// Methods
-const fetchMcpServer = async () => {
-  const namespace = route.query.namespace as string
-  const name = route.query.name as string
-  if (!namespace || !name) return
-
+async function loadDetail() {
+  const name = route.query.mcpName as string
+  if (!name) return
   loading.value = true
+  error.value = ''
   try {
-    const response = await batataApi.getMcpServerDetail(namespace, name)
-    const server = response.data.data
-    Object.assign(form, {
-      id: server.id,
-      name: server.name,
-      type: server.type,
-      description: server.description || '',
-      enabled: server.enabled,
-      command: server.command || '',
-      args: server.args?.join(' ') || '',
-      env: server.env
-        ? Object.entries(server.env)
-            .map(([k, v]) => `${k}=${v}`)
-            .join('\n')
-        : '',
-      url: server.url || '',
-      headers: server.headers ? JSON.stringify(server.headers, null, 2) : '',
-      autoDiscoverTools: server.autoDiscoverTools !== false,
-      allowedTools: server.allowedTools?.join('\n') || '',
-      upstreamScheme: server.security?.upstream?.scheme || 'none',
-      upstreamCredentialId: server.security?.upstream?.credentialId || '',
-      upstreamCredential: server.security?.upstream?.credential || '',
-      downstreamScheme: server.security?.downstream?.scheme || 'none',
+    const response = await mcpApi.getMcpServer({
+      mcpName: name,
+      namespaceId: namespaceId.value,
     })
-  } catch (error) {
-    logger.error('Failed to fetch MCP server:', error)
+    const detail: McpServerDetailInfo = response.data.data
+    form.value.name = detail.name || name
+    form.value.description = detail.description || ''
+    form.value.frontProtocol = detail.frontProtocol || 'mcp-sse'
+    form.value.tools = detail.toolSpec?.tools ? [...detail.toolSpec.tools] : []
+    currentVersion.value = detail.versionDetail?.version || detail.version || '1'
+
+    // Try to extract baseUrl/path from frontendEndpoints or remoteServerConfig
+    const fe = detail.frontendEndpoints?.[0]
+    if (fe) {
+      form.value.baseUrl = `${fe.protocol}://${fe.address}:${fe.port}`
+      form.value.path = fe.path || ''
+    } else if (detail.remoteServerConfig?.frontEndpointConfigList?.[0]) {
+      const ep = detail.remoteServerConfig.frontEndpointConfigList[0]
+      if (typeof ep.endpointData === 'string') {
+        form.value.baseUrl = ep.endpointData
+      }
+      form.value.path = ep.path || ''
+    }
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '加载失败'
   } finally {
     loading.value = false
   }
 }
 
-const goBack = () => {
-  router.push('/mcp')
+function goBack() {
+  router.push({ name: 'mcp' })
 }
 
-const handleSubmit = async () => {
-  if (!form.name || !form.type) {
-    toast.warning(t('requiredFieldsMissing'))
-    return
-  }
-
-  if (form.type === 'stdio' && !form.command) {
-    toast.warning(t('commandRequired'))
-    return
-  }
-
-  if (isUrlBased.value && !form.url) {
-    toast.warning(t('urlRequired'))
-    return
-  }
-
+async function handleSave() {
   saving.value = true
+  error.value = ''
   try {
-    const payload: McpServerPayload = {
-      name: form.name,
-      type: form.type as McpServerPayload['type'],
-      description: form.description,
-      enabled: form.enabled,
-      autoDiscoverTools: form.autoDiscoverTools,
+    // Build server specification
+    const serverSpec = {
+      name: form.value.name,
+      namespaceId: namespaceId.value,
+      frontProtocol: form.value.frontProtocol,
+      description: form.value.description,
+      remoteServerConfig: {
+        frontEndpointConfigList: [
+          {
+            type: form.value.frontProtocol,
+            protocol: form.value.frontProtocol,
+            endpointType: 'DIRECT' as const,
+            endpointData: form.value.baseUrl,
+            path: form.value.path,
+            headers: form.value.authToken
+              ? [{ name: 'Authorization', value: form.value.authToken, isSecret: true }]
+              : [],
+          },
+        ],
+      },
     }
 
-    if (form.type === 'stdio') {
-      payload.command = form.command
-      payload.args = form.args ? form.args.split(/\s+/).filter(Boolean) : []
-      payload.env = form.env
-        ? Object.fromEntries(
-            form.env
-              .split('\n')
-              .filter(Boolean)
-              .map((line) => {
-                const [key, ...rest] = line.split('=')
-                return [key?.trim() ?? '', rest.join('=').trim()]
-              })
-              .filter(([k]) => k),
-          )
-        : {}
-    } else if (isUrlBased.value) {
-      payload.url = form.url
-      payload.headers = form.headers ? JSON.parse(form.headers) : {}
+    const toolSpec = {
+      specificationType: 'mcp',
+      tools: form.value.tools,
     }
 
-    if (!form.autoDiscoverTools && form.allowedTools) {
-      payload.allowedTools = form.allowedTools.split('\n').filter(Boolean)
-    }
-
-    // Security config
-    const security: McpServerPayload['security'] = {}
-    if (form.upstreamScheme !== 'none') {
-      security.upstream = {
-        scheme: form.upstreamScheme as 'apiKey' | 'bearerToken' | 'basicAuth',
-        credentialId: form.upstreamCredentialId || undefined,
-        credential: form.upstreamCredential || undefined,
-      }
-    }
-    if (form.downstreamScheme !== 'none') {
-      security.downstream = {
-        scheme: form.downstreamScheme as 'apiKey' | 'bearerToken' | 'passthrough',
-        passthrough: form.downstreamScheme === 'passthrough' ? true : undefined,
-      }
-    }
-    if (security.upstream || security.downstream) {
-      payload.security = security
+    const payload: McpDraftData = {
+      mcpName: form.value.name,
+      namespaceId: namespaceId.value,
+      version: currentVersion.value,
+      serverSpecification: JSON.stringify(serverSpec),
+      toolSpecification: JSON.stringify(toolSpec),
     }
 
     if (isEdit.value) {
-      const namespace = (route.query.namespace as string) || 'default'
-      const name = route.query.name as string
-      await batataApi.updateMcpServer(namespace, name, payload)
+      await mcpApi.updateDraft(payload)
     } else {
-      await batataApi.createMcpServer(payload)
+      await mcpApi.createDraft(payload)
     }
 
-    router.push('/mcp')
-  } catch (error) {
-    logger.error('Failed to save MCP server:', error)
+    router.push({
+      name: 'mcp-detail',
+      query: { mcpName: form.value.name, namespaceId: namespaceId.value },
+    })
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '保存失败'
   } finally {
     saving.value = false
   }
 }
 
-// Lifecycle
 onMounted(() => {
-  fetchMcpServer()
+  if (isEdit.value) {
+    loadDetail()
+  }
 })
 </script>
