@@ -384,6 +384,11 @@ const nsForm = ref({ name: '', format: 'properties', isPublic: false, comment: '
 const showAppNs = ref(false)
 const appNsForm = ref({ name: '', format: 'properties', isPublic: false, comment: '' })
 
+function closeAppNsModal() {
+  showAppNs.value = false
+  appNsForm.value = { name: '', format: 'properties', isPublic: false, comment: '' }
+}
+
 async function createNamespace() {
   if (!nsForm.value.name) return
   await apolloApi.createNamespace(env.value, appId.value, cluster.value, {
@@ -919,13 +924,7 @@ onMounted(loadApp)
       <div class="bg-bg rounded-xl shadow-lg w-full max-w-lg p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-base font-semibold">{{ t('apolloAppNamespaces') }}</h3>
-          <button
-            class="btn btn-primary btn-sm"
-            @click="
-              showAppNs = false
-              appNsForm.name = ''
-            "
-          >
+          <button class="btn btn-primary btn-sm" @click="closeAppNsModal">
             {{ t('apolloCreateAppNamespace') }}
           </button>
         </div>

@@ -344,9 +344,11 @@ describe('BatataApi', () => {
       ;(mockAxiosInstance.post as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse)
 
       const { mcpApi } = await import('@/api/mcp')
-      const payload = { mcpName: 'test-mcp', enabled: true }
-
-      await mcpApi.createDraft(payload)
+      await mcpApi.createDraft({
+        mcpName: 'test-mcp',
+        version: '1.0.0',
+        serverSpecification: '{}',
+      })
 
       expect(mockAxiosInstance.post).toHaveBeenCalledWith(
         '/ai/mcp/draft',

@@ -23,6 +23,16 @@ async function load() {
   }
 }
 
+function prevPage() {
+  page.value--
+  load()
+}
+
+function nextPage() {
+  page.value++
+  load()
+}
+
 onMounted(load)
 </script>
 
@@ -63,25 +73,11 @@ onMounted(load)
     </div>
 
     <div class="flex items-center justify-center gap-3 mt-4" v-if="total > 20">
-      <button
-        class="btn btn-ghost btn-sm"
-        :disabled="page === 0"
-        @click="
-          page--
-          load()
-        "
-      >
+      <button class="btn btn-ghost btn-sm" :disabled="page === 0" @click="prevPage">
         <ChevronLeft class="w-4 h-4" />
       </button>
       <span class="text-xs text-text-secondary">{{ page + 1 }} / {{ Math.ceil(total / 20) }}</span>
-      <button
-        class="btn btn-ghost btn-sm"
-        :disabled="(page + 1) * 20 >= total"
-        @click="
-          page++
-          load()
-        "
-      >
+      <button class="btn btn-ghost btn-sm" :disabled="(page + 1) * 20 >= total" @click="nextPage">
         <ChevronRight class="w-4 h-4" />
       </button>
     </div>
