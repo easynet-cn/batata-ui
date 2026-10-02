@@ -12,6 +12,7 @@ declare global {
   const AuthError: typeof import('./utils/error').AuthError
   const EffectScope: typeof import('vue').EffectScope
   const NetworkError: typeof import('./utils/error').NetworkError
+  const SESSION_EXPIRED_MESSAGES: typeof import('./utils/error').SESSION_EXPIRED_MESSAGES
   const TimeoutError: typeof import('./utils/error').TimeoutError
   const ValidationError: typeof import('./utils/error').ValidationError
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
@@ -44,6 +45,7 @@ declare global {
   const isReactive: typeof import('vue').isReactive
   const isReadonly: typeof import('vue').isReadonly
   const isRef: typeof import('vue').isRef
+  const isSessionExpired: typeof import('./utils/error').isSessionExpired
   const isShallow: typeof import('vue').isShallow
   const logger: typeof import('./utils/logger').logger
   const mapActions: typeof import('pinia').mapActions
@@ -163,6 +165,9 @@ declare module 'vue' {
     readonly AuthError: UnwrapRef<(typeof import('./utils/error'))['AuthError']>
     readonly EffectScope: UnwrapRef<(typeof import('vue'))['EffectScope']>
     readonly NetworkError: UnwrapRef<(typeof import('./utils/error'))['NetworkError']>
+    readonly SESSION_EXPIRED_MESSAGES: UnwrapRef<
+      (typeof import('./utils/error'))['SESSION_EXPIRED_MESSAGES']
+    >
     readonly TimeoutError: UnwrapRef<(typeof import('./utils/error'))['TimeoutError']>
     readonly ValidationError: UnwrapRef<(typeof import('./utils/error'))['ValidationError']>
     readonly acceptHMRUpdate: UnwrapRef<(typeof import('pinia'))['acceptHMRUpdate']>
@@ -197,6 +202,7 @@ declare module 'vue' {
     readonly isReactive: UnwrapRef<(typeof import('vue'))['isReactive']>
     readonly isReadonly: UnwrapRef<(typeof import('vue'))['isReadonly']>
     readonly isRef: UnwrapRef<(typeof import('vue'))['isRef']>
+    readonly isSessionExpired: UnwrapRef<(typeof import('./utils/error'))['isSessionExpired']>
     readonly isShallow: UnwrapRef<(typeof import('vue'))['isShallow']>
     readonly logger: UnwrapRef<(typeof import('./utils/logger'))['logger']>
     readonly mapActions: UnwrapRef<(typeof import('pinia'))['mapActions']>

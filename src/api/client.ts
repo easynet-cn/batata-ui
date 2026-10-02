@@ -1,8 +1,11 @@
 import axios, { type AxiosInstance } from 'axios'
 import { config } from '@/config'
 import { storage } from '@/composables/useStorage'
-import { ApiError, AuthError, NetworkError } from '@/utils/error'
+import { ApiError, AuthError, NetworkError, isSessionExpired, toast } from '@/utils/error'
 import { setupRetryInterceptor } from '@/utils/retry'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 /**
  * Create an Axios instance with shared interceptors for token injection and error handling.
@@ -37,21 +40,19 @@ export function createApiInstance(baseURL: string): AxiosInstance {
       if (data && typeof data === 'object' && 'code' in data) {
         const code = Number(data.code)
         if (code !== 0 && code !== 200) {
-          if (code === 401) {
+          if (isSessionExpired(data.message, (data as { data?: unknown }).data)) {
             storage.remove(config.storage.tokenKey)
             storage.remove(config.storage.usernameKey)
             storage.remove(config.storage.userKey)
             if (window.location.pathname !== '/login') {
               window.location.href = '/login'
             }
-            return Promise.reject(new AuthError(data.message || 'Session expired'))
+            return Promise.reject(new AuthError(data.message || t('sessionExpired')))
           }
           if (code === 403) {
-            return Promise.reject(
-              new ApiError(403, data.message || 'You do not have permission for this action.'),
-            )
+            return Promise.reject(new ApiError(403, data.message || t('permissionDenied')))
           }
-          return Promise.reject(new ApiError(code, data.message || 'Request failed'))
+          return Promise.reject(new ApiError(code, data.message || t('requestFailed')))
         }
       }
       return response
@@ -59,25 +60,37 @@ export function createApiInstance(baseURL: string): AxiosInstance {
     (error) => {
       if (error.response) {
         const status = error.response.status
-        const msg = error.response.data?.message
-        if (status === 401) {
-          storage.remove(config.storage.tokenKey)
-          storage.remove(config.storage.usernameKey)
-          storage.remove(config.storage.userKey)
-          if (window.location.pathname !== '/login') {
-            window.location.href = '/login'
+        const respData = error.response.data
+        const msg = typeof respData === 'string' ? respData : respData?.message || ''
+        const dataStr =
+          respData &&
+          typeof respData === 'object' &&
+          typeof (respData as { data?: unknown }).data === 'string'
+            ? ((respData as { data?: unknown }).data as string)
+            : ''
+
+        // Surface the error here (mirrors Nacos console-ui's `toastError` in the
+        // response error interceptor) so that requests whose callers don't handle
+        // the rejection still get a visible message. The toast system de-duplicates
+        // identical messages fired in quick succession.
+        toast.error(msg || t('requestFailed'))
+
+        if (status === 401 || status === 403) {
+          if (isSessionExpired(msg, dataStr)) {
+            storage.remove(config.storage.tokenKey)
+            storage.remove(config.storage.usernameKey)
+            storage.remove(config.storage.userKey)
+            if (window.location.pathname !== '/login') {
+              window.location.href = '/login'
+            }
+            return Promise.reject(new AuthError(msg || t('sessionExpired')))
           }
-          return Promise.reject(new AuthError(msg || 'Session expired'))
-        }
-        if (status === 403) {
-          return Promise.reject(
-            new ApiError(403, msg || 'You do not have permission for this action.'),
-          )
+          return Promise.reject(new ApiError(status, msg || t('permissionDenied')))
         }
         if (status === 503) {
           return Promise.reject(new ApiError(503, 'Service unavailable'))
         }
-        return Promise.reject(new ApiError(status, msg || 'Request failed'))
+        return Promise.reject(new ApiError(status, msg || t('requestFailed')))
       }
       return Promise.reject(new NetworkError(error.message))
     },

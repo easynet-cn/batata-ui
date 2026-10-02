@@ -205,11 +205,11 @@ describe('BatataApi', () => {
       expect(thrown!.name).toBe('NetworkError')
     })
 
-    it('throws AuthError on 401', async () => {
+    it('throws AuthError on 401 with a session-expired message', async () => {
       const { storage: storageModule } = await import('@/composables/useStorage')
 
       const error = {
-        response: { status: 401, data: {} },
+        response: { status: 401, data: { message: 'token expired!' } },
       }
 
       const thrown = catchError(() => responseInterceptorRejected(error))
@@ -217,6 +217,22 @@ describe('BatataApi', () => {
       expect(thrown!.name).toBe('AuthError')
       expect(storageModule.remove).toHaveBeenCalledWith('batata-token')
       expect(storageModule.remove).toHaveBeenCalledWith('batata-username')
+    })
+
+    it('throws ApiError on 401 without a session-expired message', async () => {
+      const { storage: storageModule } = await import('@/composables/useStorage')
+
+      const error = {
+        response: { status: 401, data: {} },
+      }
+
+      vi.mocked(storageModule.remove).mockClear()
+      const thrown = catchError(() => responseInterceptorRejected(error))
+      expect(thrown).not.toBeNull()
+      expect(thrown!.name).toBe('ApiError')
+      // A 401 lacking a session-expired message is an authorization failure, not a
+      // session expiry — credentials must NOT be cleared (mirrors Nacos behavior).
+      expect(storageModule.remove).not.toHaveBeenCalledWith('batata-token')
     })
 
     it('throws ApiError on 403 without clearing credentials', async () => {
@@ -323,15 +339,22 @@ describe('BatataApi', () => {
       })
     })
 
-    it('calls createMcpServer with POST', async () => {
+    it('mcpApi createDraft posts to /ai/mcp/draft', async () => {
       const mockResponse = { data: { code: 0 } }
       ;(mockAxiosInstance.post as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse)
 
-      const payload = { name: 'test-mcp', type: 'stdio' as const, command: 'npx test' }
+      const { mcpApi } = await import('@/api/mcp')
+      const payload = { mcpName: 'test-mcp', enabled: true }
 
-      await BatataApi.default.createMcpServer(payload)
+      await mcpApi.createDraft(payload)
 
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/ai/mcp', payload)
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/ai/mcp/draft',
+        expect.any(URLSearchParams),
+        expect.objectContaining({
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        }),
+      )
     })
 
     it('calls getNamespaceList', async () => {

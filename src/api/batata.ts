@@ -47,9 +47,20 @@ import type {
   PromptLabelBindData,
 } from '@/types'
 import { config } from '@/config'
-import { ApiError, AuthError, NetworkError, TimeoutError, ValidationError } from '@/utils/error'
+import {
+  ApiError,
+  AuthError,
+  NetworkError,
+  TimeoutError,
+  ValidationError,
+  isSessionExpired,
+  toast,
+} from '@/utils/error'
 import { setupRetryInterceptor } from '@/utils/retry'
 import { storage } from '@/composables/useStorage'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 // Batata API response interface
 export interface BatataResponse<T = unknown> {
@@ -125,7 +136,16 @@ class BatataApi {
 
         const { data } = response
         if (data.code !== 0 && data.code !== 200) {
-          throw new ApiError(data.code, data.message || 'Request failed')
+          if (isSessionExpired(data.message, (data as { data?: unknown }).data)) {
+            storage.remove(config.storage.tokenKey)
+            storage.remove(config.storage.usernameKey)
+            storage.remove(config.storage.userKey)
+            if (!window.location.pathname.includes('/login')) {
+              window.location.href = '/login'
+            }
+            throw new AuthError(data.message || t('sessionExpired'))
+          }
+          throw new ApiError(data.code, data.message || t('requestFailed'))
         }
         return response
       },
@@ -152,23 +172,35 @@ class BatataApi {
         const respData = error.response?.data
         const message =
           typeof respData === 'string' ? respData : respData?.message || error.message || ''
+        const dataStr =
+          respData &&
+          typeof respData === 'object' &&
+          typeof (respData as { data?: unknown }).data === 'string'
+            ? ((respData as { data?: unknown }).data as string)
+            : ''
 
-        // 401 Unauthorized - token missing/expired → clear + redirect
-        if (status === 401) {
-          storage.remove(config.storage.tokenKey)
-          storage.remove(config.storage.usernameKey)
-          storage.remove(config.storage.userKey)
+        // Surface the error here (mirrors Nacos console-ui's `toastError` in the
+        // response error interceptor) so that requests whose callers don't handle
+        // the rejection still get a visible message. The toast system de-duplicates
+        // identical messages fired in quick succession.
+        toast.error(message || t('requestFailed'))
 
-          if (!window.location.pathname.includes('/login')) {
-            window.location.href = '/login'
+        // Authentication failures (token missing/expired/invalid) come back as 401/403 with a
+        // message. Only a session-expired-style message should trigger logout + redirect to
+        // /login. Other 403s (insufficient permission) just surface the error — no clear, no redirect.
+        if (status === 401 || status === 403) {
+          if (isSessionExpired(message, dataStr)) {
+            storage.remove(config.storage.tokenKey)
+            storage.remove(config.storage.usernameKey)
+            storage.remove(config.storage.userKey)
+
+            if (!window.location.pathname.includes('/login')) {
+              window.location.href = '/login'
+            }
+
+            throw new AuthError(message || t('sessionExpired'))
           }
-
-          throw new AuthError(message || 'Session expired. Please log in again.')
-        }
-
-        // 403 Forbidden - authenticated but lacking permission → surface error, do NOT clear token
-        if (status === 403) {
-          throw new ApiError(403, message || 'You do not have permission to perform this action.')
+          throw new ApiError(status, message || t('permissionDenied'))
         }
 
         // 422 Unprocessable Entity - validation errors
@@ -306,7 +338,16 @@ class BatataApi {
           const { data } = response
           // Some auth endpoints (e.g. login) return raw data without BatataResponse wrapper
           if (data.code !== undefined && data.code !== 0 && data.code !== 200) {
-            throw new ApiError(data.code, data.message || 'Request failed')
+            if (isSessionExpired(data.message, (data as { data?: unknown }).data)) {
+              storage.remove(config.storage.tokenKey)
+              storage.remove(config.storage.usernameKey)
+              storage.remove(config.storage.userKey)
+              if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/login'
+              }
+              throw new AuthError(data.message || t('sessionExpired'))
+            }
+            throw new ApiError(data.code, data.message || t('requestFailed'))
           }
           return response
         },
@@ -318,23 +359,35 @@ class BatataApi {
           const respData = error.response?.data
           const message =
             typeof respData === 'string' ? respData : respData?.message || error.message || ''
+          const dataStr =
+            respData &&
+            typeof respData === 'object' &&
+            typeof (respData as { data?: unknown }).data === 'string'
+              ? ((respData as { data?: unknown }).data as string)
+              : ''
 
-          // 401 Unauthorized - token missing/expired → clear + redirect
-          if (status === 401) {
-            storage.remove(config.storage.tokenKey)
-            storage.remove(config.storage.usernameKey)
-            storage.remove(config.storage.userKey)
+          // Surface the error here (mirrors Nacos console-ui's `toastError` in the
+          // response error interceptor) so that requests whose callers don't handle
+          // the rejection still get a visible message. The toast system de-duplicates
+          // identical messages fired in quick succession.
+          toast.error(message || t('requestFailed'))
 
-            if (!window.location.pathname.includes('/login')) {
-              window.location.href = '/login'
+          // Authentication failures (token missing/expired/invalid) come back as 401/403 with a
+          // message. Only a session-expired-style message should trigger logout + redirect to
+          // /login. Other 403s (insufficient permission) just surface the error — no clear, no redirect.
+          if (status === 401 || status === 403) {
+            if (isSessionExpired(message, dataStr)) {
+              storage.remove(config.storage.tokenKey)
+              storage.remove(config.storage.usernameKey)
+              storage.remove(config.storage.userKey)
+
+              if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/login'
+              }
+
+              throw new AuthError(message || t('sessionExpired'))
             }
-
-            throw new AuthError(message || 'Session expired. Please log in again.')
-          }
-
-          // 403 Forbidden - authenticated but lacking permission
-          if (status === 403) {
-            throw new ApiError(403, message || 'You do not have permission to perform this action.')
+            throw new ApiError(status, message || t('permissionDenied'))
           }
 
           // 503 Service Unavailable - server is in maintenance/draining mode

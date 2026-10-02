@@ -788,7 +788,12 @@ const fetchServerState = async () => {
 
 onMounted(async () => {
   await fetchServerState()
-  fetchNamespaces()
+  // Namespaces are a Batata/Nacos concept. Only fetch them in the batata provider;
+  // fetching under consul/apollo would send a Batata API request whose independent
+  // auth has no Batata token, triggering a global 401 redirect to /login.
+  if (provider.value === 'batata') {
+    fetchNamespaces()
+  }
   if (provider.value === 'consul') {
     initConsul()
   }
@@ -951,6 +956,9 @@ const handleSwitchProvider = (p: ProviderType) => {
         router.push('/login')
       } else {
         router.push('/')
+        // Re-fetch namespaces when (re)entering the batata provider, since the
+        // layout does not remount on provider switch.
+        fetchNamespaces()
       }
   }
 }

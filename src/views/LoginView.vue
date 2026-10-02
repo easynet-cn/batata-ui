@@ -206,7 +206,7 @@
             </template>
           </button>
 
-          <div class="pt-2 border-t border-gray-100 dark:border-gray-800">
+          <div v-if="consulEnabled" class="pt-2 border-t border-gray-100 dark:border-gray-800">
             <button
               type="button"
               @click="enterConsul"
@@ -254,7 +254,7 @@ const router = useRouter()
 const batataStore = useBatataStore()
 const authStore = useAuthStore()
 const { isDark, toggleTheme } = useTheme()
-const { setProvider } = useProvider()
+const { setProvider, consulEnabled, setConsulEnabled } = useProvider()
 
 const username = ref('')
 const password = ref('')
@@ -281,14 +281,21 @@ onMounted(async () => {
     const state = res.data
 
     // Set consul ACL state
-    if (state.consul_acl_enabled === 'true') {
-      authStore.setConsulAclEnabled(true)
-    } else {
-      authStore.setConsulAclEnabled(false)
+    authStore.setConsulAclEnabled(state.consul_acl_enabled === 'true')
+
+    // Server-side capability: whether Consul is supported at all. This drives
+    // whether the login screen offers a Consul entry point, keeping it
+    // consistent with the post-login layout (BatataLayout also uses this flag).
+    setConsulEnabled(state.consul_enabled === 'true')
+
+    // If the remembered provider is Consul but the server does not support it,
+    // fall back to Batata instead of chasing a non-existent Consul screen.
+    if (provider.value === 'consul' && !consulEnabled.value) {
+      storage.set('batata_provider', 'batata')
     }
 
-    // Consul with ACL disabled: redirect directly
-    if (provider.value === 'consul' && !authStore.consulAclEnabled) {
+    // Consul supported but ACL disabled: skip straight to the dashboard.
+    if (provider.value === 'consul' && consulEnabled.value && !authStore.consulAclEnabled) {
       router.replace('/consul/dashboard')
       return
     }

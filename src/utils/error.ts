@@ -42,6 +42,45 @@ export class ValidationError extends Error {
   }
 }
 
+// Messages that indicate an expired/invalid token or session, which require the
+// user to re-authenticate. Mirrors Nacos console-ui `SESSION_EXPIRED_MESSAGES`,
+// extended with messages returned by the batata server.
+export const SESSION_EXPIRED_MESSAGES = [
+  'unknown user!',
+  'user not found',
+  'token invalid!',
+  'token expired!',
+  'expired token',
+  'session expired!',
+  'invalid signature',
+  'unsupported signature algorithm',
+  'invalid token',
+  'token is required',
+  'token is empty',
+  'token has expired',
+  'token signature verification failed',
+  'no valid oidc token found',
+  'token audience validation failed',
+  'token issuer mismatch',
+  'token is not yet valid',
+  'token processing error',
+  // batata server specific
+  'token validation failed',
+  'authentication failed',
+]
+
+// Returns true when the given text indicates the session/token is expired or
+// otherwise invalid, i.e. the client should clear credentials and redirect to login.
+// `extra` (typically the response body's `data` string field) is folded into the
+// matched text, mirroring Nacos console-ui `combined = message + ' ' + dataField`.
+export function isSessionExpired(message?: string | null, extra?: unknown): boolean {
+  const base = message ?? ''
+  const extraText = typeof extra === 'string' ? extra : ''
+  const text = `${base} ${extraText}`.toLowerCase().trim()
+  if (!text) return false
+  return SESSION_EXPIRED_MESSAGES.some((m) => text.includes(m))
+}
+
 // Global error handler
 export function handleError(error: unknown): string {
   if (error instanceof ValidationError) {
@@ -79,9 +118,22 @@ interface Toast {
 
 const toasts = ref<Toast[]>([])
 let toastId = 0
+const recentToastKeys = new Map<string, number>()
+const TOAST_DEDUPE_MS = 1000
 
 export const toast = {
   show(message: string, type: ToastType = 'info', duration = 3000) {
+    // De-duplicate identical toasts fired within a short window. This lets the
+    // interceptor layer toast errors (mirroring Nacos) without doubling up with
+    // callers that also surface the same error.
+    const now = Date.now()
+    const key = `${type}:${message}`
+    const last = recentToastKeys.get(key)
+    if (last !== undefined && now - last < TOAST_DEDUPE_MS) {
+      return -1
+    }
+    recentToastKeys.set(key, now)
+
     const id = ++toastId
     toasts.value.push({ id, message, type })
     if (duration > 0) {

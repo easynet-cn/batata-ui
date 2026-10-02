@@ -119,11 +119,13 @@ import { Moon, Sun, Languages, ShieldAlert } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import { useTheme } from '@/composables/useTheme'
 import batataApi from '@/api/batata'
+import { useAuthStore } from '@/stores/auth'
 import { storage } from '@/composables/useStorage'
 import { config } from '@/config'
 
 const { t, language, setLanguage } = useI18n()
 const router = useRouter()
+const authStore = useAuthStore()
 const { isDark, toggleTheme } = useTheme()
 
 const password = ref('')
@@ -149,11 +151,13 @@ const handleSubmit = async () => {
 
   try {
     const res = await batataApi.initAdmin(password.value)
-    const { accessToken, username } = res.data
+    const { accessToken, username, globalAdmin } = res.data
+    const admin = globalAdmin === true
 
     storage.set(config.storage.tokenKey, accessToken)
     storage.set(config.storage.usernameKey, username)
-    storage.setJSON(config.storage.userKey, { name: username })
+    storage.setJSON(config.storage.userKey, { name: username, globalAdmin: admin })
+    authStore.currentUser = { username, token: accessToken, globalAdmin: admin }
 
     router.replace('/')
   } catch (err: unknown) {
