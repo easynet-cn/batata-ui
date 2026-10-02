@@ -262,7 +262,7 @@ import {
   Plus,
 } from '@lucide/vue'
 import { init as echartsInit } from '@/utils/echarts'
-import type { ECharts, EChartsOption } from '@/utils/echarts'
+import type { ECharts } from '@/utils/echarts'
 import { useI18n } from '@/i18n'
 import { useBatataStore } from '@/stores/batata'
 import { logger } from '@/utils/logger'
@@ -298,169 +298,108 @@ const stats = ref({
   healthyNodes: 0,
 })
 
-// Config types distribution data
-const configTypeData = ref([
-  { name: 'YAML', value: 35 },
-  { name: 'Properties', value: 25 },
-  { name: 'JSON', value: 20 },
-  { name: 'XML', value: 10 },
-  { name: 'Text', value: 10 },
-])
+// Config types distribution data (populated from real API data; empty until loaded)
+const configTypeData = ref<{ name: string; value: number }[]>([])
 
-// Initialize health chart
-const initHealthChart = () => {
+// ---- Chart rendering (creates the instance on first call, then refreshes) ----
+const CHART_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#64748b', '#0ea5e9']
+
+const renderHealthChart = () => {
   if (!healthChartRef.value) return
+  if (!healthChart) healthChart = echartsInit(healthChartRef.value)
 
-  healthChart = echartsInit(healthChartRef.value)
-  const option: EChartsOption = {
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: {c} ({d}%)',
-    },
+  const healthy = stats.value.healthyServices
+  const total = stats.value.totalServices
+  const hasData = total > 0
+
+  healthChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     legend: {
       orient: 'vertical',
       right: '5%',
       top: 'center',
-      textStyle: {
-        fontSize: 12,
-        color: '#64748b',
-      },
+      textStyle: { fontSize: 12, color: '#64748b' },
     },
+    title: hasData
+      ? { show: false }
+      : {
+          show: true,
+          text: t('noData'),
+          left: 'center',
+          top: 'center',
+          textStyle: { fontSize: 14, color: '#94a3b8' },
+        },
     series: [
       {
-        name: 'Service Health',
+        name: t('serviceHealth'),
         type: 'pie',
         radius: ['45%', '70%'],
         center: ['35%', '50%'],
         avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 4,
-          borderColor: '#fff',
-          borderWidth: 2,
-        },
-        label: {
-          show: false,
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: 14,
-            fontWeight: 'bold',
-          },
-        },
-        data: [
-          {
-            value: stats.value.healthyServices,
-            name: t('healthy'),
-            itemStyle: { color: '#10b981' },
-          },
-          {
-            value: stats.value.totalServices - stats.value.healthyServices,
-            name: t('unhealthy'),
-            itemStyle: { color: '#ef4444' },
-          },
-        ],
+        itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 },
+        label: { show: false },
+        emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+        // Guard against echarts evenly splitting all-zero data into 50/50
+        data: hasData
+          ? [
+              { value: healthy, name: t('healthy'), itemStyle: { color: '#10b981' } },
+              {
+                value: Math.max(0, total - healthy),
+                name: t('unhealthy'),
+                itemStyle: { color: '#ef4444' },
+              },
+            ]
+          : [],
       },
     ],
-  }
-  healthChart.setOption(option)
+  })
 }
 
-// Initialize config chart
-const initConfigChart = () => {
+const renderConfigChart = () => {
   if (!configChartRef.value) return
+  if (!configChart) configChart = echartsInit(configChartRef.value)
 
-  configChart = echartsInit(configChartRef.value)
-  const option: EChartsOption = {
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: {c} ({d}%)',
-    },
+  const items = configTypeData.value
+  const hasData = items.length > 0
+
+  configChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     legend: {
       orient: 'vertical',
       right: '5%',
       top: 'center',
-      textStyle: {
-        fontSize: 12,
-        color: '#64748b',
-      },
+      textStyle: { fontSize: 12, color: '#64748b' },
     },
+    title: hasData
+      ? { show: false }
+      : {
+          show: true,
+          text: t('noData'),
+          left: 'center',
+          top: 'center',
+          textStyle: { fontSize: 14, color: '#94a3b8' },
+        },
     series: [
       {
-        name: 'Config Types',
+        name: t('configTypes'),
         type: 'pie',
         radius: ['45%', '70%'],
         center: ['35%', '50%'],
         avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 4,
-          borderColor: '#fff',
-          borderWidth: 2,
-        },
-        label: {
-          show: false,
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: 14,
-            fontWeight: 'bold',
-          },
-        },
-        data: configTypeData.value.map((item, index) => ({
-          value: item.value,
-          name: item.name,
-          itemStyle: {
-            color: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#64748b'][index],
-          },
-        })),
+        itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 },
+        label: { show: false },
+        emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+        // Guard against evenly splitting when there is no data
+        data: hasData
+          ? items.map((item, index) => ({
+              value: item.value,
+              name: item.name,
+              itemStyle: { color: CHART_COLORS[index % CHART_COLORS.length] },
+            }))
+          : [],
       },
     ],
-  }
-  configChart.setOption(option)
-}
-
-// Update charts with new data
-const updateCharts = () => {
-  if (healthChart) {
-    healthChart.setOption({
-      series: [
-        {
-          data: [
-            {
-              value: stats.value.healthyServices,
-              name: t('healthy'),
-              itemStyle: { color: '#10b981' },
-            },
-            {
-              value: Math.max(0, stats.value.totalServices - stats.value.healthyServices),
-              name: t('unhealthy'),
-              itemStyle: { color: '#ef4444' },
-            },
-          ],
-        },
-      ],
-    })
-  }
-}
-
-// Update config chart with new data
-const updateConfigChart = () => {
-  if (configChart) {
-    configChart.setOption({
-      series: [
-        {
-          data: configTypeData.value.map((item, index) => ({
-            value: item.value,
-            name: item.name,
-            itemStyle: {
-              color: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#64748b'][index % 5],
-            },
-          })),
-        },
-      ],
-    })
-  }
+  })
 }
 
 // Fetch all data
@@ -517,9 +456,9 @@ const fetchData = async () => {
     logger.error('Failed to fetch cluster nodes:', error)
   }
 
-  // Update charts
-  updateCharts()
-  updateConfigChart()
+  // Render charts with the latest data (charts are created here on first run)
+  renderHealthChart()
+  renderConfigChart()
   loading.value = false
 }
 
@@ -535,9 +474,9 @@ const handleResize = () => {
 }
 
 onMounted(() => {
+  // Charts are created and rendered once data is ready (inside fetchData),
+  // so they never show the 50/50 evenly-split placeholder for all-zero data.
   fetchData()
-  initHealthChart()
-  initConfigChart()
   window.addEventListener('resize', handleResize)
 })
 
@@ -547,11 +486,11 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
 })
 
-// Watch stats changes to update charts
+// Watch stats changes to refresh the health chart
 watch(
-  () => stats.value.healthyServices,
+  () => [stats.value.healthyServices, stats.value.totalServices],
   () => {
-    updateCharts()
+    renderHealthChart()
   },
 )
 </script>
