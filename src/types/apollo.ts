@@ -56,6 +56,10 @@ export interface ApolloOpenNamespace {
   comment?: string
   isPublic: boolean
   items: ApolloItemDTO[]
+  isLocked?: boolean
+  lockedBy?: string
+  lockedDate?: string
+  lockedComment?: string
 }
 
 export interface ApolloOpenRelease {

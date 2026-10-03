@@ -657,6 +657,36 @@ const apolloChildren: RouteRecordRaw[] = [
     component: () => import('../views/apollo/ApolloAppDetailView.vue'),
     meta: { titleKey: 'apolloInstances', tab: 'instances' },
   },
+  {
+    path: 'apollo/system-info',
+    name: 'apollo-system-info',
+    component: () => import('../views/apollo/ApolloSystemInfoView.vue'),
+    meta: { titleKey: 'apolloSystemInfo' },
+  },
+  {
+    path: 'apollo/users',
+    name: 'apollo-users',
+    component: () => import('../views/apollo/ApolloUserManagementView.vue'),
+    meta: { titleKey: 'apolloUserManagement' },
+  },
+  {
+    path: 'apollo/user-tokens',
+    name: 'apollo-user-tokens',
+    component: () => import('../views/apollo/ApolloUserTokensView.vue'),
+    meta: { titleKey: 'apolloUserTokens' },
+  },
+  {
+    path: 'apollo/server-config',
+    name: 'apollo-server-config',
+    component: () => import('../views/apollo/ApolloServerConfigView.vue'),
+    meta: { titleKey: 'apolloServerConfig' },
+  },
+  {
+    path: 'apollo/system-permission',
+    name: 'apollo-system-permission',
+    component: () => import('../views/apollo/ApolloSystemPermissionView.vue'),
+    meta: { titleKey: 'apolloSystemPermission' },
+  },
 ]
 
 /**
@@ -724,6 +754,9 @@ router.beforeEach((to, _from, next) => {
     switch (normalizedProvider) {
       case 'consul':
         next('/consul/dashboard')
+        break
+      case 'apollo':
+        next('/apollo/apps')
         break
       default:
         next('/')

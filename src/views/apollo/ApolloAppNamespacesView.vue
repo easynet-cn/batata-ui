@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import { useI18n } from '@/i18n'
 import { Layers, Plus, Trash2, Link2 } from '@lucide/vue'
 import apolloApi from '@/api/apollo'
-import type { ApolloAppNamespaceDTO } from '@/types/apollo'
+import type { ApolloAppNamespaceDTO, ApolloMissingNamespaceDTO } from '@/types/apollo'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -15,6 +15,10 @@ const cluster = ref<string>('default')
 const appNamespaces = ref<ApolloAppNamespaceDTO[]>([])
 const envClusters = ref<{ env: string; clusters: string[] }[]>([])
 const loading = ref(false)
+
+const missingNamespaces = ref<ApolloMissingNamespaceDTO[]>([])
+const loadingMissing = ref(false)
+const selectedMissing = ref<string[]>([])
 
 const showCreate = ref(false)
 const form = ref({ name: '', format: 'properties', isPublic: false, comment: '' })
@@ -29,9 +33,37 @@ async function load() {
       env.value = envClusters.value[0].env
       cluster.value = envClusters.value[0].clusters[0] || 'default'
     }
+    await loadMissing()
   } finally {
     loading.value = false
   }
+}
+
+async function loadMissing() {
+  if (!appId.value) return
+  loadingMissing.value = true
+  try {
+    missingNamespaces.value = await apolloApi.findMissingNamespaces(
+      env.value,
+      appId.value,
+      cluster.value,
+    )
+    selectedMissing.value = []
+  } finally {
+    loadingMissing.value = false
+  }
+}
+
+async function associateMissing() {
+  if (selectedMissing.value.length === 0) return
+  await apolloApi.createMissingNamespaces(
+    env.value,
+    appId.value,
+    cluster.value,
+    selectedMissing.value.map((n) => ({ namespaceName: n })),
+  )
+  selectedMissing.value = []
+  await loadMissing()
 }
 
 async function createNs() {
@@ -82,10 +114,10 @@ onMounted(load)
     </div>
     <div v-else>
       <div class="flex gap-2 mb-4" v-if="envClusters.length">
-        <select v-model="env" class="input w-auto">
+        <select v-model="env" class="input w-auto" @change="loadMissing">
           <option v-for="ec in envClusters" :key="ec.env" :value="ec.env">{{ ec.env }}</option>
         </select>
-        <select v-model="cluster" class="input w-auto">
+        <select v-model="cluster" class="input w-auto" @change="loadMissing">
           <option
             v-for="c in envClusters.find((e) => e.env === env)?.clusters || []"
             :key="c"
@@ -136,6 +168,71 @@ onMounted(load)
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Associate missing namespaces (already exist in other envs/clusters) -->
+      <div class="mt-6">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-sm font-semibold text-text-primary">{{ t('apolloAssociateMissing') }}</h2>
+          <button
+            class="btn btn-primary btn-sm"
+            :disabled="selectedMissing.length === 0"
+            @click="associateMissing"
+          >
+            <Link2 class="w-4 h-4" />{{ t('apolloAssociateSelected') }} ({{
+              selectedMissing.length
+            }})
+          </button>
+        </div>
+        <div v-if="loadingMissing" class="card p-8 text-center text-text-secondary">
+          {{ t('loading') }}
+        </div>
+        <div
+          v-else-if="missingNamespaces.length === 0"
+          class="card p-8 text-center text-text-tertiary"
+        >
+          {{ t('noData') }}
+        </div>
+        <div v-else class="card overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-bg-secondary text-text-secondary">
+              <tr>
+                <th class="w-8 px-2 py-2">
+                  <input
+                    type="checkbox"
+                    :checked="
+                      selectedMissing.length === missingNamespaces.length &&
+                      missingNamespaces.length > 0
+                    "
+                    @change="
+                      selectedMissing =
+                        selectedMissing.length === missingNamespaces.length
+                          ? []
+                          : missingNamespaces.map((n) => n.namespaceName)
+                    "
+                  />
+                </th>
+                <th class="text-left px-4 py-2">{{ t('apolloMissingNamespaces') }}</th>
+                <th class="text-left px-4 py-2">{{ t('apolloEnvs') }}</th>
+                <th class="text-left px-4 py-2">{{ t('apolloClusterName') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="m in missingNamespaces"
+                :key="(m.namespaceName || '') + '|' + (m.env || '') + '|' + (m.clusterName || '')"
+                class="border-t border-border"
+              >
+                <td class="px-2 py-1 w-8">
+                  <input type="checkbox" :value="m.namespaceName" v-model="selectedMissing" />
+                </td>
+                <td class="px-4 py-2 font-mono text-text-primary">{{ m.namespaceName }}</td>
+                <td class="px-4 py-2 text-text-secondary">{{ m.env }}</td>
+                <td class="px-4 py-2 text-text-secondary">{{ m.clusterName }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 

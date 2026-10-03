@@ -28,6 +28,46 @@ import type {
 
 const operator = (op?: string) => (op ? { operator: op } : undefined)
 
+// ---------------- P3 DTOs (aligned with apollo-portal) ----------------
+export interface ApolloUserDTO {
+  userId: string
+  name?: string
+  email?: string
+  enabled?: boolean
+}
+export interface ApolloUserTokenDTO {
+  id: string
+  userId: string
+  name: string
+  tokenPrefix?: string
+  status?: string
+  operations?: string[]
+  appIds?: string[]
+  envs?: string[]
+  rateLimit?: number
+  expires?: string
+  lastUsedTime?: string
+  dataChangeCreatedTime?: string
+}
+export interface ApolloServerConfigDTO {
+  key: string
+  value: string
+  comment?: string
+  cluster?: string
+  id?: number
+}
+export interface ApolloSystemInfoDTO {
+  apolloVersion?: string
+  gitCommitId?: string
+  environments?: {
+    env: string
+    active: boolean
+    metaServerAddress?: string
+    configServices?: { appName?: string; instanceId?: string; homepageUrl?: string }[]
+    adminServices?: { appName?: string; instanceId?: string; homepageUrl?: string }[]
+  }[]
+}
+
 class ApolloApi {
   private instance: AxiosInstance
 
@@ -189,6 +229,62 @@ class ApolloApi {
       .then(() => undefined)
   }
 
+  // ---------------- Namespace lock (apollo-native read-only protection) ----------------
+  lockNamespace(
+    env: string,
+    appId: string,
+    clusterName: string,
+    namespaceName: string,
+    comment?: string,
+    op?: string,
+  ): Promise<void> {
+    return this.instance
+      .put(`/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/lock`, {
+        operator: op || 'admin',
+        namespaceName,
+        lockedComment: comment || '',
+      })
+      .then(() => undefined)
+  }
+
+  unlockNamespace(
+    env: string,
+    appId: string,
+    clusterName: string,
+    namespaceName: string,
+    op?: string,
+  ): Promise<void> {
+    return this.instance
+      .delete(
+        `/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/lock`,
+        { params: operator(op) },
+      )
+      .then(() => undefined)
+  }
+
+  // ---------------- Associate public namespace (apollo-native) ----------------
+  associateNamespace(
+    env: string,
+    appId: string,
+    clusterName: string,
+    namespaceName: string,
+    publicAppId: string,
+    publicNamespaceName: string,
+    op?: string,
+  ): Promise<void> {
+    return this.instance
+      .post(
+        `/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/associate`,
+        {
+          namespaceName,
+          publicAppId,
+          publicNamespaceName,
+          operator: op || 'admin',
+        },
+      )
+      .then(() => undefined)
+  }
+
   // ---------------- Items ----------------
   listItems(
     env: string,
@@ -272,6 +368,23 @@ class ApolloApi {
         { params: { ...operator(op), ...(branchName ? { branchName } : {}) } },
       )
       .then(() => undefined)
+  }
+
+  // ---------------- Item-key history (apollo-native per-key change history) ----------------
+  getItemHistory(
+    env: string,
+    appId: string,
+    clusterName: string,
+    namespaceName: string,
+    key: string,
+    branchName?: string,
+  ): Promise<ApolloCommitDTO[]> {
+    return this.instance
+      .get(
+        `/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/items/${key}/commit`,
+        { params: branchName ? { branchName } : undefined },
+      )
+      .then((r) => r.data)
   }
 
   // ---------------- Releases ----------------
@@ -457,6 +570,59 @@ class ApolloApi {
       .then(() => undefined)
   }
 
+  // ---------------- Permissions (roles) ----------------
+  // Apollo role-based access control: AppRole (Master), NamespaceRole
+  // (ModifyNamespace / ReleaseNamespace) and ClusterNamespaceRole
+  // (ModifyNamespacesInCluster / ReleaseNamespacesInCluster).
+  // Grant sends the userId as a raw JSON string body; revoke uses the
+  // `user` query param — matching apollo-portal's PermissionController.
+  assignRole(
+    appId: string,
+    roleType: string,
+    userId: string,
+    opts?: { env?: string; cluster?: string; namespace?: string },
+  ): Promise<void> {
+    return this.instance
+      .post(this.rolePath(appId, roleType, opts), JSON.stringify(userId))
+      .then(() => undefined)
+  }
+
+  revokeRole(
+    appId: string,
+    roleType: string,
+    userId: string,
+    opts?: { env?: string; cluster?: string; namespace?: string },
+  ): Promise<void> {
+    return this.instance
+      .delete(this.rolePath(appId, roleType, opts), { params: { user: userId } })
+      .then(() => undefined)
+  }
+
+  listRoleUsers(
+    appId: string,
+    roleType: string,
+    opts?: { env?: string; cluster?: string; namespace?: string },
+  ): Promise<ApolloRoleUserDTO[]> {
+    return this.instance.get(this.rolePath(appId, roleType, opts)).then((r) => r.data)
+  }
+
+  private rolePath(
+    appId: string,
+    roleType: string,
+    opts?: { env?: string; cluster?: string; namespace?: string },
+  ): string {
+    const o = opts || {}
+    if (o.cluster) {
+      return `/apps/${appId}/envs/${o.env}/clusters/${o.cluster}/ns_roles/${roleType}`
+    }
+    if (o.namespace) {
+      return o.env
+        ? `/apps/${appId}/envs/${o.env}/namespaces/${o.namespace}/roles/${roleType}`
+        : `/apps/${appId}/namespaces/${o.namespace}/roles/${roleType}`
+    }
+    return `/apps/${appId}/roles/${roleType}`
+  }
+
   // ---------------- Audit ----------------
   listAudit(page = 0, size = 20): Promise<ApolloPage<ApolloAuditDTO>> {
     return this.instance.get('/apollo/audit', { params: { page, size } }).then((r) => r.data)
@@ -467,6 +633,11 @@ class ApolloApi {
     return this.instance
       .get(`/envs/${env}/apps/${appId}/clusters/${clusterName}/instances`)
       .then((r) => r.data)
+  }
+
+  // Actually-loaded configurations of a single client instance (ConfigService).
+  getInstanceConfigs(env: string, instanceId: number): Promise<Record<string, string>> {
+    return this.instance.get(`/envs/${env}/instances/${instanceId}/configs`).then((r) => r.data)
   }
 
   // ---------------- Releases (extra) ----------------
@@ -606,6 +777,144 @@ class ApolloApi {
     return this.instance.post('/configs/import', dto).then(() => undefined)
   }
 
+  // ---------------- Config sync ----------------
+  // Apollo namespace config sync (NamespaceSyncModel): push selected items from
+  // the current namespace to one or more target namespaces.
+  syncNamespace(
+    env: string,
+    appId: string,
+    clusterName: string,
+    namespaceName: string,
+    dto: {
+      syncToNamespaces: { appId: string; env: string; clusterName: string; namespaceName: string }[]
+      syncItems: { key: string; value: string; comment?: string; type?: number }[]
+    },
+  ): Promise<void> {
+    return this.instance
+      .post(
+        `/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/items/sync`,
+        dto,
+      )
+      .then(() => undefined)
+  }
+
+  // ---------------- Users (portal user management) ----------------
+  getCurrentUser(): Promise<ApolloUserDTO> {
+    return this.instance.get('/user').then((r) => r.data)
+  }
+
+  listUsers(params?: {
+    keyword?: string
+    includeInactiveUsers?: boolean
+    offset?: number
+    limit?: number
+  }): Promise<ApolloUserDTO[]> {
+    return this.instance.get('/users', { params }).then((r) => r.data)
+  }
+
+  createUser(user: {
+    userId: string
+    name?: string
+    email?: string
+    password?: string
+  }): Promise<void> {
+    return this.instance.post('/users', user).then(() => undefined)
+  }
+
+  updateUserEnabled(username: string, enabled: boolean, password?: string): Promise<void> {
+    return this.instance
+      .put(`/users/${username}`, { userId: username, enabled, password })
+      .then(() => undefined)
+  }
+
+  deleteUser(username: string): Promise<void> {
+    return this.instance.delete(`/users/${username}`).then(() => undefined)
+  }
+
+  // ---------------- User tokens ----------------
+  listUserTokens(): Promise<ApolloUserTokenDTO[]> {
+    return this.instance.get('/user-tokens').then((r) => r.data)
+  }
+
+  createUserToken(dto: {
+    name: string
+    operations?: string[]
+    appIds?: string[]
+    envs?: string[]
+    namespaces?: { appId: string; env: string; clusterName: string; namespaceName: string }[]
+    rateLimit?: number
+    expires?: string
+  }): Promise<{ id: string; tokenValue: string }> {
+    return this.instance.post('/user-tokens', dto).then((r) => r.data)
+  }
+
+  revokeUserToken(tokenId: string): Promise<void> {
+    return this.instance.post(`/user-tokens/${tokenId}/revoke`).then(() => undefined)
+  }
+
+  rotateUserToken(tokenId: string): Promise<{ id: string; tokenValue: string }> {
+    return this.instance.post(`/user-tokens/${tokenId}/rotate`).then((r) => r.data)
+  }
+
+  deleteUserToken(tokenId: string): Promise<void> {
+    return this.instance.delete(`/user-tokens/${tokenId}`).then(() => undefined)
+  }
+
+  // ---------------- System info ----------------
+  getSystemInfo(): Promise<ApolloSystemInfoDTO> {
+    return this.instance.get('/system-info').then((r) => r.data)
+  }
+
+  // ---------------- Server config ----------------
+  listPortalConfigs(): Promise<ApolloServerConfigDTO[]> {
+    return this.instance.get('/server/portal-db/config/find-all-config').then((r) => r.data)
+  }
+
+  createPortalConfig(config: ApolloServerConfigDTO): Promise<ApolloServerConfigDTO> {
+    return this.instance.post('/server/portal-db/config', config).then((r) => r.data)
+  }
+
+  deletePortalConfig(key: string): Promise<void> {
+    return this.instance
+      .delete('/server/portal-db/config', { params: { key } })
+      .then(() => undefined)
+  }
+
+  listConfigDBConfigs(env: string): Promise<ApolloServerConfigDTO[]> {
+    return this.instance
+      .get(`/server/envs/${env}/config-db/config/find-all-config`)
+      .then((r) => r.data)
+  }
+
+  createConfigDBConfig(env: string, config: ApolloServerConfigDTO): Promise<ApolloServerConfigDTO> {
+    return this.instance.post(`/server/envs/${env}/config-db/config`, config).then((r) => r.data)
+  }
+
+  deleteConfigDBConfig(env: string, key: string, cluster?: string): Promise<void> {
+    return this.instance
+      .delete(`/server/envs/${env}/config-db/config`, {
+        params: { key, ...(cluster ? { cluster } : {}) },
+      })
+      .then(() => undefined)
+  }
+
+  // ---------------- System permissions (super admin) ----------------
+  getRootPermission(): Promise<{ hasPermission: boolean }> {
+    return this.instance.get('/permissions/root').then((r) => r.data)
+  }
+
+  listCreateAppPermissionUsers(): Promise<string[]> {
+    return this.instance.get('/system/role/createApplication').then((r) => r.data)
+  }
+
+  grantCreateAppPermission(userIds: string[]): Promise<void> {
+    return this.instance.post('/system/role/createApplication', userIds).then(() => undefined)
+  }
+
+  revokeCreateAppPermission(userId: string): Promise<void> {
+    return this.instance.delete(`/system/role/createApplication/${userId}`).then(() => undefined)
+  }
+
   // ---------------- Global search / favorites / missing ----------------
   search(key?: string, value?: string): Promise<ApolloSearchResultDTO[]> {
     return this.instance
@@ -642,3 +951,10 @@ class ApolloApi {
 }
 
 export default new ApolloApi()
+
+export type ApolloRoleUserDTO = {
+  userId: string
+  name?: string
+  email?: string
+  enabled?: boolean
+}

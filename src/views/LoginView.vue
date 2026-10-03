@@ -32,17 +32,31 @@
               'w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-white text-4xl italic shadow-xl transform -rotate-6',
               isConsulAcl
                 ? 'bg-fuchsia-600 shadow-fuchsia-500/30'
-                : 'bg-blue-600 shadow-blue-500/30',
+                : isApollo
+                  ? 'bg-orange-500 shadow-orange-500/30'
+                  : 'bg-blue-600 shadow-blue-500/30',
             ]"
           >
-            {{ isConsulAcl ? 'C' : 'B' }}
+            {{ isConsulAcl ? 'C' : isApollo ? 'A' : 'B' }}
           </div>
         </div>
         <h1 class="text-3xl font-extrabold text-gray-800 dark:text-gray-100 mb-2 tracking-tight">
-          {{ isConsulAcl ? t('consulLoginTitle') : t('welcomeBack') }}
+          {{
+            isApollo
+              ? t('apolloLoginTitle')
+              : isConsulAcl
+                ? t('consulLoginTitle')
+                : t('welcomeBack')
+          }}
         </h1>
         <p class="text-gray-500 dark:text-gray-400 text-sm font-medium italic">
-          {{ isConsulAcl ? t('consulLoginSlogan') : t('loginSlogan') }}
+          {{
+            isApollo
+              ? t('apolloLoginSlogan')
+              : isConsulAcl
+                ? t('consulLoginSlogan')
+                : t('loginSlogan')
+          }}
         </p>
       </div>
 
@@ -159,6 +173,41 @@
           </template>
         </div>
 
+        <!-- Apollo token login (open-api X-Apollo-Token) -->
+        <form v-else-if="isApollo" @submit.prevent="handleSubmit" class="space-y-6">
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{
+              t('apolloAclToken')
+            }}</label>
+            <input
+              type="password"
+              v-model="apolloToken"
+              :placeholder="t('apolloTokenPlaceholder')"
+              class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-orange-500 dark:text-gray-100 outline-none transition-all text-sm"
+              required
+            />
+          </div>
+
+          <div v-if="loginError" class="text-red-500 dark:text-red-400 text-sm text-center">
+            {{ loginError }}
+          </div>
+
+          <button
+            type="submit"
+            :disabled="isLoading"
+            class="w-full text-white py-4 rounded-xl font-bold text-lg transition-all shadow-xl active:scale-95 transform disabled:opacity-70 disabled:cursor-not-allowed bg-orange-500 hover:bg-orange-600 shadow-orange-500/20"
+          >
+            <template v-if="isLoading">
+              <div
+                class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"
+              />
+            </template>
+            <template v-else>
+              {{ t('signIn') }}
+            </template>
+          </button>
+        </form>
+
         <!-- Batata username/password login -->
         <form v-else @submit.prevent="handleSubmit" class="space-y-6">
           <div class="space-y-1">
@@ -219,6 +268,20 @@
               {{ authStore.consulAclEnabled ? t('consulAclRequired') : t('consulNoAclHint') }}
             </p>
           </div>
+
+          <div class="pt-2 border-t border-gray-100 dark:border-gray-800">
+            <button
+              type="button"
+              @click="enterApollo"
+              class="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors"
+            >
+              <span>{{ t('enterApollo') }}</span>
+              <span aria-hidden="true">→</span>
+            </button>
+            <p class="mt-2 text-xs text-center text-gray-400 dark:text-gray-500">
+              {{ t('apolloTokenLoginHint') }}
+            </p>
+          </div>
         </form>
 
         <div v-if="isConsulAcl" class="text-center">
@@ -259,6 +322,7 @@ const { setProvider, consulEnabled, setConsulEnabled } = useProvider()
 const username = ref('')
 const password = ref('')
 const consulToken = ref('')
+const apolloToken = ref('')
 const isLoading = ref(false)
 const loginError = ref('')
 
@@ -274,6 +338,7 @@ const provider = computed(() => {
 })
 
 const isConsulAcl = computed(() => provider.value === 'consul' && authStore.consulAclEnabled)
+const isApollo = computed(() => provider.value === 'apollo')
 
 onMounted(async () => {
   try {
@@ -331,7 +396,15 @@ const handleSubmit = async () => {
   isLoading.value = true
   loginError.value = ''
   try {
-    if (isConsulAcl.value) {
+    if (isApollo.value) {
+      // Apollo open-api token login
+      const success = await authStore.loginWithApolloToken(apolloToken.value)
+      if (success) {
+        router.push('/apollo/apps')
+      } else {
+        loginError.value = authStore.error || t('apolloTokenLoginFailed')
+      }
+    } else if (isConsulAcl.value) {
       // Consul ACL token login
       const success = await batataStore.loginWithToken(consulToken.value)
       if (success) {
@@ -349,7 +422,11 @@ const handleSubmit = async () => {
       }
     }
   } catch {
-    loginError.value = isConsulAcl.value ? t('consulTokenLoginFailed') : t('loginFailed')
+    loginError.value = isApollo.value
+      ? t('apolloTokenLoginFailed')
+      : isConsulAcl.value
+        ? t('consulTokenLoginFailed')
+        : t('loginFailed')
   } finally {
     isLoading.value = false
   }
@@ -398,6 +475,13 @@ const enterConsul = () => {
   } else {
     router.replace('/consul/dashboard')
   }
+}
+
+const enterApollo = () => {
+  setProvider('apollo')
+  switchProviderRoutes('apollo')
+  // Stay on login page; UI re-renders into the Apollo token form
+  loginError.value = ''
 }
 
 const toggleLanguage = () => {

@@ -1143,6 +1143,11 @@ const apolloNavGroups = computed(() => {
         { path: '/apollo/consumers', label: t('apolloConsumers'), icon: KeySquare },
         { path: '/apollo/favorites', label: t('apolloFavorites'), icon: Star },
         { path: '/apollo/audit', label: t('apolloAudit'), icon: Shield },
+        { path: '/apollo/system-info', label: t('apolloSystemInfo'), icon: Info },
+        { path: '/apollo/users', label: t('apolloUserManagement'), icon: Users },
+        { path: '/apollo/user-tokens', label: t('apolloUserTokens'), icon: KeySquare },
+        { path: '/apollo/server-config', label: t('apolloServerConfig'), icon: Settings2 },
+        { path: '/apollo/system-permission', label: t('apolloSystemPermission'), icon: Shield },
       ],
     },
   ]

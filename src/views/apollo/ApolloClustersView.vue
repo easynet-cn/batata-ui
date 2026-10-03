@@ -2,9 +2,10 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from '@/i18n'
-import { Network, Plus } from '@lucide/vue'
+import { Network, Plus, Trash2 } from '@lucide/vue'
 import apolloApi from '@/api/apollo'
 import type { ApolloEnvCluster } from '@/types/apollo'
+import ApolloRoleAssign from '@/views/apollo/ApolloRoleAssign.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -15,6 +16,7 @@ const loading = ref(false)
 const showCreate = ref(false)
 const saving = ref(false)
 const form = ref({ env: 'DEV', name: '', comment: '' })
+const showClusterRole = ref<{ env: string; cluster: string } | null>(null)
 
 async function load() {
   if (!appId.value) return
@@ -43,6 +45,12 @@ async function createCluster() {
   }
 }
 
+async function deleteClusterEnv(envName: string, clusterName: string) {
+  if (!confirm(`Delete cluster ${clusterName}?`)) return
+  await apolloApi.deleteCluster(envName, appId.value, clusterName)
+  await load()
+}
+
 onMounted(load)
 </script>
 
@@ -65,8 +73,23 @@ onMounted(load)
     <div v-else class="space-y-4">
       <div v-for="ec in envClusters" :key="ec.env" class="card p-4">
         <p class="text-sm font-semibold text-text-primary mb-2">{{ ec.env }}</p>
-        <div class="flex flex-wrap gap-2">
-          <span v-for="c in ec.clusters" :key="c" class="badge badge-info">{{ c }}</span>
+        <div class="flex flex-wrap gap-2 items-center">
+          <div v-for="c in ec.clusters" :key="c" class="group relative inline-flex items-center">
+            <button
+              class="badge badge-info cursor-pointer pr-6"
+              :title="t('apolloClusterPermission')"
+              @click="showClusterRole = { env: ec.env, cluster: c }"
+            >
+              {{ c }}
+            </button>
+            <button
+              class="btn btn-ghost btn-xs text-danger absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100"
+              :title="t('delete')"
+              @click.stop="deleteClusterEnv(ec.env, c)"
+            >
+              <Trash2 class="w-3 h-3" />
+            </button>
+          </div>
           <span v-if="ec.clusters.length === 0" class="text-xs text-text-tertiary">—</span>
         </div>
       </div>
@@ -103,6 +126,33 @@ onMounted(load)
             {{ t('create') }}
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- Cluster namespace permission modal -->
+    <div
+      v-if="showClusterRole"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      @click.self="showClusterRole = null"
+    >
+      <div class="bg-bg rounded-xl shadow-lg w-full max-w-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-base font-semibold">
+            {{ t('apolloClusterPermission') }} · {{ showClusterRole?.cluster }}
+          </h3>
+          <button class="btn btn-ghost btn-sm" @click="showClusterRole = null">
+            {{ t('cancel') }}
+          </button>
+        </div>
+        <ApolloRoleAssign
+          :app-id="appId"
+          :env="showClusterRole?.env"
+          :cluster="showClusterRole?.cluster"
+          :roles="[
+            { roleType: 'ModifyNamespacesInCluster', label: t('apolloModifyClusterPermission') },
+            { roleType: 'ReleaseNamespacesInCluster', label: t('apolloReleaseClusterPermission') },
+          ]"
+        />
       </div>
     </div>
   </div>

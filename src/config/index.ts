@@ -18,6 +18,7 @@ export const config = {
     usernameKey: 'batata-username',
     userKey: 'batata_user',
     consulTokenKey: 'consul-token',
+    apolloTokenKey: 'apollo-token',
     namespaceKey: 'batata_current_ns',
     langKey: 'batata_lang',
   },

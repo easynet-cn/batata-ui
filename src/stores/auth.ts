@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import batataApi from '@/api/batata'
 import consulApi from '@/api/consul'
+import apolloApi from '@/api/apollo'
 import { config } from '@/config'
 import { storage } from '@/composables/useStorage'
 
@@ -30,6 +31,20 @@ export const useAuthStore = defineStore('auth', () => {
       // If ACL is disabled, allow access without token
       if (!consulAclEnabled.value) {
         currentUser.value = { username: 'anonymous', token: '', globalAdmin: false }
+        return true
+      }
+      return false
+    }
+
+    // Apollo: restore from apollo open-api token
+    if (provider === 'apollo') {
+      const apolloToken = storage.get(config.storage.apolloTokenKey)
+      if (apolloToken) {
+        currentUser.value = {
+          username: storage.get('apollo_user') || 'apollo',
+          token: apolloToken,
+          globalAdmin: true,
+        }
         return true
       }
       return false
@@ -90,6 +105,24 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function loginWithApolloToken(token: string, username = 'apollo'): Promise<boolean> {
+    try {
+      loading.value = true
+      error.value = null
+      // Validate the Apollo token by calling a lightweight open-api endpoint
+      await apolloApi.listApps()
+      currentUser.value = { username, token, globalAdmin: true }
+      storage.set(config.storage.apolloTokenKey, token)
+      storage.set('apollo_user', username)
+      return true
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Invalid Apollo Token'
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function loginWithOIDC(authMethod: string, redirectURI: string): Promise<string | null> {
     try {
       loading.value = true
@@ -139,6 +172,8 @@ export const useAuthStore = defineStore('auth', () => {
     storage.remove(config.storage.usernameKey)
     storage.remove(config.storage.userKey)
     storage.remove(config.storage.consulTokenKey)
+    storage.remove(config.storage.apolloTokenKey)
+    storage.remove('apollo_user')
   }
 
   function clearError() {
@@ -151,6 +186,16 @@ export const useAuthStore = defineStore('auth', () => {
       if (e.key === config.storage.consulTokenKey) {
         if (e.newValue) {
           currentUser.value = { username: 'consul', token: e.newValue, globalAdmin: true }
+        } else {
+          currentUser.value = null
+        }
+      } else if (e.key === config.storage.apolloTokenKey) {
+        if (e.newValue) {
+          currentUser.value = {
+            username: storage.get('apollo_user') || 'apollo',
+            token: e.newValue,
+            globalAdmin: true,
+          }
         } else {
           currentUser.value = null
         }
@@ -182,6 +227,7 @@ export const useAuthStore = defineStore('auth', () => {
     restoreSession,
     login,
     loginWithToken,
+    loginWithApolloToken,
     loginWithOIDC,
     completeOIDCLogin,
     setConsulAclEnabled,
