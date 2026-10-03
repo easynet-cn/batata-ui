@@ -2,7 +2,7 @@ import axios from 'axios'
 import type { AxiosInstance } from 'axios'
 import { config } from '@/config'
 import { storage } from '@/composables/useStorage'
-import { isSessionExpired } from '@/utils/error'
+import { clearProviderTokenOnExpired } from '@/api/client'
 import type {
   ApolloAppDTO,
   ApolloAppNamespaceDTO,
@@ -86,23 +86,12 @@ class ApolloApi {
       (error) => Promise.reject(error),
     )
 
-    // Response interceptor: drop the locally stored Apollo token when the external
-    // service reports it as expired/invalid. We do NOT redirect to the batata login
-    // page (Apollo has its own independent auth) and we keep the original axios error
-    // untouched so existing callers can read `error.response` as before.
+    // Response interceptor: drop the local Apollo token on 401/403-expired. Apollo
+    // has independent auth, so we keep the original axios error untouched for callers.
     this.instance.interceptors.response.use(
       (response) => response,
       (error) => {
-        const status = error?.response?.status
-        const respData = error?.response?.data
-        const message = typeof respData === 'string' ? respData : respData?.message || ''
-        const dataStr =
-          respData && typeof respData === 'object' && typeof respData.data === 'string'
-            ? respData.data
-            : ''
-        if ((status === 401 || status === 403) && isSessionExpired(message, dataStr)) {
-          storage.remove('apollo-token')
-        }
+        clearProviderTokenOnExpired(error?.response?.status, error?.response?.data, 'apollo-token')
         return Promise.reject(error)
       },
     )

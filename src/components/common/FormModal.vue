@@ -20,7 +20,7 @@
         <div class="modal-body">
           <slot />
         </div>
-        <div class="modal-footer">
+        <div v-if="!hideFooter" class="modal-footer">
           <button @click="handleClose" class="btn btn-secondary" :disabled="loading">
             {{ cancelText || t('cancel') }}
           </button>
@@ -55,6 +55,8 @@ const props = defineProps<{
   loading?: boolean
   submitDisabled?: boolean
   wide?: boolean
+  size?: 'md' | 'lg' | '2xl'
+  hideFooter?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -62,7 +64,11 @@ const emit = defineEmits<{
   submit: []
 }>()
 
-const widthClass = computed(() => (props.wide ? 'max-w-lg' : ''))
+const widthClass = computed(() => {
+  if (props.size === '2xl') return 'max-w-2xl'
+  if (props.size === 'lg') return 'max-w-lg'
+  return props.wide ? 'max-w-lg' : ''
+})
 
 // Focus first input when modal opens
 watch(

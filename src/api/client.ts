@@ -8,6 +8,32 @@ import { useI18n } from '@/i18n'
 const { t } = useI18n()
 
 /**
+ * Shared helper for provider APIs (Apollo, Consul) that have their OWN independent
+ * auth (not the batata login). When the backend reports the provider token as
+ * expired/invalid (401/403), drop it from storage so the UI can prompt for a new
+ * one. The original axios error is intentionally left untouched for the caller.
+ */
+export function clearProviderTokenOnExpired(
+  status: number | undefined,
+  respData: unknown,
+  tokenKey: string,
+): void {
+  const message =
+    typeof respData === 'string'
+      ? respData
+      : ((respData as { message?: string } | null)?.message ?? '')
+  const dataStr =
+    respData &&
+    typeof respData === 'object' &&
+    typeof (respData as { data?: unknown }).data === 'string'
+      ? ((respData as { data?: unknown }).data as string)
+      : ''
+  if ((status === 401 || status === 403) && isSessionExpired(message, dataStr)) {
+    storage.remove(tokenKey)
+  }
+}
+
+/**
  * Create an Axios instance with shared interceptors for token injection and error handling.
  */
 export function createApiInstance(baseURL: string): AxiosInstance {

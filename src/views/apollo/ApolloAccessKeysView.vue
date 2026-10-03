@@ -4,9 +4,11 @@ import { useRoute } from 'vue-router'
 import { useI18n } from '@/i18n'
 import { KeyRound, Plus, Trash2, ShieldCheck, ShieldOff } from '@lucide/vue'
 import apolloApi from '@/api/apollo'
+import { useConfirm } from '@/composables/useConfirm'
 import type { ApolloAccessKeyDTO } from '@/types/apollo'
 
 const { t } = useI18n()
+const { confirm } = useConfirm()
 const route = useRoute()
 const appId = ref<string>((route.query.appId as string) || '')
 
@@ -29,7 +31,8 @@ async function createKey() {
 }
 
 async function removeKey(k: ApolloAccessKeyDTO) {
-  if (!confirm('Delete access key?')) return
+  if (!(await confirm({ title: t('confirmDelete'), message: 'Delete access key?', danger: true })))
+    return
   await apolloApi.deleteAccessKey(appId.value, k.id!)
   await load()
 }

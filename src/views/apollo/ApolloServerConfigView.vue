@@ -2,9 +2,12 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from '@/i18n'
 import apolloApi from '@/api/apollo'
+import { useConfirm } from '@/composables/useConfirm'
 import type { ApolloServerConfigDTO } from '@/api/apollo'
+import FormModal from '@/components/common/FormModal.vue'
 
 const { t } = useI18n()
+const { confirm } = useConfirm()
 const activeTab = ref<'portal' | 'configdb'>('portal')
 const env = ref('DEV')
 const loading = ref(false)
@@ -44,7 +47,10 @@ async function create() {
 }
 
 async function remove(c: ApolloServerConfigDTO) {
-  if (!confirm(t('confirmDelete'))) return
+  if (
+    !(await confirm({ title: t('confirmDelete'), message: t('confirmDeleteConfig'), danger: true }))
+  )
+    return
   error.value = ''
   try {
     if (activeTab.value === 'portal') await apolloApi.deletePortalConfig(c.key)
@@ -117,38 +123,30 @@ onMounted(load)
       </table>
     </div>
 
-    <div
-      v-if="showCreate"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showCreate = false"
+    <FormModal
+      v-model="showCreate"
+      :title="t('apolloServerConfig')"
+      :submit-text="t('create')"
+      @submit="create"
     >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-md p-6">
-        <h3 class="text-base font-semibold mb-4">{{ t('apolloServerConfig') }}</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs mb-1">{{ t('key') }} *</label
-            ><input v-model="form.key" class="input" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('value') }} *</label
-            ><input v-model="form.value" class="input" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('comment') }}</label
-            ><input v-model="form.comment" class="input" />
-          </div>
-          <div v-if="activeTab === 'configdb'">
-            <label class="block text-xs mb-1">cluster</label
-            ><input v-model="form.cluster" class="input" />
-          </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs mb-1">{{ t('key') }} *</label
+          ><input v-model="form.key" class="input" />
         </div>
-        <div class="flex justify-end gap-2 mt-6">
-          <button class="btn btn-ghost btn-sm" @click="showCreate = false">
-            {{ t('cancel') }}
-          </button>
-          <button class="btn btn-primary btn-sm" @click="create">{{ t('create') }}</button>
+        <div>
+          <label class="block text-xs mb-1">{{ t('value') }} *</label
+          ><input v-model="form.value" class="input" />
+        </div>
+        <div>
+          <label class="block text-xs mb-1">{{ t('comment') }}</label
+          ><input v-model="form.comment" class="input" />
+        </div>
+        <div v-if="activeTab === 'configdb'">
+          <label class="block text-xs mb-1">cluster</label
+          ><input v-model="form.cluster" class="input" />
         </div>
       </div>
-    </div>
+    </FormModal>
   </div>
 </template>

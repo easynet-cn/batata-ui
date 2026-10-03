@@ -164,6 +164,7 @@ import { ArrowLeft, Pencil, Loader2 } from '@lucide/vue'
 import { useMcpStore } from '@/stores/mcp'
 import { useNamespaceStore } from '@/stores/namespace'
 import { mcpApi } from '@/api/mcp'
+import { logger } from '@/utils/logger'
 import McpToolList from '@/components/ai/mcp/McpToolList.vue'
 import AiResourceStatusControls from '@/components/ai/AiResourceStatusControls.vue'
 import VersionLifecycleActionBar from '@/components/ai/VersionLifecycleActionBar.vue'
@@ -336,7 +337,7 @@ async function handleLifecycleAction(action: string) {
     await reload()
   } catch (err) {
     store.error = err instanceof Error ? err.message : '操作失败'
-    console.error('Lifecycle action failed:', err)
+    logger.error('Lifecycle action failed:', err)
   } finally {
     actionLoading.value = false
   }
@@ -365,7 +366,7 @@ async function handleToggleEnabled(enabled: boolean) {
     await reload()
   } catch (err) {
     store.error = err instanceof Error ? err.message : '切换启用状态失败'
-    console.error('Toggle enabled failed:', err)
+    logger.error('Toggle enabled failed:', err)
   }
 }
 
@@ -380,7 +381,7 @@ async function handleScopeChange(newScope: string) {
     })
   } catch (err) {
     store.error = err instanceof Error ? err.message : '修改可见性失败'
-    console.error('Scope change failed:', err)
+    logger.error('Scope change failed:', err)
   }
 }
 

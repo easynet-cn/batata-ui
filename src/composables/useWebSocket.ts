@@ -78,7 +78,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       }
 
       ws.onerror = (event) => {
-        console.error('[WebSocket Error]', {
+        logger.error('[WebSocket Error]', {
           url: ws!.url,
           readyState: ws!.readyState,
           event: event,
@@ -87,7 +87,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       }
 
       ws.onclose = (event) => {
-        console.warn('[WebSocket Closed]', {
+        logger.warn('[WebSocket Closed]', {
           code: event.code,
           reason: event.reason,
           wasClean: event.wasClean,

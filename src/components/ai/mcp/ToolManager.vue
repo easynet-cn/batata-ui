@@ -97,6 +97,7 @@
 import { ref, watch } from 'vue'
 import { Plus, Trash2, Download, Loader2 } from '@lucide/vue'
 import { mcpApi } from '@/api/mcp'
+import { logger } from '@/utils/logger'
 import type { McpTool } from '@/types/mcp'
 
 const props = defineProps<{
@@ -203,7 +204,7 @@ async function handleImport() {
     importForm.value.endpoint = ''
     importForm.value.authToken = ''
   } catch (err) {
-    console.error('Import tools failed:', err)
+    logger.error('Import tools failed:', err)
   } finally {
     importing.value = false
   }

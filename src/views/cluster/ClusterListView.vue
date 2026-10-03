@@ -192,42 +192,25 @@
     </div>
 
     <!-- Update State Modal -->
-    <div
-      v-if="stateDialog.open"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      @click.self="stateDialog.open = false"
+    <FormModal
+      v-model="stateDialog.open"
+      :title="t('updateState')"
+      :submit-text="t('confirm')"
+      :loading="stateDialog.submitting"
+      :submit-disabled="stateDialog.newState === stateDialog.currentState"
+      @submit="submitStateChange"
     >
-      <div
-        class="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-md mx-4 border dark:border-gray-800"
-      >
-        <div class="p-6 border-b border-border-primary">
-          <h3 class="text-base font-semibold text-text-primary">{{ t('updateState') }}</h3>
-          <p class="text-xs text-text-secondary mt-1 font-mono">{{ stateDialog.address }}</p>
-        </div>
-        <div class="p-6 space-y-3">
-          <label class="block text-xs font-medium text-text-secondary">{{ t('newState') }}</label>
-          <select v-model="stateDialog.newState" class="input">
-            <option v-for="s in VALID_STATES" :key="s" :value="s">{{ s }}</option>
-          </select>
-          <p class="text-xs text-text-tertiary">
-            {{ t('currentState') }}: <span class="font-mono">{{ stateDialog.currentState }}</span>
-          </p>
-        </div>
-        <div class="p-4 bg-bg-secondary rounded-b-3xl flex justify-end gap-2">
-          <button class="btn btn-secondary btn-sm" @click="stateDialog.open = false">
-            {{ t('cancel') }}
-          </button>
-          <button
-            class="btn btn-primary btn-sm"
-            :disabled="stateDialog.submitting || stateDialog.newState === stateDialog.currentState"
-            @click="submitStateChange"
-          >
-            <Loader2 v-if="stateDialog.submitting" class="w-3.5 h-3.5 animate-spin" />
-            {{ t('confirm') }}
-          </button>
-        </div>
+      <div class="space-y-3">
+        <p class="text-xs text-text-secondary font-mono">{{ stateDialog.address }}</p>
+        <label class="block text-xs font-medium text-text-secondary">{{ t('newState') }}</label>
+        <select v-model="stateDialog.newState" class="input">
+          <option v-for="s in VALID_STATES" :key="s" :value="s">{{ s }}</option>
+        </select>
+        <p class="text-xs text-text-tertiary">
+          {{ t('currentState') }}: <span class="font-mono">{{ stateDialog.currentState }}</span>
+        </p>
       </div>
-    </div>
+    </FormModal>
   </div>
 </template>
 
@@ -249,6 +232,7 @@ import batataApi from '@/api/batata'
 import { toast } from '@/utils/error'
 import { logger } from '@/utils/logger'
 import type { NodeInfo, Namespace, ClusterHealth, ClusterLeader, ClusterNodeState } from '@/types'
+import FormModal from '@/components/common/FormModal.vue'
 
 defineProps<{
   namespace: Namespace

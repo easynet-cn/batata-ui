@@ -195,47 +195,23 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div
-      v-if="deleteModalVisible"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      @click.self="deleteModalVisible = false"
+    <FormModal
+      v-model="deleteModalVisible"
+      :title="t('confirmDelete')"
+      :submit-text="t('delete')"
+      :loading="deleting"
+      @submit="handleDelete"
     >
-      <div
-        class="bg-white rounded-3xl shadow-2xl dark:bg-gray-900 dark:border dark:border-gray-800 w-full max-w-md p-6"
-      >
-        <div class="flex items-center gap-3 mb-4">
-          <div
-            class="w-10 h-10 bg-red-50 dark:bg-red-950/30 rounded-lg flex items-center justify-center"
-          >
-            <AlertTriangle :size="20" class="text-red-500" />
-          </div>
-          <h3 class="text-lg font-extrabold text-gray-900 dark:text-gray-100">
-            {{ t('confirmDelete') }}
-          </h3>
-        </div>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
+      <div class="flex items-start gap-3">
+        <AlertTriangle :size="20" class="text-red-500 mt-0.5 shrink-0" />
+        <p class="text-sm text-gray-600 dark:text-gray-400">
           {{ t('consulConfirmDeleteKV') }}
           <span class="font-bold text-gray-900 dark:text-gray-100 break-all">{{
             deleteTargetKey
           }}</span>
         </p>
-        <div class="flex items-center justify-end gap-3">
-          <button
-            @click="deleteModalVisible = false"
-            class="px-5 py-2 text-sm font-bold text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-          >
-            {{ t('cancel') }}
-          </button>
-          <button
-            @click="handleDelete"
-            :disabled="deleting"
-            class="px-5 py-2 text-sm font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50"
-          >
-            {{ t('delete') }}
-          </button>
-        </div>
       </div>
-    </div>
+    </FormModal>
   </div>
 </template>
 
@@ -261,6 +237,7 @@ import consulApi from '@/api/consul'
 import { logger } from '@/utils/logger'
 import { decodeBase64 } from '@/utils/base64'
 import type { ConsulKVPair } from '@/types/consul'
+import FormModal from '@/components/common/FormModal.vue'
 
 const { t } = useI18n()
 const consulStore = useConsulStore()
@@ -347,9 +324,7 @@ const displayItems = computed<DisplayItem[]>(() => {
     } else {
       // Regular key
       const detail = kvDetails.value.get(key)
-      console.log('[KVListView] key:', key, 'detail:', detail)
       const decoded = decodeBase64(detail?.Value ?? null)
-      console.log('[KVListView] decoded value for', key, ':', decoded.substring(0, 100))
       items.push({
         key: relative,
         fullKey: key,

@@ -34,6 +34,7 @@ import {
   Download,
 } from '@lucide/vue'
 import apolloApi from '@/api/apollo'
+import { useConfirm } from '@/composables/useConfirm'
 import type {
   ApolloAppDTO,
   ApolloItemDTO,
@@ -48,8 +49,10 @@ import type {
 } from '@/types/apollo'
 import CodeEditor from '@/components/common/CodeEditor.vue'
 import ApolloRoleAssign from '@/views/apollo/ApolloRoleAssign.vue'
+import FormModal from '@/components/common/FormModal.vue'
 
 const { t } = useI18n()
+const { confirm } = useConfirm()
 const route = useRoute()
 const router = useRouter()
 
@@ -509,7 +512,14 @@ async function saveItem() {
   }
 }
 async function deleteItem(item: ApolloItemDTO) {
-  if (!confirm(`Delete item ${item.key}?`)) return
+  if (
+    !(await confirm({
+      title: t('confirmDelete'),
+      message: `Delete item ${item.key}?`,
+      danger: true,
+    }))
+  )
+    return
   await apolloApi.deleteItem(
     env.value,
     appId.value,
@@ -589,7 +599,14 @@ async function publish() {
   await loadReleases()
 }
 async function rollback(release: ApolloOpenRelease) {
-  if (!confirm(`Rollback to release ${release.releaseId}?`)) return
+  if (
+    !(await confirm({
+      title: t('confirm'),
+      message: `Rollback to release ${release.releaseId}?`,
+      danger: true,
+    }))
+  )
+    return
   await apolloApi.rollbackRelease(
     env.value,
     appId.value,
@@ -652,7 +669,14 @@ async function createAppNamespace() {
   appNamespaces.value = await apolloApi.listAppNamespaces(appId.value)
 }
 async function deleteAppNamespace(ns: ApolloAppNamespaceDTO) {
-  if (!confirm(`Delete app namespace ${ns.name}?`)) return
+  if (
+    !(await confirm({
+      title: t('confirmDelete'),
+      message: `Delete app namespace ${ns.name}?`,
+      danger: true,
+    }))
+  )
+    return
   await apolloApi.deleteAppNamespace(appId.value, ns.name, operator)
   appNamespaces.value = await apolloApi.listAppNamespaces(appId.value)
 }
@@ -759,7 +783,8 @@ async function mergeGray() {
 }
 async function discardGray() {
   if (!branch.value) return
-  if (!confirm('Discard gray release?')) return
+  if (!(await confirm({ title: t('confirm'), message: 'Discard gray release?', danger: true })))
+    return
   await apolloApi.deleteBranch(
     env.value,
     appId.value,
@@ -812,7 +837,14 @@ async function saveGrayItemNew() {
 }
 async function deleteGrayItem(gi: ApolloItemDTO) {
   if (!branch.value) return
-  if (!confirm(`Delete gray item ${gi.key}?`)) return
+  if (
+    !(await confirm({
+      title: t('confirmDelete'),
+      message: `Delete gray item ${gi.key}?`,
+      danger: true,
+    }))
+  )
+    return
   await apolloApi.deleteItem(
     env.value,
     appId.value,
@@ -942,7 +974,14 @@ async function copyText(text: string) {
 }
 async function batchDeleteItems() {
   if (itemSelected.value.length === 0) return
-  if (!confirm(`Delete ${itemSelected.value.length} item(s)?`)) return
+  if (
+    !(await confirm({
+      title: t('confirmDelete'),
+      message: `Delete ${itemSelected.value.length} item(s)?`,
+      danger: true,
+    }))
+  )
+    return
   for (const k of itemSelected.value) {
     await apolloApi.deleteItem(env.value, appId.value, cluster.value, namespace.value, k, operator)
   }
@@ -965,7 +1004,14 @@ function openNamespace(ns: ApolloOpenNamespace) {
   loadItemsAndBranch()
 }
 async function deleteNamespace(ns: ApolloOpenNamespace) {
-  if (!confirm(`Delete namespace ${ns.namespaceName}?`)) return
+  if (
+    !(await confirm({
+      title: t('confirmDelete'),
+      message: `Delete namespace ${ns.namespaceName}?`,
+      danger: true,
+    }))
+  )
+    return
   await apolloApi.deleteNamespace(env.value, appId.value, cluster.value, ns.namespaceName, operator)
   if (namespace.value === ns.namespaceName) namespace.value = 'application'
   await loadNamespaces()
@@ -1174,9 +1220,6 @@ onMounted(loadApp)
                     >#{{ releases[0].releaseId }}</span
                   ></span
                 >
-                <span class="text-xs text-text-secondary">{{
-                  releases[0].releaseTime || releases[0].dataChangeCreatedTime
-                }}</span>
               </div>
               <p v-if="releases[0].comment" class="text-xs text-text-secondary mt-1">
                 {{ releases[0].comment }}
@@ -1337,61 +1380,53 @@ onMounted(loadApp)
         </div>
 
         <!-- Key history modal -->
-        <div
-          v-if="showKeyHistory"
-          class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-          @click.self="showKeyHistory = false"
+        <FormModal
+          v-model="showKeyHistory"
+          :title="`${t('apolloItemHistory')} · ${keyHistoryKey}`"
+          size="lg"
+          hide-footer
         >
-          <div class="bg-bg rounded-xl shadow-lg w-full max-w-lg p-6">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-base font-semibold">
-                {{ t('apolloItemHistory') }} ·
-                <span class="font-mono">{{ keyHistoryKey }}</span>
-              </h3>
-              <button class="btn btn-ghost btn-sm" @click="showKeyHistory = false">×</button>
-            </div>
-            <div v-if="loadingKeyHistory" class="text-center text-text-secondary py-6">
-              {{ t('loading') }}
-            </div>
-            <div v-else class="space-y-3 max-h-96 overflow-auto">
-              <div v-for="c in keyHistory" :key="c.id" class="card p-3">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-xs text-text-tertiary">{{ c.dataChangeCreatedTime }}</span>
-                  <span class="text-xs text-text-secondary">{{ c.dataChangeCreatedBy }}</span>
-                </div>
-                <div v-if="c.changeSets && c.changeSets.length" class="space-y-1">
-                  <div
-                    v-for="ch in c.changeSets"
-                    :key="ch.key"
-                    class="text-sm flex items-center gap-2"
+          <div v-if="loadingKeyHistory" class="text-center text-text-secondary py-6">
+            {{ t('loading') }}
+          </div>
+          <div v-else class="space-y-3 max-h-96 overflow-auto">
+            <div v-for="c in keyHistory" :key="c.id" class="card p-3">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs text-text-tertiary">{{ c.dataChangeCreatedTime }}</span>
+                <span class="text-xs text-text-secondary">{{ c.dataChangeCreatedBy }}</span>
+              </div>
+              <div v-if="c.changeSets && c.changeSets.length" class="space-y-1">
+                <div
+                  v-for="ch in c.changeSets"
+                  :key="ch.key"
+                  class="text-sm flex items-center gap-2"
+                >
+                  <span class="font-mono text-text-primary">{{ ch.key }}</span>
+                  <span
+                    class="text-xs font-medium"
+                    :class="
+                      ch.op === 2 ? 'text-danger' : ch.op === 0 ? 'text-success' : 'text-warning'
+                    "
+                    >{{ changeOpLabel(ch.op) }}</span
                   >
-                    <span class="font-mono text-text-primary">{{ ch.key }}</span>
-                    <span
-                      class="text-xs font-medium"
-                      :class="
-                        ch.op === 2 ? 'text-danger' : ch.op === 0 ? 'text-success' : 'text-warning'
-                      "
-                      >{{ changeOpLabel(ch.op) }}</span
-                    >
-                    <span v-if="ch.op !== 2" class="text-xs text-text-secondary">
-                      <span v-if="ch.op === 1" class="text-danger line-through mr-1">{{
-                        ch.oldValue
-                      }}</span
-                      >→ {{ ch.newValue }}</span
-                    >
-                  </div>
+                  <span v-if="ch.op !== 2" class="text-xs text-text-secondary">
+                    <span v-if="ch.op === 1" class="text-danger line-through mr-1">{{
+                      ch.oldValue
+                    }}</span
+                    >→ {{ ch.newValue }}</span
+                  >
                 </div>
-                <div v-else class="text-xs text-text-tertiary">{{ t('apolloNoChanges') }}</div>
               </div>
-              <div v-if="keyHistory.length === 0" class="text-center text-text-secondary py-6">
-                {{ t('noData') }}
-              </div>
+              <div v-else class="text-xs text-text-tertiary">{{ t('apolloNoChanges') }}</div>
+            </div>
+            <div v-if="keyHistory.length === 0" class="text-center text-text-secondary py-6">
+              {{ t('noData') }}
             </div>
           </div>
-        </div>
+        </FormModal>
 
         <!-- History tab -->
-        <div v-else-if="activeTab === 'history'">
+        <div v-if="activeTab === 'history'">
           <div v-if="loadingReleases" class="card p-8 text-center text-text-secondary">
             {{ t('loading') }}
           </div>
@@ -1502,7 +1537,7 @@ onMounted(loadApp)
         </div>
 
         <!-- Gray tab -->
-        <div v-else-if="activeTab === 'gray'">
+        <div v-if="activeTab === 'gray'">
           <div v-if="!branch" class="card p-8 text-center">
             <p class="text-text-secondary mb-4">{{ t('apolloGrayRelease') }}</p>
             <button class="btn btn-primary btn-sm" :disabled="loadingGray" @click="createBranch">
@@ -1606,7 +1641,7 @@ onMounted(loadApp)
         </div>
 
         <!-- Instances tab -->
-        <div v-else-if="activeTab === 'instances'">
+        <div v-if="activeTab === 'instances'">
           <div v-if="loadingInstances" class="card p-8 text-center text-text-secondary">
             {{ t('loading') }}
           </div>
@@ -1657,7 +1692,7 @@ onMounted(loadApp)
         </div>
 
         <!-- Commit history tab -->
-        <div v-else-if="activeTab === 'commits'">
+        <div v-if="activeTab === 'commits'">
           <div v-if="loadingCommits" class="card p-8 text-center text-text-secondary">
             {{ t('loading') }}
           </div>
@@ -1698,7 +1733,7 @@ onMounted(loadApp)
         </div>
 
         <!-- Compare tab -->
-        <div v-else-if="activeTab === 'compare'">
+        <div v-if="activeTab === 'compare'">
           <div class="flex flex-wrap items-end gap-3 mb-3">
             <div>
               <label class="block text-xs mb-1">{{ t('apolloCompareBase') }}</label>
@@ -1822,53 +1857,45 @@ onMounted(loadApp)
     </div>
 
     <!-- Create Namespace modal -->
-    <div
-      v-if="showCreateNs"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showCreateNs = false"
+    <FormModal
+      v-model="showCreateNs"
+      :title="t('apolloCreateNamespace')"
+      :submit-text="t('create')"
+      @submit="createNamespace"
     >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-md p-6">
-        <h3 class="text-base font-semibold mb-4">{{ t('apolloCreateNamespace') }}</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloNamespaceName') }} *</label
-            ><input v-model="nsForm.name" class="input" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloFormat') }}</label
-            ><select v-model="nsForm.format" class="input">
-              <option v-for="f in formatOptions" :key="f" :value="f">{{ f }}</option>
-            </select>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="checkbox" v-model="nsForm.isPublic" :id="`pub-${appId}`" /><label
-              :for="`pub-${appId}`"
-              class="text-xs"
-              >{{ t('apolloIsPublic') }}</label
-            >
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloComment') }}</label
-            ><input v-model="nsForm.comment" class="input" />
-          </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloNamespaceName') }} *</label
+          ><input v-model="nsForm.name" class="input" />
         </div>
-        <div class="flex justify-end gap-2 mt-6">
-          <button class="btn btn-ghost btn-sm" @click="showCreateNs = false">
-            {{ t('cancel') }}
-          </button>
-          <button class="btn btn-primary btn-sm" @click="createNamespace">{{ t('create') }}</button>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloFormat') }}</label
+          ><select v-model="nsForm.format" class="input">
+            <option v-for="f in formatOptions" :key="f" :value="f">{{ f }}</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="checkbox" v-model="nsForm.isPublic" :id="`pub-${appId}`" /><label
+            :for="`pub-${appId}`"
+            class="text-xs"
+            >{{ t('apolloIsPublic') }}</label
+          >
+        </div>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloComment') }}</label
+          ><input v-model="nsForm.comment" class="input" />
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Associate public namespace modal -->
-    <div
-      v-if="showAssociateNs"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showAssociateNs = false"
+    <FormModal
+      v-model="showAssociateNs"
+      :title="t('apolloAssociateNs')"
+      :submit-text="t('apolloAssociate')"
+      @submit="associatePublicNamespace"
     >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-md p-6 space-y-3">
-        <h3 class="text-base font-semibold text-text-primary">{{ t('apolloAssociateNs') }}</h3>
+      <div class="space-y-3">
         <div>
           <label class="block text-xs mb-1">{{ t('apolloSourceApp') }}</label>
           <input v-model="associateForm.publicAppId" class="input w-full" placeholder="apollo" />
@@ -1881,26 +1908,13 @@ onMounted(loadApp)
             placeholder="application"
           />
         </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button class="btn btn-ghost btn-sm" @click="showAssociateNs = false">
-            {{ t('cancel') }}
-          </button>
-          <button class="btn btn-primary btn-sm" @click="associatePublicNamespace">
-            {{ t('apolloAssociate') }}
-          </button>
-        </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- App Namespaces modal -->
-    <div
-      v-if="showAppNs"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showAppNs = false"
-    >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-lg p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-semibold">{{ t('apolloAppNamespaces') }}</h3>
+    <FormModal v-model="showAppNs" :title="t('apolloAppNamespaces')" hide-footer>
+      <div class="space-y-4">
+        <div class="flex justify-end">
           <button class="btn btn-primary btn-sm" @click="closeAppNsModal">
             {{ t('apolloCreateAppNamespace') }}
           </button>
@@ -1966,310 +1980,234 @@ onMounted(loadApp)
           </div>
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Item modal -->
-    <div
-      v-if="showItemModal"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showItemModal = false"
+    <FormModal
+      v-model="showItemModal"
+      :title="editingKey ? t('edit') : t('apolloAddItem')"
+      :submit-text="t('save')"
+      :loading="savingItem"
+      @submit="saveItem"
     >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-lg p-6">
-        <h3 class="text-base font-semibold mb-4">
-          {{ editingKey ? t('edit') : t('apolloAddItem') }}
-        </h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloItemKey') }} *</label
-            ><input
-              v-model="itemForm.key"
-              class="input"
-              :disabled="!!editingKey"
-              :placeholder="'key.name'"
-            />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloItemValue') }}</label
-            ><textarea
-              v-model="itemForm.value"
-              rows="4"
-              class="input font-mono"
-              :placeholder="'value'"
-            ></textarea>
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloComment') }}</label
-            ><input v-model="itemForm.comment" class="input" :placeholder="'comment'" />
-          </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloItemKey') }} *</label
+          ><input
+            v-model="itemForm.key"
+            class="input"
+            :disabled="!!editingKey"
+            :placeholder="'key.name'"
+          />
         </div>
-        <div class="flex justify-end gap-2 mt-6">
-          <button class="btn btn-ghost btn-sm" @click="showItemModal = false">
-            {{ t('cancel') }}
-          </button>
-          <button class="btn btn-primary btn-sm" :disabled="savingItem" @click="saveItem">
-            {{ t('save') }}
-          </button>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloItemValue') }}</label
+          ><textarea
+            v-model="itemForm.value"
+            rows="4"
+            class="input font-mono"
+            :placeholder="'value'"
+          ></textarea>
+        </div>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloComment') }}</label
+          ><input v-model="itemForm.comment" class="input" :placeholder="'comment'" />
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Release modal -->
-    <div
-      v-if="showReleaseModal"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showReleaseModal = false"
+    <FormModal
+      v-model="showReleaseModal"
+      :title="t('apolloPublish')"
+      :submit-text="t('apolloPublish')"
+      @submit="publish"
     >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-md p-6">
-        <h3 class="text-base font-semibold mb-4">{{ t('apolloPublish') }}</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloReleaseTitle') }} *</label
-            ><input v-model="releaseForm.releaseTitle" class="input" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloReleaseComment') }}</label
-            ><input v-model="releaseForm.releaseComment" class="input" />
-          </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloReleaseTitle') }} *</label
+          ><input v-model="releaseForm.releaseTitle" class="input" />
         </div>
-        <div class="flex justify-end gap-2 mt-6">
-          <button class="btn btn-ghost btn-sm" @click="showReleaseModal = false">
-            {{ t('cancel') }}
-          </button>
-          <button class="btn btn-primary btn-sm" @click="publish">{{ t('apolloPublish') }}</button>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloReleaseComment') }}</label
+          ><input v-model="releaseForm.releaseComment" class="input" />
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- App permission (Master) modal -->
-    <div
-      v-if="showAppRole"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showAppRole = false"
-    >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-lg p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-semibold">{{ t('apolloAppPermission') }}</h3>
-          <button class="btn btn-ghost btn-sm" @click="showAppRole = false">
-            {{ t('cancel') }}
-          </button>
-        </div>
-        <ApolloRoleAssign
-          :app-id="appId"
-          :roles="[{ roleType: 'Master', label: t('apolloAppAdmin') }]"
-        />
-      </div>
-    </div>
+    <FormModal v-model="showAppRole" :title="t('apolloAppPermission')" hide-footer>
+      <ApolloRoleAssign
+        :app-id="appId"
+        :roles="[{ roleType: 'Master', label: t('apolloAppAdmin') }]"
+      />
+    </FormModal>
 
     <!-- Namespace permission modal -->
-    <div
-      v-if="showNsRole"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showNsRole = false"
+    <FormModal
+      v-model="showNsRole"
+      :title="`${t('apolloNamespacePermission')} · ${namespace}`"
+      size="2xl"
+      hide-footer
     >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-2xl p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-semibold">
-            {{ t('apolloNamespacePermission') }} · {{ namespace }}
-          </h3>
-          <button class="btn btn-ghost btn-sm" @click="showNsRole = false">
-            {{ t('cancel') }}
-          </button>
-        </div>
-        <ApolloRoleAssign
-          :app-id="appId"
-          :env="env"
-          :namespace="namespace"
-          :roles="[
-            { roleType: 'ModifyNamespace', label: t('apolloModifyPermission') },
-            { roleType: 'ReleaseNamespace', label: t('apolloReleasePermission') },
-          ]"
-        />
-      </div>
-    </div>
+      <ApolloRoleAssign
+        :app-id="appId"
+        :env="env"
+        :namespace="namespace"
+        :roles="[
+          { roleType: 'ModifyNamespace', label: t('apolloModifyPermission') },
+          { roleType: 'ReleaseNamespace', label: t('apolloReleasePermission') },
+        ]"
+      />
+    </FormModal>
 
     <!-- Config sync modal -->
-    <div
-      v-if="showSync"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showSync = false"
+    <FormModal
+      v-model="showSync"
+      :title="t('apolloSync')"
+      :submit-text="t('apolloSync')"
+      :loading="savingSync"
+      size="2xl"
+      @submit="runSync"
     >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-2xl p-6">
-        <h3 class="text-base font-semibold mb-4">{{ t('apolloSync') }}</h3>
-        <div class="space-y-3">
-          <div class="flex gap-3">
-            <div class="flex-1">
-              <label class="block text-xs mb-1">{{ t('apolloSyncTargetEnv') }}</label>
-              <select v-model="syncTarget.env" class="input">
-                <option v-for="ec in envClusters" :key="ec.env" :value="ec.env">
-                  {{ ec.env }}
-                </option>
-              </select>
-            </div>
-            <div class="flex-1">
-              <label class="block text-xs mb-1">{{ t('apolloSyncTargetCluster') }}</label>
-              <select v-model="syncTarget.cluster" class="input">
-                <option
-                  v-for="c in envClusters.find((e) => e.env === syncTarget.env)?.clusters || []"
-                  :key="c"
-                  :value="c"
-                >
-                  {{ c }}
-                </option>
-              </select>
-            </div>
-            <div class="flex-1">
-              <label class="block text-xs mb-1">{{ t('apolloSyncTargetNamespace') }}</label>
-              <input v-model="syncTarget.namespace" class="input" />
-            </div>
+      <div class="space-y-3">
+        <div class="flex gap-3">
+          <div class="flex-1">
+            <label class="block text-xs mb-1">{{ t('apolloSyncTargetEnv') }}</label>
+            <select v-model="syncTarget.env" class="input">
+              <option v-for="ec in envClusters" :key="ec.env" :value="ec.env">
+                {{ ec.env }}
+              </option>
+            </select>
           </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloSyncSelectItems') }}</label>
-            <div class="card overflow-hidden max-h-64 overflow-auto">
-              <table class="w-full text-sm">
-                <tbody>
-                  <tr v-for="i in items" :key="i.key" class="border-t border-border">
-                    <td class="px-2 py-1 w-8">
-                      <input type="checkbox" :value="i.key" v-model="syncSelected" />
-                    </td>
-                    <td class="px-2 py-1 font-mono text-text-primary">{{ i.key }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          <div class="flex-1">
+            <label class="block text-xs mb-1">{{ t('apolloSyncTargetCluster') }}</label>
+            <select v-model="syncTarget.cluster" class="input">
+              <option
+                v-for="c in envClusters.find((e) => e.env === syncTarget.env)?.clusters || []"
+                :key="c"
+                :value="c"
+              >
+                {{ c }}
+              </option>
+            </select>
+          </div>
+          <div class="flex-1">
+            <label class="block text-xs mb-1">{{ t('apolloSyncTargetNamespace') }}</label>
+            <input v-model="syncTarget.namespace" class="input" />
           </div>
         </div>
-        <div class="flex justify-end gap-2 mt-6">
-          <button class="btn btn-ghost btn-sm" @click="showSync = false">{{ t('cancel') }}</button>
-          <button class="btn btn-primary btn-sm" :disabled="savingSync" @click="runSync">
-            {{ t('apolloSync') }}
-          </button>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloSyncSelectItems') }}</label>
+          <div class="card overflow-hidden max-h-64 overflow-auto">
+            <table class="w-full text-sm">
+              <tbody>
+                <tr v-for="i in items" :key="i.key" class="border-t border-border">
+                  <td class="px-2 py-1 w-8">
+                    <input type="checkbox" :value="i.key" v-model="syncSelected" />
+                  </td>
+                  <td class="px-2 py-1 font-mono text-text-primary">{{ i.key }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Gray item modal -->
-    <div
-      v-if="showGrayItemModal"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showGrayItemModal = false"
+    <FormModal
+      v-model="showGrayItemModal"
+      :title="t('apolloAddItem')"
+      :submit-text="t('save')"
+      :submit-disabled="!grayItemForm.key"
+      @submit="saveGrayItemNew"
     >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-lg p-6">
-        <h3 class="text-base font-semibold mb-4">{{ t('apolloAddItem') }}</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloItemKey') }} *</label
-            ><input v-model="grayItemForm.key" class="input" :placeholder="'key.name'" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloItemValue') }}</label
-            ><textarea
-              v-model="grayItemForm.value"
-              rows="4"
-              class="input font-mono"
-              :placeholder="'value'"
-            ></textarea>
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloComment') }}</label
-            ><input v-model="grayItemForm.comment" class="input" :placeholder="'comment'" />
-          </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloItemKey') }} *</label
+          ><input v-model="grayItemForm.key" class="input" :placeholder="'key.name'" />
         </div>
-        <div class="flex justify-end gap-2 mt-6">
-          <button class="btn btn-ghost btn-sm" @click="showGrayItemModal = false">
-            {{ t('cancel') }}
-          </button>
-          <button
-            class="btn btn-primary btn-sm"
-            :disabled="!grayItemForm.key"
-            @click="saveGrayItemNew"
-          >
-            {{ t('save') }}
-          </button>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloItemValue') }}</label
+          ><textarea
+            v-model="grayItemForm.value"
+            rows="4"
+            class="input font-mono"
+            :placeholder="'value'"
+          ></textarea>
+        </div>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloComment') }}</label
+          ><input v-model="grayItemForm.comment" class="input" :placeholder="'comment'" />
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Instance config modal -->
-    <div
-      v-if="showInstanceModal"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showInstanceModal = false"
+    <FormModal
+      v-model="showInstanceModal"
+      :title="`${t('apolloInstanceConfigs')} · ${instanceIp}`"
+      size="2xl"
+      hide-footer
     >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-2xl p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-semibold">
-            {{ t('apolloInstanceConfigs') }} · {{ instanceIp }}
-          </h3>
-          <button class="btn btn-ghost btn-sm" @click="showInstanceModal = false">
-            {{ t('cancel') }}
-          </button>
-        </div>
-        <div v-if="loadingInstanceCfg" class="card p-8 text-center text-text-secondary">
-          {{ t('loading') }}
-        </div>
-        <div
-          v-else-if="!instanceConfigs || Object.keys(instanceConfigs).length === 0"
-          class="card p-8 text-center text-text-secondary"
-        >
-          {{ t('noData') }}
-        </div>
-        <div v-else class="card overflow-hidden">
-          <table class="w-full text-sm">
-            <thead class="bg-bg-secondary text-text-secondary">
-              <tr>
-                <th class="text-left px-3 py-2">{{ t('apolloItemKey') }}</th>
-                <th class="text-left px-3 py-2">{{ t('apolloItemValue') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(v, k) in instanceConfigs" :key="k" class="border-t border-border">
-                <td class="px-3 py-2 font-mono text-text-primary">{{ k }}</td>
-                <td class="px-3 py-2 text-text-primary max-w-md truncate">{{ v }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div v-if="loadingInstanceCfg" class="card p-8 text-center text-text-secondary">
+        {{ t('loading') }}
       </div>
-    </div>
+      <div
+        v-else-if="!instanceConfigs || Object.keys(instanceConfigs).length === 0"
+        class="card p-8 text-center text-text-secondary"
+      >
+        {{ t('noData') }}
+      </div>
+      <div v-else class="card overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-bg-secondary text-text-secondary">
+            <tr>
+              <th class="text-left px-3 py-2">{{ t('apolloItemKey') }}</th>
+              <th class="text-left px-3 py-2">{{ t('apolloItemValue') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(v, k) in instanceConfigs" :key="k" class="border-t border-border">
+              <td class="px-3 py-2 font-mono text-text-primary">{{ k }}</td>
+              <td class="px-3 py-2 text-text-primary max-w-md truncate">{{ v }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </FormModal>
 
     <!-- App edit modal -->
-    <div
-      v-if="showAppEdit"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showAppEdit = false"
+    <FormModal
+      v-model="showAppEdit"
+      :title="t('apolloEditApp')"
+      :submit-text="t('save')"
+      @submit="saveApp"
     >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-md p-6">
-        <h3 class="text-base font-semibold mb-4">{{ t('apolloEditApp') }}</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloAppName') }}</label
-            ><input v-model="appEditForm.name" class="input" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloOwnerName') }}</label
-            ><input v-model="appEditForm.ownerName" class="input" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloOwnerEmail') }}</label
-            ><input v-model="appEditForm.ownerEmail" class="input" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloOrgId') }}</label
-            ><input v-model="appEditForm.orgId" class="input" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloOrgName') }}</label
-            ><input v-model="appEditForm.orgName" class="input" />
-          </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloAppName') }}</label
+          ><input v-model="appEditForm.name" class="input" />
         </div>
-        <div class="flex justify-end gap-2 mt-6">
-          <button class="btn btn-ghost btn-sm" @click="showAppEdit = false">
-            {{ t('cancel') }}
-          </button>
-          <button class="btn btn-primary btn-sm" @click="saveApp">{{ t('save') }}</button>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloOwnerName') }}</label
+          ><input v-model="appEditForm.ownerName" class="input" />
+        </div>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloOwnerEmail') }}</label
+          ><input v-model="appEditForm.ownerEmail" class="input" />
+        </div>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloOrgId') }}</label
+          ><input v-model="appEditForm.orgId" class="input" />
+        </div>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloOrgName') }}</label
+          ><input v-model="appEditForm.orgName" class="input" />
         </div>
       </div>
-    </div>
+    </FormModal>
   </div>
 </template>
 

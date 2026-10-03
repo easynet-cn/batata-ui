@@ -4,9 +4,12 @@ import { useRouter } from 'vue-router'
 import { useI18n } from '@/i18n'
 import { Boxes, Plus, Search, Trash2 } from '@lucide/vue'
 import apolloApi from '@/api/apollo'
+import { useConfirm } from '@/composables/useConfirm'
 import type { ApolloAppDTO } from '@/types/apollo'
+import FormModal from '@/components/common/FormModal.vue'
 
 const { t } = useI18n()
+const { confirm } = useConfirm()
 const router = useRouter()
 
 const apps = ref<ApolloAppDTO[]>([])
@@ -72,7 +75,14 @@ async function createApp() {
 }
 
 async function deleteApp(app: ApolloAppDTO) {
-  if (!confirm(`Delete app ${app.appId}?`)) return
+  if (
+    !(await confirm({
+      title: t('confirmDelete'),
+      message: `Delete app ${app.appId}?`,
+      danger: true,
+    }))
+  )
+    return
   await apolloApi.deleteApp(app.appId)
   await loadApps()
 }
@@ -147,40 +157,31 @@ onMounted(loadApps)
     </div>
 
     <!-- Create App Modal -->
-    <div
-      v-if="showCreate"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showCreate = false"
+    <FormModal
+      v-model="showCreate"
+      :title="t('apolloCreateApp')"
+      :submit-text="t('create')"
+      :loading="saving"
+      @submit="createApp"
     >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-md p-6">
-        <h3 class="text-base font-semibold mb-4">{{ t('apolloCreateApp') }}</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloAppId') }} *</label>
-            <input v-model="form.appId" class="input" :placeholder="'app-id'" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloAppName') }} *</label>
-            <input v-model="form.name" class="input" :placeholder="'My App'" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloOwnerName') }}</label>
-            <input v-model="form.ownerName" class="input" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloOwnerEmail') }}</label>
-            <input v-model="form.ownerEmail" class="input" />
-          </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloAppId') }} *</label>
+          <input v-model="form.appId" class="input" :placeholder="'app-id'" />
         </div>
-        <div class="flex justify-end gap-2 mt-6">
-          <button class="btn btn-ghost btn-sm" @click="showCreate = false">
-            {{ t('cancel') }}
-          </button>
-          <button class="btn btn-primary btn-sm" :disabled="saving" @click="createApp">
-            {{ t('create') }}
-          </button>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloAppName') }} *</label>
+          <input v-model="form.name" class="input" :placeholder="'My App'" />
+        </div>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloOwnerName') }}</label>
+          <input v-model="form.ownerName" class="input" />
+        </div>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloOwnerEmail') }}</label>
+          <input v-model="form.ownerEmail" class="input" />
         </div>
       </div>
-    </div>
+    </FormModal>
   </div>
 </template>

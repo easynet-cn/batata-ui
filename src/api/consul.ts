@@ -3,7 +3,7 @@ import type { AxiosInstance } from 'axios'
 import { config } from '@/config'
 import { setupRetryInterceptor } from '@/utils/retry'
 import { storage } from '@/composables/useStorage'
-import { isSessionExpired } from '@/utils/error'
+import { clearProviderTokenOnExpired } from '@/api/client'
 import type {
   ConsulKVPair,
   ConsulServiceNode,
@@ -63,23 +63,12 @@ class ConsulApi {
       (error) => Promise.reject(error),
     )
 
-    // Response interceptor: drop the locally stored Consul token when the external
-    // service reports it as expired/invalid. We do NOT redirect to the batata login
-    // page (Consul has its own independent auth) and we keep the original axios error
-    // untouched so existing callers can read `error.response` as before.
+    // Response interceptor: drop the local Consul token on 401/403-expired. Consul
+    // has independent auth, so we keep the original axios error untouched for callers.
     this.instance.interceptors.response.use(
       (response) => response,
       (error) => {
-        const status = error?.response?.status
-        const respData = error?.response?.data
-        const message = typeof respData === 'string' ? respData : respData?.message || ''
-        const dataStr =
-          respData && typeof respData === 'object' && typeof respData.data === 'string'
-            ? respData.data
-            : ''
-        if ((status === 401 || status === 403) && isSessionExpired(message, dataStr)) {
-          storage.remove('consul-token')
-        }
+        clearProviderTokenOnExpired(error?.response?.status, error?.response?.data, 'consul-token')
         return Promise.reject(error)
       },
     )

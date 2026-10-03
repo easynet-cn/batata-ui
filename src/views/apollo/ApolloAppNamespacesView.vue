@@ -4,9 +4,12 @@ import { useRoute } from 'vue-router'
 import { useI18n } from '@/i18n'
 import { Layers, Plus, Trash2, Link2 } from '@lucide/vue'
 import apolloApi from '@/api/apollo'
+import { useConfirm } from '@/composables/useConfirm'
 import type { ApolloAppNamespaceDTO, ApolloMissingNamespaceDTO } from '@/types/apollo'
+import FormModal from '@/components/common/FormModal.vue'
 
 const { t } = useI18n()
+const { confirm } = useConfirm()
 const route = useRoute()
 const appId = ref<string>(String(route.query.appId || ''))
 const env = ref<string>('DEV')
@@ -80,7 +83,14 @@ async function createNs() {
 }
 
 async function remove(ns: ApolloAppNamespaceDTO) {
-  if (!confirm(`Delete app namespace ${ns.name}?`)) return
+  if (
+    !(await confirm({
+      title: t('confirmDelete'),
+      message: `Delete app namespace ${ns.name}?`,
+      danger: true,
+    }))
+  )
+    return
   await apolloApi.deleteAppNamespace(appId.value, ns.name)
   await load()
 }
@@ -208,7 +218,7 @@ onMounted(load)
                       selectedMissing =
                         selectedMissing.length === missingNamespaces.length
                           ? []
-                          : missingNamespaces.map((n) => n.namespaceName)
+                          : missingNamespaces.map((n) => n.namespaceName ?? '')
                     "
                   />
                 </th>
@@ -236,43 +246,35 @@ onMounted(load)
       </div>
     </div>
 
-    <div
-      v-if="showCreate"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showCreate = false"
+    <FormModal
+      v-model="showCreate"
+      :title="t('apolloCreateAppNamespace')"
+      :submit-text="t('create')"
+      @submit="createNs"
     >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-md p-6">
-        <h3 class="text-base font-semibold mb-4">{{ t('apolloCreateAppNamespace') }}</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloNamespaceName') }} *</label
-            ><input v-model="form.name" class="input" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloFormat') }}</label
-            ><select v-model="form.format" class="input">
-              <option v-for="f in formatOptions" :key="f" :value="f">{{ f }}</option>
-            </select>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="checkbox" v-model="form.isPublic" :id="`pubns-${appId}`" /><label
-              :for="`pubns-${appId}`"
-              class="text-xs"
-              >{{ t('apolloIsPublic') }}</label
-            >
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloComment') }}</label
-            ><input v-model="form.comment" class="input" />
-          </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloNamespaceName') }} *</label
+          ><input v-model="form.name" class="input" />
         </div>
-        <div class="flex justify-end gap-2 mt-6">
-          <button class="btn btn-ghost btn-sm" @click="showCreate = false">
-            {{ t('cancel') }}
-          </button>
-          <button class="btn btn-primary btn-sm" @click="createNs">{{ t('create') }}</button>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloFormat') }}</label
+          ><select v-model="form.format" class="input">
+            <option v-for="f in formatOptions" :key="f" :value="f">{{ f }}</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="checkbox" v-model="form.isPublic" :id="`pubns-${appId}`" /><label
+            :for="`pubns-${appId}`"
+            class="text-xs"
+            >{{ t('apolloIsPublic') }}</label
+          >
+        </div>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloComment') }}</label
+          ><input v-model="form.comment" class="input" />
         </div>
       </div>
-    </div>
+    </FormModal>
   </div>
 </template>

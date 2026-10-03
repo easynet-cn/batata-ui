@@ -2,9 +2,12 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from '@/i18n'
 import apolloApi from '@/api/apollo'
+import { useConfirm } from '@/composables/useConfirm'
 import type { ApolloUserTokenDTO } from '@/api/apollo'
+import FormModal from '@/components/common/FormModal.vue'
 
 const { t } = useI18n()
+const { confirm } = useConfirm()
 const loading = ref(false)
 const tokens = ref<ApolloUserTokenDTO[]>([])
 const error = ref('')
@@ -72,7 +75,10 @@ async function rotate(id: string) {
 }
 
 async function remove(id: string) {
-  if (!confirm(t('confirmDelete'))) return
+  if (
+    !(await confirm({ title: t('confirmDelete'), message: t('confirmDeleteToken'), danger: true }))
+  )
+    return
   error.value = ''
   try {
     await apolloApi.deleteUserToken(id)
@@ -130,46 +136,38 @@ onMounted(load)
       </table>
     </div>
 
-    <div
-      v-if="showCreate"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showCreate = false"
+    <FormModal
+      v-model="showCreate"
+      :title="t('apolloUserTokens')"
+      :submit-text="t('create')"
+      @submit="create"
     >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-md p-6">
-        <h3 class="text-base font-semibold mb-4">{{ t('apolloUserTokens') }}</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs mb-1">{{ t('name') }} *</label
-            ><input v-model="form.name" class="input" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloExpires') }}</label
-            ><input v-model="form.expires" class="input" placeholder="2026-12-31" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloOperations') }}</label
-            ><input v-model="form.operations" class="input" placeholder="READ,WRITE" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">appIds</label
-            ><input v-model="form.appIds" class="input" placeholder="app1,app2" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">envs</label
-            ><input v-model="form.envs" class="input" placeholder="DEV,PRO" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloRateLimit') }}</label
-            ><input v-model.number="form.rateLimit" type="number" class="input" />
-          </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs mb-1">{{ t('name') }} *</label
+          ><input v-model="form.name" class="input" />
         </div>
-        <div class="flex justify-end gap-2 mt-6">
-          <button class="btn btn-ghost btn-sm" @click="showCreate = false">
-            {{ t('cancel') }}
-          </button>
-          <button class="btn btn-primary btn-sm" @click="create">{{ t('create') }}</button>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloExpires') }}</label
+          ><input v-model="form.expires" class="input" placeholder="2026-12-31" />
+        </div>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloOperations') }}</label
+          ><input v-model="form.operations" class="input" placeholder="READ,WRITE" />
+        </div>
+        <div>
+          <label class="block text-xs mb-1">appIds</label
+          ><input v-model="form.appIds" class="input" placeholder="app1,app2" />
+        </div>
+        <div>
+          <label class="block text-xs mb-1">envs</label
+          ><input v-model="form.envs" class="input" placeholder="DEV,PRO" />
+        </div>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloRateLimit') }}</label
+          ><input v-model.number="form.rateLimit" type="number" class="input" />
         </div>
       </div>
-    </div>
+    </FormModal>
   </div>
 </template>

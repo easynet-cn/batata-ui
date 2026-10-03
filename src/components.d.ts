@@ -18,6 +18,7 @@ declare module 'vue' {
     BizTagList: typeof import('./components/common/BizTagList.vue')['default']
     CodeEditor: typeof import('./components/common/CodeEditor.vue')['default']
     ConfirmModal: typeof import('./components/common/ConfirmModal.vue')['default']
+    ConfirmModalHost: typeof import('./components/common/ConfirmModalHost.vue')['default']
     CopyButton: typeof import('./components/common/CopyButton.vue')['default']
     CreateDraftFromVersionButton: typeof import('./components/ai/CreateDraftFromVersionButton.vue')['default']
     DataTable: typeof import('./components/common/DataTable.vue')['default']

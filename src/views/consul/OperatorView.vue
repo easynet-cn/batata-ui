@@ -354,37 +354,24 @@
     </div>
 
     <!-- Force Leave Confirmation -->
-    <div
-      v-if="forceLeaveNode"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      @click.self="forceLeaveNode = null"
+    <FormModal
+      :model-value="!!forceLeaveNode"
+      @update:model-value="
+        (v) => {
+          if (!v) forceLeaveNode = null
+        }
+      "
+      :title="t('consulForceLeave')"
+      :submit-text="t('confirm')"
+      :loading="forceLeaving"
+      @submit="confirmForceLeave"
     >
-      <div
-        class="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-md mx-4 border dark:border-gray-800"
-      >
-        <div class="p-6 border-b border-border">
-          <h3 class="text-base font-semibold text-text-primary">{{ t('consulForceLeave') }}</h3>
-        </div>
-        <div class="p-6">
-          <p class="text-sm text-text-primary mb-2">{{ t('consulForceLeaveConfirm') }}</p>
-          <p class="font-mono text-xs text-text-secondary">{{ forceLeaveNode }}</p>
-          <p class="mt-2 text-xs text-amber-600">{{ t('consulForceLeaveWarning') }}</p>
-        </div>
-        <div class="p-4 bg-bg-secondary rounded-b-3xl flex justify-end gap-2">
-          <button class="btn btn-secondary btn-sm" @click="forceLeaveNode = null">
-            {{ t('cancel') }}
-          </button>
-          <button
-            class="btn btn-primary btn-sm"
-            :disabled="forceLeaving"
-            @click="confirmForceLeave"
-          >
-            <Loader2 v-if="forceLeaving" class="w-3.5 h-3.5 animate-spin" />
-            {{ t('confirm') }}
-          </button>
-        </div>
+      <div class="space-y-2">
+        <p class="text-sm text-text-primary">{{ t('consulForceLeaveConfirm') }}</p>
+        <p class="font-mono text-xs text-text-secondary">{{ forceLeaveNode }}</p>
+        <p class="text-xs text-amber-600">{{ t('consulForceLeaveWarning') }}</p>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Snapshot Actions -->
     <div class="card">
@@ -417,6 +404,7 @@ import type {
   ConsulOperatorUsage,
   ConsulAgentMember,
 } from '@/types/consul'
+import FormModal from '@/components/common/FormModal.vue'
 
 const { t } = useI18n()
 

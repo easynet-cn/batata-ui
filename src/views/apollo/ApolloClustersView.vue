@@ -4,10 +4,13 @@ import { useRoute } from 'vue-router'
 import { useI18n } from '@/i18n'
 import { Network, Plus, Trash2 } from '@lucide/vue'
 import apolloApi from '@/api/apollo'
+import { useConfirm } from '@/composables/useConfirm'
 import type { ApolloEnvCluster } from '@/types/apollo'
 import ApolloRoleAssign from '@/views/apollo/ApolloRoleAssign.vue'
+import FormModal from '@/components/common/FormModal.vue'
 
 const { t } = useI18n()
+const { confirm } = useConfirm()
 const route = useRoute()
 const appId = ref<string>((route.query.appId as string) || '')
 
@@ -46,7 +49,14 @@ async function createCluster() {
 }
 
 async function deleteClusterEnv(envName: string, clusterName: string) {
-  if (!confirm(`Delete cluster ${clusterName}?`)) return
+  if (
+    !(await confirm({
+      title: t('confirmDelete'),
+      message: `Delete cluster ${clusterName}?`,
+      danger: true,
+    }))
+  )
+    return
   await apolloApi.deleteCluster(envName, appId.value, clusterName)
   await load()
 }
@@ -95,65 +105,52 @@ onMounted(load)
       </div>
     </div>
 
-    <div
-      v-if="showCreate"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showCreate = false"
+    <FormModal
+      v-model="showCreate"
+      :title="t('apolloCreateCluster')"
+      :submit-text="t('create')"
+      :loading="saving"
+      @submit="createCluster"
     >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-md p-6">
-        <h3 class="text-base font-semibold mb-4">{{ t('apolloCreateCluster') }}</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloEnvs') }}</label>
-            <select v-model="form.env" class="input">
-              <option v-for="ec in envClusters" :key="ec.env" :value="ec.env">{{ ec.env }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloClusterName') }} *</label>
-            <input v-model="form.name" class="input" />
-          </div>
-          <div>
-            <label class="block text-xs mb-1">{{ t('apolloComment') }}</label>
-            <input v-model="form.comment" class="input" />
-          </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloEnvs') }}</label>
+          <select v-model="form.env" class="input">
+            <option v-for="ec in envClusters" :key="ec.env" :value="ec.env">{{ ec.env }}</option>
+          </select>
         </div>
-        <div class="flex justify-end gap-2 mt-6">
-          <button class="btn btn-ghost btn-sm" @click="showCreate = false">
-            {{ t('cancel') }}
-          </button>
-          <button class="btn btn-primary btn-sm" :disabled="saving" @click="createCluster">
-            {{ t('create') }}
-          </button>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloClusterName') }} *</label>
+          <input v-model="form.name" class="input" />
+        </div>
+        <div>
+          <label class="block text-xs mb-1">{{ t('apolloComment') }}</label>
+          <input v-model="form.comment" class="input" />
         </div>
       </div>
-    </div>
+    </FormModal>
 
     <!-- Cluster namespace permission modal -->
-    <div
-      v-if="showClusterRole"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="showClusterRole = null"
+    <FormModal
+      :model-value="!!showClusterRole"
+      @update:model-value="
+        (v) => {
+          if (!v) showClusterRole = null
+        }
+      "
+      :title="`${t('apolloClusterPermission')} · ${showClusterRole?.cluster}`"
+      size="2xl"
+      hide-footer
     >
-      <div class="bg-bg rounded-xl shadow-lg w-full max-w-2xl p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-semibold">
-            {{ t('apolloClusterPermission') }} · {{ showClusterRole?.cluster }}
-          </h3>
-          <button class="btn btn-ghost btn-sm" @click="showClusterRole = null">
-            {{ t('cancel') }}
-          </button>
-        </div>
-        <ApolloRoleAssign
-          :app-id="appId"
-          :env="showClusterRole?.env"
-          :cluster="showClusterRole?.cluster"
-          :roles="[
-            { roleType: 'ModifyNamespacesInCluster', label: t('apolloModifyClusterPermission') },
-            { roleType: 'ReleaseNamespacesInCluster', label: t('apolloReleaseClusterPermission') },
-          ]"
-        />
-      </div>
-    </div>
+      <ApolloRoleAssign
+        :app-id="appId"
+        :env="showClusterRole?.env"
+        :cluster="showClusterRole?.cluster"
+        :roles="[
+          { roleType: 'ModifyNamespacesInCluster', label: t('apolloModifyClusterPermission') },
+          { roleType: 'ReleaseNamespacesInCluster', label: t('apolloReleaseClusterPermission') },
+        ]"
+      />
+    </FormModal>
   </div>
 </template>

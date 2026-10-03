@@ -153,6 +153,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from '@/i18n'
 import {
   Plus,
   Search,
@@ -168,6 +169,7 @@ import { useMcpStore } from '@/stores/mcp'
 import { useNamespaceStore } from '@/stores/namespace'
 import McpCard from '@/components/ai/mcp/McpCard.vue'
 import ImportAiResourceDialog from '@/components/ai/resource-import/ImportAiResourceDialog.vue'
+import { useConfirm } from '@/composables/useConfirm'
 import type { Namespace } from '@/types'
 import type { McpServerBasicInfo } from '@/types/mcp'
 
@@ -177,6 +179,8 @@ const props = defineProps<{
 
 const router = useRouter()
 const store = useMcpStore()
+const { t } = useI18n()
+const { confirm } = useConfirm()
 const namespaceStore = useNamespaceStore()
 
 const namespaceId = computed(() => props.namespace?.namespace || namespaceStore.currentNamespace)
@@ -257,7 +261,14 @@ function handleMore(mcp: McpServerBasicInfo, event: MouseEvent) {
 
 async function handleDelete(mcp: McpServerBasicInfo) {
   moreMenu.value.open = false
-  if (!window.confirm(`确认删除 MCP 服务「${mcp.name}」？`)) return
+  if (
+    !(await confirm({
+      title: t('confirmDelete'),
+      message: `确认删除 MCP 服务「${mcp.name}」？`,
+      danger: true,
+    }))
+  )
+    return
   const ok = await store.deleteMcpServer(namespaceId.value, mcp.name)
   if (ok) {
     reload()
@@ -265,7 +276,14 @@ async function handleDelete(mcp: McpServerBasicInfo) {
 }
 
 async function handleBatchDelete() {
-  if (!window.confirm(`确认删除选中的 ${store.selectedNames.size} 个 MCP 服务？`)) return
+  if (
+    !(await confirm({
+      title: t('confirmDelete'),
+      message: `确认删除选中的 ${store.selectedNames.size} 个 MCP 服务？`,
+      danger: true,
+    }))
+  )
+    return
   batchDeleting.value = true
   await store.batchDelete(namespaceId.value, Array.from(store.selectedNames))
   batchDeleting.value = false
