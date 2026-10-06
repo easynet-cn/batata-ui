@@ -155,7 +155,7 @@
             <template v-else>
               <div class="flex justify-between">
                 <span class="text-text-secondary">API Key</span>
-                <span :class="config.apiKey ? 'badge badge-success' : 'badge badge-warning'">
+                <span :class="apiKeyStatusClass(config.apiKey)">
                   {{ config.apiKey ? t('configured') : t('notSet') }}
                 </span>
               </div>
@@ -282,6 +282,10 @@ const handleReset = () => {
   config.baseUrl = ''
   config.studioUrl = ''
   config.studioProject = ''
+}
+
+function apiKeyStatusClass(apiKey: string | undefined): string {
+  return apiKey ? 'badge badge-success' : 'badge badge-warning'
 }
 
 // Lifecycle

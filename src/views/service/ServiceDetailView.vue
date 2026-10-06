@@ -79,8 +79,7 @@
               <label class="block text-sm text-text-tertiary mb-1">{{ t('metadata') }}</label>
               <pre
                 class="text-text-primary font-mono text-xs bg-bg-secondary rounded p-2 overflow-auto max-h-32"
-                >{{ JSON.stringify(service.metadata, null, 2) }}</pre
-              >
+                >{{ JSON.stringify(service.metadata, null, 2) }}</pre>
             </div>
           </div>
         </div>
@@ -150,16 +149,12 @@
                       <td>{{ instance.port }}</td>
                       <td>{{ instance.weight }}</td>
                       <td>
-                        <span
-                          :class="instance.healthy ? 'badge badge-success' : 'badge badge-danger'"
-                        >
+                        <span :class="instanceHealthBadgeClass(instance.healthy)">
                           {{ instance.healthy ? t('yes') : t('no') }}
                         </span>
                       </td>
                       <td>
-                        <span
-                          :class="instance.enabled ? 'badge badge-success' : 'badge badge-warning'"
-                        >
+                        <span :class="instanceEnabledBadgeClass(instance.enabled)">
                           {{ instance.enabled ? t('yes') : t('no') }}
                         </span>
                       </td>
@@ -180,7 +175,7 @@
                           >
                             <Power
                               class="w-3.5 h-3.5"
-                              :class="instance.enabled ? 'text-success' : 'text-danger'"
+                              :class="instancePowerIconClass(instance.enabled)"
                             />
                           </button>
                           <button
@@ -474,6 +469,16 @@ const serviceForm = reactive({
 })
 
 const selectorTypes = ref<string[]>(['none', 'label'])
+
+function instanceHealthBadgeClass(healthy: boolean): string {
+  return healthy ? 'badge badge-success' : 'badge badge-danger'
+}
+function instanceEnabledBadgeClass(enabled: boolean): string {
+  return enabled ? 'badge badge-success' : 'badge badge-warning'
+}
+function instancePowerIconClass(enabled: boolean): string {
+  return enabled ? 'text-success' : 'text-danger'
+}
 
 // Methods
 const goBack = () => {

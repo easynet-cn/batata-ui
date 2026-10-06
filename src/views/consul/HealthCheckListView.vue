@@ -202,8 +202,7 @@
           </label>
           <pre
             class="text-xs text-text-secondary bg-bg-secondary rounded-xl p-3 whitespace-pre-wrap break-words max-h-48 overflow-auto"
-            >{{ detailCheck.Output || '-' }}</pre
-          >
+            >{{ detailCheck.Output || '-' }}</pre>
         </div>
         <div v-if="detailCheck.Notes">
           <label class="block text-xs font-bold uppercase tracking-wider text-text-tertiary mb-1">

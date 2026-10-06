@@ -137,11 +137,11 @@
 
     <!-- Version Compare Modal -->
     <Teleport to="body">
-      <div v-if="showDiffModal" class="modal-backdrop" @click="showDiffModal = false">
+      <div v-if="showDiffModal" class="modal-backdrop" @click="closeDiffModal()">
         <div class="modal !max-w-4xl" @click.stop>
           <div class="modal-header">
             <h3 class="text-sm font-semibold text-text-primary">{{ t('versionCompare') }}</h3>
-            <button @click="showDiffModal = false" class="btn btn-ghost btn-sm">
+            <button @click="closeDiffModal()" class="btn btn-ghost btn-sm">
               <X class="w-3.5 h-3.5" />
             </button>
           </div>
@@ -162,7 +162,7 @@
             />
           </div>
           <div class="modal-footer">
-            <button @click="showDiffModal = false" class="btn btn-primary">{{ t('close') }}</button>
+            <button @click="closeDiffModal()" class="btn btn-primary">{{ t('close') }}</button>
           </div>
         </div>
       </div>
@@ -213,15 +213,11 @@
 
     <!-- Cross-Config Compare Modal - Step 2: Show diff -->
     <Teleport to="body">
-      <div
-        v-if="showCrossCompareResult"
-        class="modal-backdrop"
-        @click="showCrossCompareResult = false"
-      >
+      <div v-if="showCrossCompareResult" class="modal-backdrop" @click="closeCrossCompareResult()">
         <div class="modal !max-w-4xl" @click.stop>
           <div class="modal-header">
             <h3 class="text-sm font-semibold text-text-primary">{{ t('configCompare') }}</h3>
-            <button @click="showCrossCompareResult = false" class="btn btn-ghost btn-sm">
+            <button @click="closeCrossCompareResult()" class="btn btn-ghost btn-sm">
               <X class="w-3.5 h-3.5" />
             </button>
           </div>
@@ -242,7 +238,7 @@
             />
           </div>
           <div class="modal-footer">
-            <button @click="showCrossCompareResult = false" class="btn btn-primary">
+            <button @click="closeCrossCompareResult()" class="btn btn-primary">
               {{ t('close') }}
             </button>
           </div>
@@ -352,11 +348,17 @@ const config = ref<ConfigInfo | null>(null)
 
 // Version compare state
 const showDiffModal = ref(false)
+function closeDiffModal() {
+  showDiffModal.value = false
+}
 const previousContent = ref('')
 
 // Cross-config compare state
 const showCrossCompareForm = ref(false)
 const showCrossCompareResult = ref(false)
+function closeCrossCompareResult() {
+  showCrossCompareResult.value = false
+}
 const compareConfigContent = ref('')
 const allNamespaces = ref<Namespace[]>([])
 const crossCompareForm = reactive({

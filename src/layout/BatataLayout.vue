@@ -157,7 +157,7 @@
             </button>
 
             <template v-if="showDcMenu">
-              <div class="fixed inset-0 z-40" @click="showDcMenu = false" />
+              <div class="fixed inset-0 z-40" @click="closeDcMenu()" />
               <div
                 class="absolute left-0 mt-1.5 w-52 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg py-1 z-50"
               >
@@ -221,7 +221,7 @@
             </button>
 
             <template v-if="showNamespaceMenu">
-              <div class="fixed inset-0 z-40" @click="showNamespaceMenu = false" />
+              <div class="fixed inset-0 z-40" @click="closeNamespaceMenu()" />
               <div
                 class="absolute left-0 mt-1.5 w-52 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg py-1 z-50"
               >
@@ -297,7 +297,7 @@
               </span>
             </button>
             <template v-if="showNotifications">
-              <div class="fixed inset-0 z-40" @click="showNotifications = false" />
+              <div class="fixed inset-0 z-40" @click="closeNotifications()" />
               <div
                 class="absolute right-0 mt-1.5 w-80 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg z-50"
               >
@@ -378,7 +378,7 @@
               <span class="text-[11px] font-bold uppercase">{{ language }}</span>
             </button>
             <template v-if="showLangMenu">
-              <div class="fixed inset-0 z-40" @click="showLangMenu = false" />
+              <div class="fixed inset-0 z-40" @click="closeLangMenu()" />
               <div
                 class="absolute right-0 mt-1.5 w-32 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg py-1 z-50"
               >
@@ -438,7 +438,7 @@
               />
             </button>
             <template v-if="showUserMenu">
-              <div class="fixed inset-0 z-40" @click="showUserMenu = false" />
+              <div class="fixed inset-0 z-40" @click="closeUserMenu()" />
               <div
                 class="absolute right-0 mt-1.5 w-48 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg py-1 z-50"
               >
@@ -662,6 +662,21 @@ const showNamespaceMenu = ref(false)
 const showLangMenu = ref(false)
 const showNotifications = ref(false)
 const showDcMenu = ref(false)
+function closeUserMenu() {
+  showUserMenu.value = false
+}
+function closeNamespaceMenu() {
+  showNamespaceMenu.value = false
+}
+function closeLangMenu() {
+  showLangMenu.value = false
+}
+function closeNotifications() {
+  showNotifications.value = false
+}
+function closeDcMenu() {
+  showDcMenu.value = false
+}
 const consulAgentInfo = ref<{ datacenter?: string; primaryDc?: string } | null>(null)
 
 // WebSocket

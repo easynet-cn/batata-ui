@@ -6,7 +6,7 @@
         <h1 class="text-base font-semibold text-text-primary">{{ t('permissions') }}</h1>
         <p class="text-xs text-text-secondary mt-0.5">{{ t('permissionsDesc') }}</p>
       </div>
-      <button @click="showCreateModal = true" class="btn btn-primary btn-sm">
+      <button @click="openCreateModal()" class="btn btn-primary btn-sm">
         <Plus class="w-3.5 h-3.5" />
         {{ t('addPermission') }}
       </button>
@@ -189,6 +189,9 @@ const resourceSelection = ref('*:*:*')
 
 // Modals
 const showCreateModal = ref(false)
+function openCreateModal() {
+  showCreateModal.value = true
+}
 const showDeleteModal = ref(false)
 const permToDelete = ref<PermissionInfo | null>(null)
 

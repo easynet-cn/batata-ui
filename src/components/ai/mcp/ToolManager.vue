@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between">
       <h4 class="text-sm font-semibold text-text-primary">工具列表 ({{ localTools.length }})</h4>
       <div class="flex items-center gap-2">
-        <button class="btn btn-ghost btn-sm" @click="showImport = !showImport">
+        <button class="btn btn-ghost btn-sm" @click="toggleImport()">
           <Download class="w-3.5 h-3.5" /> 从 MCP 端点导入
         </button>
         <button class="btn btn-primary btn-sm" @click="addTool">
@@ -32,7 +32,7 @@
       />
       <input v-model="importForm.authToken" class="input text-xs" placeholder="Auth Token (可选)" />
       <div class="flex justify-end gap-2">
-        <button class="btn btn-secondary btn-sm" @click="showImport = false">取消</button>
+        <button class="btn btn-secondary btn-sm" @click="closeImport()">取消</button>
         <button
           class="btn btn-primary btn-sm"
           :disabled="importing || !importForm.baseUrl"
@@ -109,6 +109,12 @@ const emit = defineEmits<{
 }>()
 
 const showImport = ref(false)
+function toggleImport() {
+  showImport.value = !showImport.value
+}
+function closeImport() {
+  showImport.value = false
+}
 const importing = ref(false)
 const importForm = ref({
   transportType: 'sse',

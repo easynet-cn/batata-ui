@@ -469,8 +469,7 @@ async function handleEdit(intention: ConsulIntention) {
     createForm.Description = full.Description || ''
     // Load L7 permissions if present
     const perms = (full as unknown as Record<string, unknown>).Permissions as
-      | Array<Record<string, unknown>>
-      | undefined
+      Array<Record<string, unknown>> | undefined
     if (perms && perms.length > 0) {
       l7Permissions.value = perms.map((p) => {
         const http = (p.HTTP || {}) as Record<string, unknown>

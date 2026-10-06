@@ -19,7 +19,7 @@
           {{ t('edit') }}
         </RouterLink>
         <button
-          @click="deleteModalVisible = true"
+          @click="openDeleteModal()"
           class="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors"
         >
           <Trash2 :size="16" />
@@ -222,6 +222,9 @@ const loading = ref(false)
 const errorMsg = ref('')
 const kvPair = ref<ConsulKVPair | null>(null)
 const deleteModalVisible = ref(false)
+function openDeleteModal() {
+  deleteModalVisible.value = true
+}
 const deleting = ref(false)
 
 // Decode base64 value safely

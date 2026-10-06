@@ -16,6 +16,9 @@ const apps = ref<ApolloAppDTO[]>([])
 const loading = ref(false)
 const searchText = ref('')
 const showCreate = ref(false)
+function openCreate() {
+  showCreate.value = true
+}
 const saving = ref(false)
 const form = ref({
   appId: '',
@@ -97,7 +100,7 @@ onMounted(loadApps)
         <Boxes class="w-5 h-5 text-emerald-600" />
         <h1 class="text-lg font-semibold text-text-primary">{{ t('apolloApps') }}</h1>
       </div>
-      <button class="btn btn-primary btn-sm" @click="showCreate = true">
+      <button class="btn btn-primary btn-sm" @click="openCreate()">
         <Plus class="w-4 h-4" /> {{ t('apolloCreateApp') }}
       </button>
     </div>

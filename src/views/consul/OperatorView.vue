@@ -144,10 +144,7 @@
     <div class="card">
       <div class="px-6 py-4 border-b border-border flex items-center justify-between">
         <h3 class="text-sm font-semibold text-text-primary">{{ t('consulAutopilot') }}</h3>
-        <span
-          v-if="autopilotHealth"
-          :class="autopilotHealth.Healthy ? 'badge badge-success' : 'badge badge-danger'"
-        >
+        <span v-if="autopilotHealth" :class="healthStatusClass(autopilotHealth.Healthy)">
           {{ autopilotHealth.Healthy ? t('consulAutopilotHealthy') : t('consulCritical') }}
         </span>
       </div>
@@ -181,7 +178,7 @@
                 <td class="font-mono text-xs text-text-secondary">{{ server.Address }}</td>
                 <td class="text-text-secondary text-xs">{{ server.Version }}</td>
                 <td>
-                  <span :class="server.Healthy ? 'badge badge-success' : 'badge badge-danger'">
+                  <span :class="healthStatusClass(server.Healthy)">
                     {{ server.Healthy ? t('yes') : t('no') }}
                   </span>
                 </td>
@@ -512,6 +509,10 @@ function memberStatusClass(status: number): string {
     default:
       return 'badge'
   }
+}
+
+function healthStatusClass(healthy: boolean): string {
+  return healthy ? 'badge badge-success' : 'badge badge-danger'
 }
 
 function openForceLeave(name: string) {

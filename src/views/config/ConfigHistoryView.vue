@@ -140,11 +140,11 @@
 
     <!-- View History Modal -->
     <Teleport to="body">
-      <div v-if="showViewModal" class="modal-backdrop" @click="showViewModal = false">
+      <div v-if="showViewModal" class="modal-backdrop" @click="closeViewModal()">
         <div class="modal !max-w-3xl" @click.stop>
           <div class="modal-header">
             <h3 class="text-sm font-semibold text-text-primary">{{ t('historyDetail') }}</h3>
-            <button @click="showViewModal = false" class="btn btn-ghost btn-sm">
+            <button @click="closeViewModal()" class="btn btn-ghost btn-sm">
               <X class="w-3.5 h-3.5" />
             </button>
           </div>
@@ -249,7 +249,7 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button @click="showViewModal = false" class="btn btn-primary">{{ t('close') }}</button>
+            <button @click="closeViewModal()" class="btn btn-primary">{{ t('close') }}</button>
           </div>
         </div>
       </div>
@@ -257,11 +257,11 @@
 
     <!-- Compare Modal -->
     <Teleport to="body">
-      <div v-if="showCompareModal" class="modal-backdrop" @click="showCompareModal = false">
+      <div v-if="showCompareModal" class="modal-backdrop" @click="closeCompareModal()">
         <div class="modal !max-w-4xl" @click.stop>
           <div class="modal-header">
             <h3 class="text-sm font-semibold text-text-primary">{{ t('compareVersion') }}</h3>
-            <button @click="showCompareModal = false" class="btn btn-ghost btn-sm">
+            <button @click="closeCompareModal()" class="btn btn-ghost btn-sm">
               <X class="w-3.5 h-3.5" />
             </button>
           </div>
@@ -286,7 +286,7 @@
             />
           </div>
           <div class="modal-footer">
-            <button @click="showCompareModal = false" class="btn btn-primary">
+            <button @click="closeCompareModal()" class="btn btn-primary">
               {{ t('close') }}
             </button>
           </div>
@@ -407,7 +407,13 @@ const groupOptions = computed(() => {
 
 // Modals
 const showViewModal = ref(false)
+function closeViewModal() {
+  showViewModal.value = false
+}
 const showCompareModal = ref(false)
+function closeCompareModal() {
+  showCompareModal.value = false
+}
 const selectedHistory = ref<ConfigHistoryInfo | null>(null)
 
 // Methods

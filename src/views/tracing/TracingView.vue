@@ -184,11 +184,7 @@
               <td>
                 <span
                   class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
-                  :class="
-                    trace.hasError
-                      ? 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400'
-                      : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
-                  "
+                  :class="traceStatusClass(trace.hasError)"
                 >
                   <XCircle v-if="trace.hasError" class="w-3 h-3" />
                   <CheckCircle v-else class="w-3 h-3" />
@@ -253,11 +249,7 @@
               <p class="text-xs text-text-secondary">{{ t('status') }}</p>
               <span
                 class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
-                :class="
-                  selectedTrace.hasError
-                    ? 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400'
-                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
-                "
+                :class="selectedTraceStatusClass(selectedTrace.hasError)"
               >
                 {{ selectedTrace.hasError ? t('error') : t('success') }}
               </span>
@@ -276,7 +268,7 @@
               >
                 <div
                   class="w-2 h-2 rounded-full shrink-0"
-                  :class="span.hasError ? 'bg-red-500' : 'bg-emerald-500'"
+                  :class="spanDotClass(span.hasError)"
                 ></div>
                 <span
                   class="px-1.5 py-0.5 text-[10px] font-medium rounded shrink-0"
@@ -293,7 +285,7 @@
                 <div class="w-32 h-4 bg-gray-100 dark:bg-gray-800 rounded overflow-hidden shrink-0">
                   <div
                     class="h-full rounded"
-                    :class="span.hasError ? 'bg-red-400' : 'bg-blue-400'"
+                    :class="spanBarClass(span.hasError)"
                     :style="{ width: `${(span.duration / selectedTrace.duration) * 100}%` }"
                   ></div>
                 </div>
@@ -535,6 +527,20 @@ const getDurationClass = (duration: number) => {
   if (duration < 500) return 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
   return 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400'
 }
+
+const traceStatusClass = (hasError: boolean) =>
+  hasError
+    ? 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400'
+    : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
+
+const selectedTraceStatusClass = (hasError: boolean) =>
+  hasError
+    ? 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400'
+    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
+
+const spanDotClass = (hasError: boolean) => (hasError ? 'bg-red-500' : 'bg-emerald-500')
+
+const spanBarClass = (hasError: boolean) => (hasError ? 'bg-red-400' : 'bg-blue-400')
 
 const getUniqueServices = (spans: Span[]) => {
   return [...new Set(spans.map((s) => s.serviceName))]

@@ -139,8 +139,7 @@
           <div v-if="streamContent" class="border border-border rounded-lg p-3">
             <pre
               class="text-sm text-text-primary whitespace-pre-wrap font-mono max-h-[400px] overflow-auto"
-              >{{ streamContent }}</pre
-            >
+              >{{ streamContent }}</pre>
           </div>
 
           <!-- Error -->

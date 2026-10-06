@@ -6,7 +6,7 @@
         <h1 class="text-base font-semibold text-text-primary">{{ t('services') }}</h1>
         <p class="text-xs text-text-secondary mt-0.5">{{ t('servicesDesc') }}</p>
       </div>
-      <button @click="showCreateModal = true" class="btn btn-primary btn-sm">
+      <button @click="openCreateModal()" class="btn btn-primary btn-sm">
         <Plus class="w-3.5 h-3.5" />
         {{ t('createService') }}
       </button>
@@ -137,7 +137,7 @@
               <td>{{ service.clusterCount }}</td>
               <td>{{ service.ipCount }}</td>
               <td>
-                <span :class="service.healthyInstanceCount > 0 ? 'text-success' : 'text-danger'">
+                <span :class="healthyCountClass(service)">
                   {{ service.healthyInstanceCount }}
                 </span>
               </td>
@@ -332,8 +332,15 @@ const showFormModal = computed({
   },
 })
 const showCreateModal = ref(false)
+function openCreateModal() {
+  showCreateModal.value = true
+}
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
+
+function healthyCountClass(service: ServiceInfo) {
+  return service.healthyInstanceCount > 0 ? 'text-success' : 'text-danger'
+}
 const serviceToDelete = ref<ServiceInfo | null>(null)
 const metadataText = ref('')
 

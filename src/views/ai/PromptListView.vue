@@ -38,13 +38,13 @@
           <div class="flex items-center gap-1.5">
             <button
               @click="searchMode = 'blur'"
-              :class="['btn btn-sm', searchMode === 'blur' ? 'btn-primary' : 'btn-secondary']"
+              :class="['btn btn-sm', searchModeBtnClass('blur')]"
             >
               {{ t('fuzzySearch') }}
             </button>
             <button
               @click="searchMode = 'accurate'"
-              :class="['btn btn-sm', searchMode === 'accurate' ? 'btn-primary' : 'btn-secondary']"
+              :class="['btn btn-sm', searchModeBtnClass('accurate')]"
             >
               {{ t('exactSearch') }}
             </button>
@@ -242,6 +242,9 @@ const {
   getItemName: (item) => item.promptKey,
   searchParamKey: 'promptKey',
 })
+
+const searchModeBtnClass = (mode: 'blur' | 'accurate') =>
+  searchMode.value === mode ? 'btn-primary' : 'btn-secondary'
 
 const handleResetSearch = () => {
   searchKeyword.value = ''

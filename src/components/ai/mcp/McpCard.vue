@@ -96,7 +96,7 @@
     >
       <span
         class="badge text-[10px] px-1.5 py-0 h-4 font-medium"
-        :class="mcp.enabled ? 'badge-success' : 'badge-secondary'"
+        :class="enabledBadgeClass(mcp.enabled)"
       >
         {{ mcp.enabled ? '已启用' : '已禁用' }}
       </span>
@@ -179,6 +179,8 @@ const capabilityColor = (cap: string) => {
   }
   return map[cap] || 'text-gray-400'
 }
+
+const enabledBadgeClass = (enabled: boolean) => (enabled ? 'badge-success' : 'badge-secondary')
 
 const onCardClick = () => emit('view', props.mcp)
 const onView = () => emit('view', props.mcp)

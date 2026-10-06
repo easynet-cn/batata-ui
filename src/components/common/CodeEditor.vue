@@ -4,7 +4,7 @@
     class="code-editor-wrapper rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden relative"
     :aria-label="t('codeEditor')"
     :class="{ 'fixed inset-0 z-50 rounded-none border-0': isFullscreen }"
-    :style="isFullscreen ? {} : { minHeight }"
+    :style="editorStyle"
   >
     <div
       ref="editorContainer"
@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, shallowRef } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, shallowRef, computed } from 'vue'
 import { EditorView, keymap, placeholder as cmPlaceholder, type ViewUpdate } from '@codemirror/view'
 import { EditorState, Compartment } from '@codemirror/state'
 import { basicSetup } from 'codemirror'
@@ -79,6 +79,8 @@ const isFullscreen = ref(false)
 const toggleFullscreen = () => {
   isFullscreen.value = !isFullscreen.value
 }
+
+const editorStyle = computed(() => (isFullscreen.value ? {} : { minHeight: props.minHeight }))
 
 const handleKeydown = (e: KeyboardEvent) => {
   if (e.key === 'F11') {

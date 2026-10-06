@@ -13,8 +13,7 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
   return path.split('.').reduce(
     (acc: Record<string, unknown> | undefined, key) => {
       return (acc as Record<string, unknown> | undefined)?.[key] as
-        | Record<string, unknown>
-        | undefined
+        Record<string, unknown> | undefined
     },
     obj as Record<string, unknown> | undefined,
   )

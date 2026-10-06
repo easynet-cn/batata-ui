@@ -2,7 +2,7 @@
   <button
     type="button"
     class="btn btn-secondary inline-flex items-center gap-1.5 transition-colors"
-    :class="size === 'sm' ? 'btn-sm' : ''"
+    :class="sizeClass"
     :title="copied ? t('copied') : t('copy')"
     @click="copyToClipboard"
   >
@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Copy, Check } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 
@@ -32,6 +32,7 @@ const props = withDefaults(
 )
 
 const copied = ref(false)
+const sizeClass = computed(() => (props.size === 'sm' ? 'btn-sm' : ''))
 let timer: ReturnType<typeof setTimeout> | null = null
 
 async function copyToClipboard() {

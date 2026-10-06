@@ -644,6 +644,42 @@ function closeAppNsModal() {
   appNsForm.value = { name: '', format: 'properties', isPublic: false, comment: '' }
 }
 
+function openAppNs() {
+  showAppNs.value = true
+}
+
+function openAppRole() {
+  showAppRole.value = true
+}
+
+function openNsRole() {
+  showNsRole.value = true
+}
+
+function openAssociateNs() {
+  showAssociateNs.value = true
+}
+
+function openCreateNs() {
+  showCreateNs.value = true
+}
+
+function openReleaseModal() {
+  showReleaseModal.value = true
+}
+
+function closeTextMode() {
+  textMode.value = false
+}
+
+function namespaceNameClass(ns: ApolloOpenNamespace): string {
+  return ns.namespaceName === namespace.value ? 'text-white' : 'text-danger'
+}
+
+const namespaceLockClass = computed(() =>
+  currentNamespace.value?.isLocked ? 'text-warning' : 'text-text-secondary',
+)
+
 async function createNamespace() {
   if (!nsForm.value.name) return
   await apolloApi.createNamespace(env.value, appId.value, cluster.value, {
@@ -1034,7 +1070,7 @@ onMounted(loadApp)
         <Pencil class="w-3.5 h-3.5" />
       </button>
       <div class="ml-auto flex gap-2">
-        <button class="btn btn-ghost btn-sm" @click="showAppNs = true">
+        <button class="btn btn-ghost btn-sm" @click="openAppNs()">
           <Layers class="w-4 h-4" />{{ t('apolloAppNamespaces') }}
         </button>
         <button class="btn btn-ghost btn-sm" @click="goClusters">
@@ -1043,10 +1079,10 @@ onMounted(loadApp)
         <button class="btn btn-ghost btn-sm" @click="goAccessKeys">
           <KeyRound class="w-4 h-4" />{{ t('apolloAccessKeys') }}
         </button>
-        <button class="btn btn-ghost btn-sm" @click="showAppRole = true">
+        <button class="btn btn-ghost btn-sm" @click="openAppRole()">
           <ShieldCheck class="w-4 h-4" />{{ t('apolloAppPermission') }}
         </button>
-        <button class="btn btn-ghost btn-sm" @click="showNsRole = true">
+        <button class="btn btn-ghost btn-sm" @click="openNsRole()">
           <UserCog class="w-4 h-4" />{{ t('apolloNamespacePermission') }}
         </button>
         <button class="btn btn-ghost btn-sm" @click="openSync">
@@ -1084,11 +1120,11 @@ onMounted(loadApp)
                 <button
                   class="btn btn-ghost btn-xs"
                   :title="t('apolloAssociateNs')"
-                  @click="showAssociateNs = true"
+                  @click="openAssociateNs()"
                 >
                   <Link2 class="w-3 h-3" />
                 </button>
-                <button class="btn btn-ghost btn-xs" @click="showCreateNs = true">
+                <button class="btn btn-ghost btn-xs" @click="openCreateNs()">
                   <Plus class="w-3 h-3" />
                 </button>
               </div>
@@ -1113,7 +1149,7 @@ onMounted(loadApp)
                 <button
                   v-if="ns.namespaceName !== 'application'"
                   class="btn btn-ghost btn-xs px-1"
-                  :class="ns.namespaceName === namespace ? 'text-white' : 'text-danger'"
+                  :class="namespaceNameClass(ns)"
                   :title="t('delete')"
                   @click.stop="deleteNamespace(ns)"
                 >
@@ -1255,7 +1291,7 @@ onMounted(loadApp)
               <button
                 v-if="currentNamespace"
                 class="btn btn-ghost btn-sm"
-                :class="currentNamespace?.isLocked ? 'text-warning' : 'text-text-secondary'"
+                :class="namespaceLockClass"
                 :title="currentNamespace?.isLocked ? t('apolloUnlock') : t('apolloLock')"
                 @click="currentNamespace?.isLocked ? unlockNamespace() : lockNamespace()"
               >
@@ -1269,7 +1305,7 @@ onMounted(loadApp)
               <button class="btn btn-ghost btn-sm" @click="exportCurrentConfig">
                 <Download class="w-4 h-4" />{{ t('apolloExport') }}
               </button>
-              <button class="btn btn-primary btn-sm" @click="showReleaseModal = true">
+              <button class="btn btn-primary btn-sm" @click="openReleaseModal()">
                 <Upload class="w-4 h-4" />{{ t('apolloPublish') }}
               </button>
               <button class="btn btn-primary btn-sm" @click="openCreateItem">
@@ -1281,7 +1317,7 @@ onMounted(loadApp)
           <div v-if="textMode" class="space-y-2">
             <CodeEditor v-model="textContent" language="properties" :min-height="'400px'" />
             <div class="flex justify-end gap-2">
-              <button class="btn btn-ghost btn-sm" @click="textMode = false">
+              <button class="btn btn-ghost btn-sm" @click="closeTextMode()">
                 {{ t('cancel') }}
               </button>
               <button class="btn btn-primary btn-sm" :disabled="savingText" @click="saveText">

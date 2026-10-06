@@ -6,7 +6,7 @@
         <h1 class="text-base font-semibold text-text-primary">{{ t('namespaces') }}</h1>
         <p class="text-xs text-text-secondary mt-0.5">{{ t('namespacesDesc') }}</p>
       </div>
-      <button @click="showCreateModal = true" class="btn btn-primary btn-sm">
+      <button @click="openCreateModal()" class="btn btn-primary btn-sm">
         <Plus class="w-3.5 h-3.5" />
         {{ t('createNamespace') }}
       </button>
@@ -155,6 +155,9 @@ const namespaces = ref<Namespace[]>([])
 
 // Modals
 const showCreateModal = ref(false)
+function openCreateModal() {
+  showCreateModal.value = true
+}
 const showEditModal = ref(false)
 const showFormModal = ref(false)
 const showDeleteModal = ref(false)

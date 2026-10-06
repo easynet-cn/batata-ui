@@ -6,7 +6,7 @@
         <h1 class="text-base font-semibold text-text-primary">{{ t('roles') }}</h1>
         <p class="text-xs text-text-secondary mt-0.5">{{ t('rolesDesc') }}</p>
       </div>
-      <button @click="showCreateModal = true" class="btn btn-primary btn-sm">
+      <button @click="openCreateModal()" class="btn btn-primary btn-sm">
         <Plus class="w-3.5 h-3.5" />
         {{ t('bindRole') }}
       </button>
@@ -167,6 +167,9 @@ const fuzzySearch = ref(false)
 
 // Modals
 const showCreateModal = ref(false)
+function openCreateModal() {
+  showCreateModal.value = true
+}
 const showDeleteModal = ref(false)
 const roleToDelete = ref<RoleInfo | null>(null)
 

@@ -48,9 +48,7 @@
             <div>
               <span class="text-xs text-text-secondary">{{ t('skillScope') }}</span>
               <div class="flex items-center gap-2 mt-1">
-                <span
-                  :class="detail.scope === 'public' ? 'badge badge-success' : 'badge badge-warning'"
-                >
+                <span :class="scopeBadgeClass(detail.scope)">
                   {{ detail.scope === 'public' ? t('skillScopePublic') : t('skillScopePrivate') }}
                 </span>
                 <button @click="toggleScope" class="btn btn-ghost btn-sm" :title="t('edit')">
@@ -61,7 +59,7 @@
             <div>
               <span class="text-xs text-text-secondary">{{ t('status') }}</span>
               <p>
-                <span :class="detail.enable ? 'badge badge-success' : 'badge badge-danger'">
+                <span :class="enableBadgeClass(detail.enable)">
                   {{ detail.enable ? t('enabled') : t('disabled') }}
                 </span>
               </p>
@@ -89,7 +87,7 @@
         <div class="p-4">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-medium text-text-primary">{{ t('skillLabels') }}</h3>
-            <button @click="showLabelsModal = true" class="btn btn-ghost btn-sm">
+            <button @click="openLabelsModal()" class="btn btn-ghost btn-sm">
               <Pencil class="w-3.5 h-3.5" />
             </button>
           </div>
@@ -110,7 +108,7 @@
         <div class="p-4">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-medium text-text-primary">{{ t('skillBizTags') }}</h3>
-            <button @click="showBizTagsModal = true" class="btn btn-ghost btn-sm">
+            <button @click="openBizTagsModal()" class="btn btn-ghost btn-sm">
               <Pencil class="w-3.5 h-3.5" />
             </button>
           </div>
@@ -304,6 +302,18 @@ const showForcePublishModal = ref(false)
 const forcePublishVersion = ref('')
 const showLabelsModal = ref(false)
 const showBizTagsModal = ref(false)
+function openLabelsModal() {
+  showLabelsModal.value = true
+}
+function openBizTagsModal() {
+  showBizTagsModal.value = true
+}
+function scopeBadgeClass(scope: string): string {
+  return scope === 'public' ? 'badge badge-success' : 'badge badge-warning'
+}
+function enableBadgeClass(enable: boolean): string {
+  return enable ? 'badge badge-success' : 'badge badge-danger'
+}
 const savingLabels = ref(false)
 const savingBizTags = ref(false)
 const labelsText = ref('')

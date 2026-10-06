@@ -11,7 +11,7 @@
           <RotateCcw class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" />
           {{ t('refresh') }}
         </button>
-        <button @click="showSyncModal = true" class="btn btn-primary btn-sm">
+        <button @click="openSyncModal()" class="btn btn-primary btn-sm">
           <RefreshCw class="w-3.5 h-3.5" />
           {{ t('syncNow') }}
         </button>
@@ -98,10 +98,7 @@
           >
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <div
-                  class="w-2 h-2 rounded-full"
-                  :class="env.status === 'online' ? 'bg-emerald-500' : 'bg-red-500'"
-                />
+                <div class="w-2 h-2 rounded-full" :class="envStatusClass(env.status)" />
                 <span class="font-medium text-text-primary">{{ env.name }}</span>
               </div>
               <input
@@ -366,6 +363,12 @@ const selectedConfigs = ref<string[]>([])
 const configSearch = ref('')
 const syncPolicy = ref<'SKIP' | 'OVERWRITE' | 'ABORT'>('SKIP')
 const showSyncModal = ref(false)
+function openSyncModal() {
+  showSyncModal.value = true
+}
+function envStatusClass(status: string) {
+  return status === 'online' ? 'bg-emerald-500' : 'bg-red-500'
+}
 
 // Track active timeouts for cleanup
 let syncRefreshTimer: ReturnType<typeof setTimeout> | null = null

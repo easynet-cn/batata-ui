@@ -22,6 +22,10 @@ async function load() {
   }
 }
 onMounted(load)
+
+function envStatusClass(active: boolean): string {
+  return active ? 'text-success' : 'text-danger'
+}
 </script>
 
 <template>
@@ -50,7 +54,7 @@ onMounted(load)
       <div v-for="env in info.environments || []" :key="env.env" class="card p-4">
         <div class="flex items-center justify-between mb-1">
           <span class="font-semibold">{{ env.env }}</span>
-          <span :class="env.active ? 'text-success' : 'text-danger'">
+          <span :class="envStatusClass(env.active)">
             {{ env.active ? t('apolloActive') : t('apolloInactive') }}
           </span>
         </div>

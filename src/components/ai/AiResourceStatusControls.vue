@@ -18,7 +18,7 @@
     <div class="flex items-center gap-1">
       <button
         class="btn btn-ghost btn-sm"
-        :class="scope === 'PUBLIC' ? 'text-primary' : 'text-text-secondary'"
+        :class="scopeBtnClass('PUBLIC')"
         :disabled="scopeDisabled"
         @click="onScopeChange('PUBLIC')"
       >
@@ -27,7 +27,7 @@
       <span class="text-text-tertiary">/</span>
       <button
         class="btn btn-ghost btn-sm"
-        :class="scope === 'PRIVATE' ? 'text-primary' : 'text-text-secondary'"
+        :class="scopeBtnClass('PRIVATE')"
         :disabled="scopeDisabled"
         @click="onScopeChange('PRIVATE')"
       >
@@ -51,7 +51,7 @@
 <script setup lang="ts">
 import { Eye } from '@lucide/vue'
 
-defineProps<{
+const props = defineProps<{
   enabled: boolean
   scope?: string
   enabledLabel: string
@@ -73,4 +73,7 @@ const emit = defineEmits<{
 const onEnabledChange = (value: boolean) => emit('update:enabled', value)
 const onScopeChange = (value: string) => emit('update:scope', value)
 const onVisibilityClick = () => emit('visibility-click')
+
+const scopeBtnClass = (target: string) =>
+  props.scope === target ? 'text-primary' : 'text-text-secondary'
 </script>

@@ -17,6 +17,9 @@ const appId = ref<string>((route.query.appId as string) || '')
 const envClusters = ref<ApolloEnvCluster[]>([])
 const loading = ref(false)
 const showCreate = ref(false)
+function openCreate() {
+  showCreate.value = true
+}
 const saving = ref(false)
 const form = ref({ env: 'DEV', name: '', comment: '' })
 const showClusterRole = ref<{ env: string; cluster: string } | null>(null)
@@ -72,7 +75,7 @@ onMounted(load)
         <h1 class="text-lg font-semibold text-text-primary">{{ t('apolloClusters') }}</h1>
         <span v-if="appId" class="text-xs text-text-secondary font-mono">{{ appId }}</span>
       </div>
-      <button v-if="appId" class="btn btn-primary btn-sm" @click="showCreate = true">
+      <button v-if="appId" class="btn btn-primary btn-sm" @click="openCreate()">
         <Plus class="w-4 h-4" /> {{ t('apolloCreateCluster') }}
       </button>
     </div>

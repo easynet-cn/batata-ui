@@ -14,6 +14,9 @@ const loading = ref(false)
 const configs = ref<ApolloServerConfigDTO[]>([])
 const error = ref('')
 const showCreate = ref(false)
+function openCreate() {
+  showCreate.value = true
+}
 const form = ref({ key: '', value: '', comment: '', cluster: '' })
 
 async function load() {
@@ -31,6 +34,14 @@ async function load() {
     loading.value = false
   }
 }
+
+function switchTab(tab: 'portal' | 'configdb') {
+  activeTab.value = tab
+  load()
+}
+
+const tabBtnClass = (tab: 'portal' | 'configdb') =>
+  activeTab.value === tab ? 'btn-primary' : 'btn-ghost'
 
 async function create() {
   error.value = ''
@@ -68,25 +79,13 @@ onMounted(load)
   <div class="p-4">
     <div class="flex items-center justify-between mb-4">
       <h1 class="text-xl font-bold">{{ t('apolloServerConfig') }}</h1>
-      <button class="btn btn-primary btn-sm" @click="showCreate = true">{{ t('add') }}</button>
+      <button class="btn btn-primary btn-sm" @click="openCreate()">{{ t('add') }}</button>
     </div>
     <div class="flex gap-2 mb-3">
-      <button
-        :class="['btn btn-sm', activeTab === 'portal' ? 'btn-primary' : 'btn-ghost']"
-        @click="
-          activeTab = 'portal'
-          load()
-        "
-      >
+      <button :class="['btn btn-sm', tabBtnClass('portal')]" @click="switchTab('portal')">
         PortalDB
       </button>
-      <button
-        :class="['btn btn-sm', activeTab === 'configdb' ? 'btn-primary' : 'btn-ghost']"
-        @click="
-          activeTab = 'configdb'
-          load()
-        "
-      >
+      <button :class="['btn btn-sm', tabBtnClass('configdb')]" @click="switchTab('configdb')">
         ConfigDB
       </button>
       <select v-if="activeTab === 'configdb'" v-model="env" class="input input-sm" @change="load">

@@ -24,6 +24,9 @@ const loadingMissing = ref(false)
 const selectedMissing = ref<string[]>([])
 
 const showCreate = ref(false)
+function openCreate() {
+  showCreate.value = true
+}
 const form = ref({ name: '', format: 'properties', isPublic: false, comment: '' })
 
 async function load() {
@@ -114,7 +117,7 @@ onMounted(load)
       <Layers class="w-5 h-5 text-emerald-600" />
       <h1 class="text-lg font-semibold text-text-primary">{{ t('apolloAppNamespaces') }}</h1>
       <span v-if="appId" class="text-xs text-text-secondary font-mono">{{ appId }}</span>
-      <button v-if="appId" class="btn btn-primary btn-sm ml-auto" @click="showCreate = true">
+      <button v-if="appId" class="btn btn-primary btn-sm ml-auto" @click="openCreate()">
         <Plus class="w-4 h-4" /> {{ t('apolloCreateAppNamespace') }}
       </button>
     </div>

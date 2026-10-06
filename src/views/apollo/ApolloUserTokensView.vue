@@ -12,6 +12,9 @@ const loading = ref(false)
 const tokens = ref<ApolloUserTokenDTO[]>([])
 const error = ref('')
 const showCreate = ref(false)
+function openCreate() {
+  showCreate.value = true
+}
 const createdToken = ref('')
 const form = ref({ name: '', expires: '', operations: '', appIds: '', envs: '', rateLimit: 0 })
 
@@ -95,7 +98,7 @@ onMounted(load)
   <div class="p-4">
     <div class="flex items-center justify-between mb-4">
       <h1 class="text-xl font-bold">{{ t('apolloUserTokens') }}</h1>
-      <button class="btn btn-primary btn-sm" @click="showCreate = true">{{ t('add') }}</button>
+      <button class="btn btn-primary btn-sm" @click="openCreate()">{{ t('add') }}</button>
     </div>
     <div v-if="error" class="text-danger text-sm mb-2">{{ error }}</div>
     <div v-if="createdToken" class="card p-3 mb-2 bg-bg-secondary text-sm break-all">

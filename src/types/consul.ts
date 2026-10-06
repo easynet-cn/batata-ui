@@ -18,12 +18,7 @@ export interface ConsulKVPair {
 
 // Service kind constants matching Consul's ServiceKind
 export type ConsulServiceKind =
-  | ''
-  | 'connect-proxy'
-  | 'mesh-gateway'
-  | 'terminating-gateway'
-  | 'ingress-gateway'
-  | 'api-gateway'
+  '' | 'connect-proxy' | 'mesh-gateway' | 'terminating-gateway' | 'ingress-gateway' | 'api-gateway'
 
 // Enriched service summary from /v1/internal/ui/services endpoint
 export interface ConsulUIServiceSummary {
@@ -426,12 +421,7 @@ export interface ConsulACLBindingRule {
 // ============================================
 
 export type ConsulPeeringState =
-  | 'PENDING'
-  | 'ESTABLISHING'
-  | 'ACTIVE'
-  | 'FAILING'
-  | 'TERMINATED'
-  | 'DELETING'
+  'PENDING' | 'ESTABLISHING' | 'ACTIVE' | 'FAILING' | 'TERMINATED' | 'DELETING'
 
 export interface ConsulPeeringStreamStatus {
   LastHeartbeat?: string

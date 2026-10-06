@@ -10,7 +10,7 @@
         <!-- Batch Delete -->
         <template v-if="selectedNames.size > 0">
           <span class="text-xs text-text-secondary">{{ selectedNames.size }} {{ t('items') }}</span>
-          <button @click="showBatchDeleteModal = true" class="btn btn-danger btn-sm">
+          <button @click="openBatchDeleteModal()" class="btn btn-danger btn-sm">
             <Trash2 class="w-3.5 h-3.5" />
             {{ t('batchDelete') }}
           </button>
@@ -19,7 +19,7 @@
           </button>
         </template>
         <template v-else>
-          <button @click="showUploadModal = true" class="btn btn-secondary btn-sm">
+          <button @click="openUploadModal()" class="btn btn-secondary btn-sm">
             <Upload class="w-3.5 h-3.5" />
             {{ t('uploadSkill') }}
           </button>
@@ -150,10 +150,10 @@
 
             <!-- Status Row -->
             <div class="flex items-center gap-1.5 mb-2">
-              <span :class="skill.enable ? 'badge badge-success' : 'badge badge-secondary'">
+              <span :class="skillEnableBadgeClass(skill.enable)">
                 {{ skill.enable ? t('enabled') : t('disabled') }}
               </span>
-              <span :class="skill.scope === 'public' ? 'badge badge-info' : 'badge badge-warning'">
+              <span :class="skillScopeBadgeClass(skill.scope)">
                 {{ skill.scope === 'public' ? t('skillScopePublic') : t('skillScopePrivate') }}
               </span>
               <span v-if="skill.editingVersion" class="badge badge-warning">
@@ -168,10 +168,7 @@
 
             <!-- Meta -->
             <div class="flex items-center flex-wrap gap-2 text-xs text-text-tertiary mb-2">
-              <span
-                class="flex items-center gap-1"
-                :class="skill.onlineCnt > 0 ? 'text-emerald-600 dark:text-emerald-400' : ''"
-              >
+              <span class="flex items-center gap-1" :class="skillOnlineClass(skill.onlineCnt > 0)">
                 <Globe class="w-3 h-3" />
                 {{ skill.onlineCnt }}
               </span>
@@ -321,7 +318,24 @@ const {
   pageSize: 12,
 })
 
+function openBatchDeleteModal() {
+  showBatchDeleteModal.value = true
+}
+function openUploadModal() {
+  showUploadModal.value = true
+}
+
 const onlineCount = computed(() => items.value.filter((s) => s.onlineCnt > 0).length)
+
+function skillEnableBadgeClass(enable: boolean): string {
+  return enable ? 'badge badge-success' : 'badge badge-secondary'
+}
+function skillScopeBadgeClass(scope: string): string {
+  return scope === 'public' ? 'badge badge-info' : 'badge badge-warning'
+}
+function skillOnlineClass(online: boolean): string {
+  return online ? 'text-emerald-600 dark:text-emerald-400' : ''
+}
 
 const handleResetAll = () => {
   searchKeyword.value = ''

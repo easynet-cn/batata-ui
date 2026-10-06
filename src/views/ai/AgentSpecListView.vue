@@ -10,7 +10,7 @@
         <!-- Batch Delete -->
         <template v-if="selectedNames.size > 0">
           <span class="text-xs text-text-secondary">{{ selectedNames.size }} {{ t('items') }}</span>
-          <button @click="showBatchDeleteModal = true" class="btn btn-danger btn-sm">
+          <button @click="openBatchDeleteModal()" class="btn btn-danger btn-sm">
             <Trash2 class="w-3.5 h-3.5" />
             {{ t('batchDelete') }}
           </button>
@@ -19,7 +19,7 @@
           </button>
         </template>
         <template v-else>
-          <button @click="showUploadModal = true" class="btn btn-secondary btn-sm">
+          <button @click="openUploadModal()" class="btn btn-secondary btn-sm">
             <Upload class="w-3.5 h-3.5" />
             {{ t('uploadAgentSpec') }}
           </button>
@@ -119,10 +119,10 @@
 
           <!-- Status Row -->
           <div class="flex items-center gap-1.5 mb-2">
-            <span :class="item.enable ? 'badge badge-success' : 'badge badge-secondary'">
+            <span :class="itemEnableBadgeClass(item.enable)">
               {{ item.enable ? t('enabled') : t('disabled') }}
             </span>
-            <span :class="item.scope === 'public' ? 'badge badge-info' : 'badge badge-warning'">
+            <span :class="itemScopeBadgeClass(item.scope)">
               {{ item.scope === 'public' ? t('skillScopePublic') : t('skillScopePrivate') }}
             </span>
             <span v-if="item.editingVersion" class="badge badge-warning">
@@ -137,10 +137,7 @@
 
           <!-- Meta -->
           <div class="flex items-center flex-wrap gap-2 text-xs text-text-tertiary mb-2">
-            <span
-              class="flex items-center gap-1"
-              :class="item.onlineCnt > 0 ? 'text-emerald-600 dark:text-emerald-400' : ''"
-            >
+            <span class="flex items-center gap-1" :class="itemOnlineClass(item.onlineCnt > 0)">
               <Globe class="w-3 h-3" />
               {{ item.onlineCnt }}
             </span>
@@ -297,6 +294,23 @@ const {
   getItemName: (item) => item.name,
   searchParamKey: 'agentSpecName',
 })
+
+function openBatchDeleteModal() {
+  showBatchDeleteModal.value = true
+}
+function openUploadModal() {
+  showUploadModal.value = true
+}
+
+function itemEnableBadgeClass(enable: boolean): string {
+  return enable ? 'badge badge-success' : 'badge badge-secondary'
+}
+function itemScopeBadgeClass(scope: string): string {
+  return scope === 'public' ? 'badge badge-info' : 'badge badge-warning'
+}
+function itemOnlineClass(online: boolean): string {
+  return online ? 'text-emerald-600 dark:text-emerald-400' : ''
+}
 
 const handleReset = () => {
   searchKeyword.value = ''

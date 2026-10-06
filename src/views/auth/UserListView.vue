@@ -6,7 +6,7 @@
         <h1 class="text-base font-semibold text-text-primary">{{ t('users') }}</h1>
         <p class="text-xs text-text-secondary mt-0.5">{{ t('usersDesc') }}</p>
       </div>
-      <button @click="showCreateModal = true" class="btn btn-primary btn-sm">
+      <button @click="openCreateModal()" class="btn btn-primary btn-sm">
         <Plus class="w-3.5 h-3.5" />
         {{ t('createUser') }}
       </button>
@@ -66,9 +66,7 @@
               <td class="font-medium">{{ user.username }}</td>
               <td class="text-text-secondary">******</td>
               <td>
-                <span
-                  :class="user.enabled !== false ? 'badge badge-success' : 'badge badge-danger'"
-                >
+                <span :class="userStatusClass(user)">
                   {{ user.enabled !== false ? t('enabled') : t('disabled') }}
                 </span>
               </td>
@@ -193,7 +191,14 @@ const fuzzySearch = ref(false)
 
 // Modals
 const showCreateModal = ref(false)
+function openCreateModal() {
+  showCreateModal.value = true
+}
 const showPasswordModal = ref(false)
+
+function userStatusClass(user: UserInfo) {
+  return user.enabled !== false ? 'badge badge-success' : 'badge badge-danger'
+}
 const showDeleteModal = ref(false)
 const userToReset = ref<UserInfo | null>(null)
 const userToDelete = ref<UserInfo | null>(null)

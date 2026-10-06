@@ -68,11 +68,7 @@
           v-for="tab in tabs"
           :key="tab.key"
           @click="switchTab(tab.key)"
-          :class="
-            activeTab === tab.key
-              ? 'bg-fuchsia-600 text-white shadow-md'
-              : 'text-text-secondary hover:text-text-primary'
-          "
+          :class="tabBtnClass(tab.key)"
           class="px-4 py-2 text-xs font-bold rounded-xl transition-colors"
         >
           {{ tab.label }}
@@ -402,7 +398,7 @@
             >
               <div class="flex items-center justify-between">
                 <span class="text-sm font-medium text-text-primary">{{ up.Name }}</span>
-                <span :class="up.Intention?.Allowed ? 'badge badge-success' : 'badge badge-danger'">
+                <span :class="intentionBadgeClass(up.Intention?.Allowed)">
                   {{
                     up.Intention?.Allowed ? t('consulIntentionAllowed') : t('consulIntentionDenied')
                   }}
@@ -457,11 +453,7 @@
                   <td class="font-medium text-text-primary">{{ intention.SourceName }}</td>
                   <td class="font-medium text-text-primary">{{ intention.DestinationName }}</td>
                   <td>
-                    <span
-                      :class="
-                        intention.Action === 'allow' ? 'badge badge-success' : 'badge badge-danger'
-                      "
-                    >
+                    <span :class="intentionActionBadgeClass(intention.Action)">
                       {{ intention.Action }}
                     </span>
                   </td>
@@ -648,6 +640,17 @@ const statusBadgeClass = (status: ConsulHealthStatus) => {
       return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
   }
 }
+
+const tabBtnClass = (tabKey: TabKey) =>
+  activeTab.value === tabKey
+    ? 'bg-fuchsia-600 text-white shadow-md'
+    : 'text-text-secondary hover:text-text-primary'
+
+const intentionBadgeClass = (allowed: boolean | undefined) =>
+  allowed ? 'badge badge-success' : 'badge badge-danger'
+
+const intentionActionBadgeClass = (action: string) =>
+  action === 'allow' ? 'badge badge-success' : 'badge badge-danger'
 
 const toggleNodeDetail = (serviceId: string) => {
   if (expandedNodes.value.has(serviceId)) {

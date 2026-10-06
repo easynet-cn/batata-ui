@@ -89,7 +89,7 @@
           </div>
           <div v-if="entry.TransparentProxy !== undefined">
             <p class="text-xs text-text-tertiary mb-0.5">{{ t('consulTransparentProxy') }}</p>
-            <span :class="['badge', entry.TransparentProxy ? 'badge-success' : 'badge-warning']">
+            <span :class="['badge', transparentProxyBadgeClass(!!entry.TransparentProxy)]">
               {{ entry.TransparentProxy ? t('enabled') : t('disabled') }}
             </span>
           </div>
@@ -151,6 +151,10 @@ const hasServiceDefaultsFields = computed(() => {
     entry.value.TransparentProxy !== undefined
   )
 })
+
+function transparentProxyBadgeClass(enabled: boolean): string {
+  return enabled ? 'badge-success' : 'badge-warning'
+}
 
 async function loadConfigEntry() {
   if (!kind.value || !name.value) {

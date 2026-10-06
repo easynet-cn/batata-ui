@@ -53,7 +53,7 @@
                 v-for="action in availableActions"
                 :key="action.key"
                 class="btn btn-secondary btn-sm"
-                :class="action.danger ? 'btn-danger' : ''"
+                :class="actionBtnClass(action)"
                 :disabled="actionLoading"
                 @click="handleLifecycleAction(action.key)"
               >
@@ -253,6 +253,10 @@ const availableActions = computed<LifecycleActionDef[]>(() => {
 
 function versionStatusLabel(s?: string): string {
   return getMcpVersionStatusLabel(s)
+}
+
+function actionBtnClass(action: LifecycleActionDef) {
+  return action.danger ? 'btn-danger' : ''
 }
 
 async function reload() {

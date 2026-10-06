@@ -137,8 +137,7 @@
     >
       <pre
         class="bg-bg-secondary text-text-primary p-4 rounded-xl text-xs font-mono overflow-auto max-h-[60vh] border border-border"
-        >{{ formattedJson }}</pre
-      >
+        >{{ formattedJson }}</pre>
       <div class="flex justify-end mt-3">
         <button @click="copyJson" class="btn btn-secondary btn-sm">
           <Copy class="w-3.5 h-3.5" />

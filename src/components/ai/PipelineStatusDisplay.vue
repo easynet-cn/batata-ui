@@ -23,7 +23,7 @@
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
               <span class="text-sm font-medium text-text-primary">{{ node.nodeId }}</span>
-              <span :class="node.passed ? 'badge badge-success' : 'badge badge-danger'">
+              <span :class="nodeBadgeClass(node.passed)">
                 {{ node.passed ? t('pipelineNodePassed') : t('pipelineNodeFailed') }}
               </span>
             </div>
@@ -44,7 +44,7 @@
               >
                 <CheckCircle v-if="cp.passed" class="w-3 h-3 text-success flex-shrink-0" />
                 <XCircle v-else class="w-3 h-3 text-danger flex-shrink-0" />
-                <span :class="cp.passed ? 'text-text-secondary' : 'text-danger'">
+                <span :class="cpTextClass(cp.passed)">
                   {{ cp.title }}
                 </span>
               </div>
@@ -121,4 +121,12 @@ const overallStatusIcon = computed(() => {
   if (status === 'IN_PROGRESS') return Loader2
   return CheckCircle
 })
+
+function nodeBadgeClass(passed: boolean): string {
+  return passed ? 'badge badge-success' : 'badge badge-danger'
+}
+
+function cpTextClass(passed: boolean): string {
+  return passed ? 'text-text-secondary' : 'text-danger'
+}
 </script>

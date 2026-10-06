@@ -20,7 +20,7 @@
           <Pencil class="w-3.5 h-3.5" />
           {{ t('edit') }}
         </button>
-        <button @click="showOptimizeDialog = true" class="btn btn-secondary btn-sm">
+        <button @click="openOptimizeDialog()" class="btn btn-secondary btn-sm">
           <Sparkles class="w-3.5 h-3.5" />
           AI Optimize
         </button>
@@ -88,11 +88,7 @@
               <div>
                 <span class="text-xs text-text-secondary">{{ t('promptScope') }}</span>
                 <div class="flex items-center gap-2 mt-1">
-                  <span
-                    :class="
-                      governance.scope === 'public' ? 'badge badge-success' : 'badge badge-warning'
-                    "
-                  >
+                  <span :class="scopeBadgeClass(governance.scope)">
                     {{
                       governance.scope === 'public' ? t('skillScopePublic') : t('skillScopePrivate')
                     }}
@@ -102,7 +98,7 @@
               <div>
                 <span class="text-xs text-text-secondary">{{ t('status') }}</span>
                 <p>
-                  <span :class="governance.enable ? 'badge badge-success' : 'badge badge-danger'">
+                  <span :class="enableBadgeClass(governance.enable)">
                     {{ governance.enable ? t('enabled') : t('disabled') }}
                   </span>
                 </p>
@@ -128,7 +124,7 @@
           <div class="mt-3">
             <div class="flex items-center justify-between mb-1.5">
               <span class="text-xs text-text-secondary">{{ t('promptLabels') }}</span>
-              <button @click="showBindLabelModal = true" class="btn btn-ghost btn-sm">
+              <button @click="openBindLabelModal()" class="btn btn-ghost btn-sm">
                 <Tag class="w-3 h-3" />
                 {{ t('bindLabel') }}
               </button>
@@ -269,8 +265,7 @@
             <div class="p-3">
               <pre
                 class="text-sm text-text-primary whitespace-pre-wrap bg-bg-tertiary rounded-lg p-3 max-h-[300px] overflow-y-auto"
-                >{{ previewText }}</pre
-              >
+                >{{ previewText }}</pre>
             </div>
           </div>
         </div>
@@ -329,8 +324,7 @@
           <div class="p-3">
             <pre
               class="text-sm text-text-primary whitespace-pre-wrap bg-bg-tertiary rounded-lg p-3 max-h-[300px] overflow-y-auto"
-              >{{ previewText }}</pre
-            >
+              >{{ previewText }}</pre>
           </div>
         </div>
       </template>
@@ -477,6 +471,18 @@ const editForm = reactive({
 
 // Bind label modal
 const showBindLabelModal = ref(false)
+function openBindLabelModal() {
+  showBindLabelModal.value = true
+}
+function openOptimizeDialog() {
+  showOptimizeDialog.value = true
+}
+function scopeBadgeClass(scope: string): string {
+  return scope === 'public' ? 'badge badge-success' : 'badge badge-warning'
+}
+function enableBadgeClass(enable: boolean): string {
+  return enable ? 'badge badge-success' : 'badge badge-danger'
+}
 const bindingLabel = ref(false)
 const labelForm = reactive({
   label: '',

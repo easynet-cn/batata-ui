@@ -26,11 +26,11 @@
           <FilePlus class="w-3.5 h-3.5" />
           {{ t('skillCreateDraft') }}
         </button>
-        <button @click="showOptimizeDialog = true" class="btn btn-secondary btn-sm">
+        <button @click="openOptimizeDialog()" class="btn btn-secondary btn-sm">
           <Sparkles class="w-3.5 h-3.5" />
           AI Optimize
         </button>
-        <button @click="showDeleteModal = true" class="btn btn-ghost btn-sm text-danger">
+        <button @click="openDeleteModal()" class="btn btn-ghost btn-sm text-danger">
           <Trash2 class="w-3.5 h-3.5" />
         </button>
       </div>
@@ -57,9 +57,7 @@
             <div>
               <span class="text-xs text-text-secondary">{{ t('skillScope') }}</span>
               <div class="flex items-center gap-2 mt-1">
-                <span
-                  :class="detail.scope === 'public' ? 'badge badge-success' : 'badge badge-info'"
-                >
+                <span :class="scopeBadgeClass(detail.scope)">
                   {{ detail.scope === 'public' ? t('skillScopePublic') : t('skillScopePrivate') }}
                 </span>
                 <button @click="toggleScope" class="btn btn-ghost btn-sm" :title="t('edit')">
@@ -70,7 +68,7 @@
             <div>
               <span class="text-xs text-text-secondary">{{ t('status') }}</span>
               <p>
-                <span :class="detail.enable ? 'badge badge-success' : 'badge badge-danger'">
+                <span :class="enableBadgeClass(detail.enable)">
                   {{ detail.enable ? t('enabled') : t('disabled') }}
                 </span>
               </p>
@@ -110,7 +108,7 @@
               <button @click="saveLabels" class="btn btn-primary btn-sm">
                 {{ t('save') }}
               </button>
-              <button @click="editingLabels = false" class="btn btn-secondary btn-sm">
+              <button @click="cancelEditLabels()" class="btn btn-secondary btn-sm">
                 {{ t('cancel') }}
               </button>
             </div>
@@ -152,7 +150,7 @@
               <button @click="saveBizTags" class="btn btn-primary btn-sm">
                 {{ t('save') }}
               </button>
-              <button @click="editingBizTags = false" class="btn btn-secondary btn-sm">
+              <button @click="cancelEditBizTags()" class="btn btn-secondary btn-sm">
                 {{ t('cancel') }}
               </button>
             </div>
@@ -317,6 +315,30 @@ const {
   updateLabelsFn: (ns, name, labels) => batataApi.updateSkillLabels(ns, name, labels),
   updateBizTagsFn: (ns, name, tags) => batataApi.updateSkillBizTags(ns, name, tags),
 })
+
+function openOptimizeDialog() {
+  showOptimizeDialog.value = true
+}
+
+function openDeleteModal() {
+  showDeleteModal.value = true
+}
+
+function cancelEditLabels() {
+  editingLabels.value = false
+}
+
+function cancelEditBizTags() {
+  editingBizTags.value = false
+}
+
+function scopeBadgeClass(scope: string): string {
+  return scope === 'public' ? 'badge badge-success' : 'badge badge-info'
+}
+
+function enableBadgeClass(enable: boolean): string {
+  return enable ? 'badge badge-success' : 'badge badge-danger'
+}
 
 // Biz tags list
 const bizTagsList = computed(() => {

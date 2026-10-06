@@ -58,8 +58,7 @@
           <p class="text-xs text-text-tertiary mb-1.5">{{ t('configuration') }}</p>
           <pre
             class="text-xs font-mono bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-border overflow-x-auto"
-            >{{ JSON.stringify(authMethod.Config, null, 2) }}</pre
-          >
+            >{{ JSON.stringify(authMethod.Config, null, 2) }}</pre>
         </div>
       </div>
 

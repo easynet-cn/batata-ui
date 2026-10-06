@@ -13,6 +13,12 @@ const users = ref<ApolloUserDTO[]>([])
 const error = ref('')
 const keyword = ref('')
 const showCreate = ref(false)
+function openCreate() {
+  showCreate.value = true
+}
+function userStatusClass(u: ApolloUserDTO) {
+  return u.enabled ? 'text-success' : 'text-danger'
+}
 const form = ref({ userId: '', name: '', email: '', password: '' })
 
 async function load() {
@@ -83,7 +89,7 @@ onMounted(load)
           :placeholder="t('search')"
           @keyup.enter="load"
         />
-        <button class="btn btn-primary btn-sm" @click="showCreate = true">
+        <button class="btn btn-primary btn-sm" @click="openCreate()">
           {{ t('apolloCreateUser') }}
         </button>
       </div>
@@ -107,7 +113,7 @@ onMounted(load)
             <td class="px-3 py-2">{{ u.name }}</td>
             <td class="px-3 py-2">{{ u.email }}</td>
             <td class="px-3 py-2">
-              <span :class="u.enabled ? 'text-success' : 'text-danger'">
+              <span :class="userStatusClass(u)">
                 {{ u.enabled ? t('apolloEnable') : t('apolloDisable') }}
               </span>
             </td>

@@ -49,9 +49,7 @@
           </div>
           <div>
             <p class="text-xs text-text-tertiary mb-0.5">{{ t('behavior') }}</p>
-            <span
-              :class="['badge', session.Behavior === 'release' ? 'badge-success' : 'badge-danger']"
-            >
+            <span :class="['badge', behaviorBadgeClass(session.Behavior)]">
               {{ session.Behavior === 'release' ? t('release') : t('delete') }}
             </span>
           </div>
@@ -140,6 +138,10 @@ function formatLockDelay(ns: number): string {
   const seconds = ns / 1e9
   if (seconds >= 60) return `${Math.round(seconds / 60)}m`
   return `${seconds}s`
+}
+
+function behaviorBadgeClass(behavior: string): string {
+  return behavior === 'release' ? 'badge-success' : 'badge-danger'
 }
 
 async function loadSession() {

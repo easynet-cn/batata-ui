@@ -11,7 +11,7 @@
           <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" />
           {{ t('refresh') }}
         </button>
-        <button @click="showAddModal = true" class="btn btn-primary">
+        <button @click="openAddModal()" class="btn btn-primary">
           <Plus class="w-3.5 h-3.5" />
           {{ t('addDatacenter') }}
         </button>
@@ -454,6 +454,9 @@ const { t } = useI18n()
 const loading = ref(false)
 const datacenters = ref<Datacenter[]>([])
 const showAddModal = ref(false)
+function openAddModal() {
+  showAddModal.value = true
+}
 const showEditModal = ref(false)
 const showFormModal = ref(false)
 const showDeleteModal = ref(false)

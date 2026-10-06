@@ -109,7 +109,7 @@
           {{ t('cancel') }}
         </button>
         <button
-          @click="showConfirmModal = true"
+          @click="openConfirmModal()"
           :disabled="rolling"
           class="px-5 py-2 bg-amber-600 text-white text-sm font-bold rounded-xl hover:bg-amber-700 transition-colors disabled:opacity-50"
         >
@@ -158,6 +158,9 @@ const { t } = useI18n()
 const loading = ref(false)
 const rolling = ref(false)
 const showConfirmModal = ref(false)
+function openConfirmModal() {
+  showConfirmModal.value = true
+}
 const detail = ref<ConfigHistoryInfo | null>(null)
 
 const opTypeLabel = computed(() => {

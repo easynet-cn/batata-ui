@@ -28,7 +28,7 @@
           </button>
           <button
             @click="handleConfirm"
-            :class="danger ? 'btn btn-danger' : 'btn btn-primary'"
+            :class="confirmBtnClass"
             :disabled="loading || confirmDisabled"
           >
             <Loader2 v-if="loading" class="w-3.5 h-3.5 animate-spin" />
@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, computed } from 'vue'
 import { X, Loader2 } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 
@@ -78,6 +78,8 @@ watch(
     }
   },
 )
+
+const confirmBtnClass = computed(() => (props.danger ? 'btn btn-danger' : 'btn btn-primary'))
 
 const handleClose = () => {
   emit('update:modelValue', false)

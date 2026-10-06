@@ -18,7 +18,7 @@
           <Pencil class="w-3.5 h-3.5" />
           {{ t('edit') }}
         </button>
-        <button @click="showDeleteModal = true" class="btn btn-ghost btn-sm text-danger">
+        <button @click="openDeleteModal()" class="btn btn-ghost btn-sm text-danger">
           <Trash2 class="w-3.5 h-3.5" />
           {{ t('delete') }}
         </button>
@@ -237,6 +237,10 @@ const { namespace, itemName, loading, detail, showDeleteModal, goBack, confirmDe
     queryKey: 'agentName',
     listRoute: '/agents',
   })
+
+function openDeleteModal() {
+  showDeleteModal.value = true
+}
 
 const enabledCapabilities = computed<CapabilityLabel[]>(() => {
   const caps = detail.value?.capabilities
