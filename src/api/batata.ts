@@ -626,6 +626,7 @@ class BatataApi {
     protectThreshold?: number
     metadata?: Record<string, string>
     selector?: { type: string; expression?: string }
+    ephemeral?: boolean
   }) {
     return this.instance.post<BatataResponse>('/ns/service', data)
   }
@@ -637,6 +638,7 @@ class BatataApi {
     protectThreshold?: number
     metadata?: Record<string, string>
     selector?: { type: string; expression?: string }
+    ephemeral?: boolean
   }) {
     return this.instance.put<BatataResponse>('/ns/service', data)
   }

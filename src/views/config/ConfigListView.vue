@@ -27,6 +27,18 @@
           <Download class="w-3.5 h-3.5" />
           {{ t('export') }}
         </button>
+        <button @click="handleExportAll" class="btn btn-secondary">
+          <Download class="w-3.5 h-3.5" />
+          {{ t('exportAll') }}
+        </button>
+        <button
+          @click="handleCloneSelected"
+          class="btn btn-secondary"
+          :disabled="selectedIds.length === 0"
+        >
+          <Copy class="w-3.5 h-3.5" />
+          {{ t('cloneSelected') }}
+        </button>
         <router-link to="/config/new" class="btn btn-primary">
           <Plus class="w-3.5 h-3.5" />
           {{ t('newConfig') }}
@@ -461,29 +473,30 @@
       v-model="showCloneModal"
       :title="t('cloneConfiguration')"
       :submit-text="t('clone')"
+      :submit-disabled="cloneItems.length === 0"
       @submit="confirmClone"
     >
       <div class="space-y-3">
-        <!-- Source info display -->
         <div
-          v-if="configToClone"
+          v-for="(item, idx) in cloneItems"
+          :key="idx"
           class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
         >
           <p class="text-[10px] font-bold uppercase tracking-wider text-text-tertiary mb-2">
-            {{ t('sourceConfig') }}
+            {{ t('sourceConfig') }} #{{ idx + 1 }}
           </p>
-          <div class="grid grid-cols-3 gap-2 text-xs">
+          <div class="grid grid-cols-2 gap-2">
             <div>
-              <span class="text-text-tertiary">{{ t('dataId') }}:</span>
-              <p class="font-medium text-text-primary truncate">{{ configToClone.dataId }}</p>
+              <label class="block text-xs font-medium text-text-secondary mb-1">{{
+                t('dataId')
+              }}</label>
+              <input v-model="item.dataId" type="text" class="input" />
             </div>
             <div>
-              <span class="text-text-tertiary">{{ t('group') }}:</span>
-              <p class="font-medium text-text-primary">{{ configToClone.groupName }}</p>
-            </div>
-            <div>
-              <span class="text-text-tertiary">{{ t('namespace') }}:</span>
-              <p class="font-medium text-text-primary">{{ namespace.namespaceShowName }}</p>
+              <label class="block text-xs font-medium text-text-secondary mb-1">{{
+                t('group')
+              }}</label>
+              <input v-model="item.group" type="text" class="input" />
             </div>
           </div>
         </div>
@@ -631,7 +644,7 @@ const showImportModal = ref(false)
 const importFile = ref<File | null>(null)
 const importPolicy = ref<'ABORT' | 'SKIP' | 'OVERWRITE'>('ABORT')
 const showCloneModal = ref(false)
-const configToClone = ref<ConfigInfo | null>(null)
+const cloneItems = ref<Array<{ cfgId: number; dataId: string; group: string }>>([])
 const cloneTargetNs = ref('')
 const clonePolicy = ref<'ABORT' | 'SKIP' | 'OVERWRITE'>('ABORT')
 
@@ -804,28 +817,61 @@ const handleExport = async () => {
   }
 }
 
+const handleExportAll = async () => {
+  try {
+    const response = await batataApi.exportConfig([], props.namespace.namespace)
+    const blob = new Blob([response.data as BlobPart], { type: 'application/zip' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `batata_config_export_all_${Date.now()}.zip`
+    a.click()
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    logger.error('Failed to export all configs', error)
+    toast.apiError(error)
+  }
+}
+
 const handleClone = (config: ConfigInfo) => {
-  configToClone.value = config
+  cloneItems.value = [
+    {
+      cfgId: Number(config.id),
+      dataId: config.dataId,
+      group: config.groupName,
+    },
+  ]
+  cloneTargetNs.value = namespaces.value[0]?.namespace || ''
+  showCloneModal.value = true
+}
+
+const handleCloneSelected = () => {
+  if (selectedIds.value.length === 0) return
+  const selected = configs.value.filter((c) => selectedIds.value.includes(c.id))
+  cloneItems.value = selected.map((c) => ({
+    cfgId: Number(c.id),
+    dataId: c.dataId,
+    group: c.groupName,
+  }))
   cloneTargetNs.value = namespaces.value[0]?.namespace || ''
   showCloneModal.value = true
 }
 
 const confirmClone = async () => {
-  if (!configToClone.value) return
+  if (cloneItems.value.length === 0) return
   try {
     await batataApi.cloneConfig({
-      configBeans: [
-        {
-          cfgId: Number(configToClone.value.id),
-          dataId: configToClone.value.dataId,
-          group: configToClone.value.groupName,
-        },
-      ],
+      configBeans: cloneItems.value.map((item) => ({
+        cfgId: item.cfgId,
+        dataId: item.dataId,
+        group: item.group,
+      })),
       targetNamespaceId: cloneTargetNs.value,
       policy: clonePolicy.value,
     })
     showCloneModal.value = false
     toast.success(t('cloneSuccess'))
+    selectedIds.value = []
     fetchConfigs()
   } catch (error) {
     logger.error('Failed to clone config', error)

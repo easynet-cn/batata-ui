@@ -95,17 +95,18 @@
               <th>{{ t('instanceCount') }}</th>
               <th>{{ t('healthyInstanceCount') }}</th>
               <th>{{ t('protectThreshold') }}</th>
+              <th>{{ t('triggerFlag') }}</th>
               <th class="w-48">{{ t('actions') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="7" class="text-center py-6">
+              <td colspan="8" class="text-center py-6">
                 <Loader2 class="w-5 h-5 animate-spin mx-auto text-primary" />
               </td>
             </tr>
             <tr v-else-if="services.length === 0">
-              <td colspan="7" class="text-center py-6 text-text-secondary">
+              <td colspan="8" class="text-center py-6 text-text-secondary">
                 {{ t('noData') }}
               </td>
             </tr>
@@ -142,6 +143,15 @@
                 </span>
               </td>
               <td>{{ service.protectThreshold ?? 0 }}</td>
+              <td>
+                <span
+                  v-if="service.triggerFlag === 'true'"
+                  class="inline-flex items-center px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-[10px] font-medium"
+                >
+                  {{ t('triggerFlag') }}
+                </span>
+                <span v-else class="text-text-tertiary">-</span>
+              </td>
               <td>
                 <div class="flex items-center gap-1">
                   <router-link
@@ -256,6 +266,14 @@
           />
           <p class="text-xs text-text-tertiary mt-1">{{ t('protectThresholdHint') }}</p>
         </div>
+        <label v-if="!showEditModal" class="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            v-model="serviceForm.ephemeral"
+            class="w-3.5 h-3.5 rounded text-primary"
+          />
+          <span class="text-sm text-text-primary">{{ t('ephemeral') }}</span>
+        </label>
         <div>
           <label class="block text-xs font-medium text-text-primary mb-1">
             {{ t('metadata') }}
@@ -264,6 +282,25 @@
             v-model="metadataText"
             class="input min-h-[80px] font-mono text-sm"
             placeholder='{"key": "value"}'
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('selectorType') }}
+          </label>
+          <select v-model="selectorType" class="input">
+            <option v-for="st in selectorTypes" :key="st" :value="st">{{ st }}</option>
+          </select>
+        </div>
+        <div v-if="selectorType !== 'none'">
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('selectorExpression') }}
+          </label>
+          <input
+            v-model="selectorExpression"
+            type="text"
+            class="input"
+            :placeholder="t('selectorHint')"
           />
         </div>
       </div>
@@ -290,7 +327,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { Search, RotateCcw, Plus, Eye, Pencil, Users, Trash2, Loader2, Code } from '@lucide/vue'
 import { useI18n } from '@/i18n'
 import batataApi from '@/api/batata'
@@ -343,12 +379,16 @@ function healthyCountClass(service: ServiceInfo) {
 }
 const serviceToDelete = ref<ServiceInfo | null>(null)
 const metadataText = ref('')
+const selectorTypes = ref<string[]>(['none', 'label'])
+const selectorType = ref('none')
+const selectorExpression = ref('')
 
 const serviceForm = reactive({
   serviceName: '',
   groupName: 'DEFAULT_GROUP',
   protectThreshold: 0,
   metadata: {} as Record<string, string>,
+  ephemeral: false,
 })
 
 // Methods
@@ -399,6 +439,8 @@ const handleEdit = (service: ServiceInfo) => {
     metadata: service.metadata || {},
   })
   metadataText.value = JSON.stringify(service.metadata || {}, null, 2)
+  selectorType.value = service.selector?.type || 'none'
+  selectorExpression.value = service.selector?.expression || ''
   showEditModal.value = true
 }
 
@@ -410,8 +452,11 @@ const closeModal = () => {
     groupName: 'DEFAULT_GROUP',
     protectThreshold: 0,
     metadata: {},
+    ephemeral: false,
   })
   metadataText.value = ''
+  selectorType.value = 'none'
+  selectorExpression.value = ''
 }
 
 const handleSubmit = async () => {
@@ -432,12 +477,18 @@ const handleSubmit = async () => {
 
   saving.value = true
   try {
+    const selector =
+      selectorType.value === 'none'
+        ? { type: 'none' }
+        : { type: selectorType.value, expression: selectorExpression.value }
     const data = {
       serviceName: serviceForm.serviceName,
       groupName: serviceForm.groupName || 'DEFAULT_GROUP',
       namespaceId: props.namespace.namespace,
       protectThreshold: serviceForm.protectThreshold,
       metadata,
+      selector,
+      ephemeral: showEditModal.value ? undefined : serviceForm.ephemeral,
     }
 
     if (showEditModal.value) {
@@ -499,5 +550,18 @@ watch(
 // Lifecycle
 onMounted(() => {
   fetchServices()
+  fetchSelectorTypes()
 })
+
+const fetchSelectorTypes = async () => {
+  try {
+    const response = await batataApi.getSelectorTypes()
+    const types = response.data.data
+    if (Array.isArray(types) && types.length > 0) {
+      selectorTypes.value = types
+    }
+  } catch {
+    // keep default ['none', 'label']
+  }
+}
 </script>

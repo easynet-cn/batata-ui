@@ -124,6 +124,12 @@
           </label>
           <input v-model="createForm.password" type="password" class="input" />
         </div>
+        <div>
+          <label class="block text-xs font-medium text-text-primary mb-1">
+            {{ t('confirmPassword') }} <span class="text-danger">*</span>
+          </label>
+          <input v-model="createForm.confirmPassword" type="password" class="input" />
+        </div>
       </div>
     </FormModal>
 
@@ -207,6 +213,7 @@ const newPassword = ref('')
 const createForm = reactive({
   username: '',
   password: '',
+  confirmPassword: '',
 })
 
 // Methods
@@ -244,12 +251,16 @@ const submitCreate = async () => {
     toast.warning(t('requiredFieldsMissing'))
     return
   }
+  if (createForm.password !== createForm.confirmPassword) {
+    toast.warning(t('passwordMismatch'))
+    return
+  }
 
   saving.value = true
   try {
     await batataApi.createUser(createForm)
     showCreateModal.value = false
-    Object.assign(createForm, { username: '', password: '' })
+    Object.assign(createForm, { username: '', password: '', confirmPassword: '' })
     fetchUsers()
   } catch (error) {
     logger.error('Failed to create user:', error)
