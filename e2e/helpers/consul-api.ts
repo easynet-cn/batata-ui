@@ -188,6 +188,24 @@ export async function deleteIntention(ctx: APIRequestContext, id: string): Promi
   return res.ok()
 }
 
+export async function getIntention(
+  ctx: APIRequestContext,
+  id: string,
+): Promise<{
+  ID: string
+  SourceName: string
+  DestinationName: string
+  Action: 'allow' | 'deny'
+  Permissions?: Array<{
+    Action: 'allow' | 'deny'
+    HTTP?: { PathExact?: string; PathPrefix?: string; PathRegex?: string; Methods?: string[] }
+  }>
+} | null> {
+  const res = await ctx.get(`/connect/intentions/${id}`)
+  if (!res.ok()) return null
+  return (await res.json()) as Awaited<ReturnType<typeof getIntention>>
+}
+
 // ---------------------------------------------------------------------------
 // Session helpers
 // ---------------------------------------------------------------------------

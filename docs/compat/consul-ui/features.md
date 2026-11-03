@@ -41,7 +41,8 @@ After inventory review, **no missing first-level feature pages** were found. Cla
 
 - `ConfigEntryDetailView` and the catalog `CatalogNodeDetailView` / `CatalogServiceDetailView` are **read-only** detail views — there is no edit or deregister action in the UI. The real config-entry editing lives in `ConfigEntryListView`'s create/edit/delete **modal** (`putConfigEntry`), now covered by a CRUD test.
 - `ACLTokenEditorView` is a genuine editor: it supports policy/role **binding** (checkboxes) and an **ExpirationTTL** field, now covered by a dedicated token-binding test.
-- Interaction details like Consul UI's **Intention creation wizard** and **ACL policy syntax highlighting** need per-source comparison; not deep-dived this round (long tail, suggest a dedicated pass later).
+- Consul UI's **Intention creation wizard**: `IntentionListView`'s create/edit modal already implements the wizard (source/destination/action + L7 `HTTP` permissions sub-form). A source-verified bug was fixed — when L7 permissions were attached the UI omitted `Action`, which the batata backend (`connect_ca.rs`, `IntentionRequest.action` is non-optional) rejected with **400**; `Action` is now always sent. Covered by e2e (edit flow + L7 sub-form).
+- Consul UI's **ACL policy syntax highlighting**: `ACLPolicyEditorView` already renders a CodeMirror `CodeEditor` with a bespoke HCL tokenizer (`hclLanguage` in `CodeEditor.vue`), so HCL rules are syntax-highlighted — already satisfied, no gap.
 
 ## 3. e2e Blind Spots (A class) — resolved
 
@@ -60,7 +61,8 @@ Consul e2e already had 16 specs. This round read the actual list/detail views an
 - [x] **config-entries CRUD**: create/edit/delete via `ConfigEntryListView` modal — `consul-config-entries.spec.ts`
 - [x] **acl token binding**: policy/role binding + ExpirationTTL — `consul-acl.spec.ts` (`findAclToken` helper added)
 - [x] Review `consul-config-entries` / `consul-acl` / `catalog-detail` detail views — confirmed read-only (no edit/deregister); depth gaps closed
-- [ ] (optional) Dedicated comparison for Consul Intention creation wizard, ACL policy syntax highlighting
+- [x] **Intention wizard**: edit flow + L7 `HTTP` permission sub-form — `consul-intentions.spec.ts` (also fixed a 400 bug: `Action` was omitted when L7 permissions were present)
+- [x] **ACL policy syntax highlighting**: already implemented via `CodeEditor` HCL tokenizer (`hclLanguage`) — no gap
 
 ## 5. Notes
 

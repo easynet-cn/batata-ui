@@ -565,7 +565,7 @@ async function submitCreate() {
       SourceName: createForm.SourceName,
       SourcePeer: createForm.SourcePeer || undefined,
       DestinationName: createForm.DestinationName,
-      Action: permissions.length > 0 ? undefined : createForm.Action,
+      Action: createForm.Action,
       Description: createForm.Description || undefined,
     }
     if (permissions.length > 0) {
