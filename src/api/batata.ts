@@ -69,7 +69,7 @@ export interface BatataResponse<T = unknown> {
   data: T
 }
 
-// 缓存配置
+// Cache configuration
 interface CacheOptions {
   ttl?: number
   key?: string
@@ -225,7 +225,7 @@ class BatataApi {
     )
   }
 
-  // 缓存请求方法
+  // Cached request helper
   private async cachedGet<T>(
     url: string,
     axiosConfig?: AxiosRequestConfig,
@@ -408,7 +408,7 @@ class BatataApi {
   }
 
   // ============================================
-  // 认证相关 API
+  // Auth-related API
   // ============================================
 
   async login(username: string, password: string) {
@@ -437,7 +437,7 @@ class BatataApi {
   }
 
   // ============================================
-  // 配置管理 API
+  // Config management API
   // ============================================
 
   async getConfigList(params: {
@@ -531,7 +531,7 @@ class BatataApi {
     })
   }
 
-  // 配置历史
+  // Config history
   async getConfigHistoryList(params: {
     dataId: string
     groupName: string
@@ -565,7 +565,7 @@ class BatataApi {
     })
   }
 
-  // 配置监听
+  // Config listeners
   async getConfigListeners(params: { dataId?: string; groupName?: string; namespaceId?: string }) {
     return this.instance.get<BatataResponse<ConfigListenerInfo | null>>('/cs/config/listener', {
       params,
@@ -579,7 +579,7 @@ class BatataApi {
   }
 
   // ============================================
-  // 服务管理 API
+  // Service management API
   // ============================================
 
   async getServiceList(params: {
@@ -649,7 +649,7 @@ class BatataApi {
     })
   }
 
-  // 实例管理
+  // Instance management
   async getInstanceList(
     serviceName: string,
     groupName: string,
@@ -694,7 +694,7 @@ class BatataApi {
     return this.instance.delete<BatataResponse>('/ns/instance', { params })
   }
 
-  // 集群管理
+  // Cluster management
   async updateCluster(data: {
     serviceName: string
     groupName?: string
@@ -708,7 +708,7 @@ class BatataApi {
     return this.instance.put<BatataResponse>('/ns/service/cluster', data)
   }
 
-  // 订阅者
+  // Subscribers
   async getSubscriberList(params: {
     serviceName?: string
     groupName?: string
@@ -737,13 +737,13 @@ class BatataApi {
     >
   }
 
-  // 服务路由类型
+  // Service selector types
   async getSelectorTypes() {
     return this.instance.get<BatataResponse<string[]>>('/ns/service/selector/types')
   }
 
   // ============================================
-  // 命名空间 API
+  // Namespace API
   // ============================================
 
   async getNamespaceList() {
@@ -810,7 +810,7 @@ class BatataApi {
   }
 
   // ============================================
-  // 集群管理 API
+  // Cluster management API
   // ============================================
 
   async getClusterNodes(params?: { keyword?: string; pageNo?: number; pageSize?: number }) {
@@ -837,7 +837,7 @@ class BatataApi {
   }
 
   // ============================================
-  // 用户管理 API
+  // User management API
   // ============================================
 
   async getUserList(params?: {
@@ -882,7 +882,7 @@ class BatataApi {
   }
 
   // ============================================
-  // 角色管理 API
+  // Role management API
   // ============================================
 
   async getRoleList(params?: {
@@ -919,7 +919,7 @@ class BatataApi {
   }
 
   // ============================================
-  // 权限管理 API
+  // Permission management API
   // ============================================
 
   async getPermissionList(params?: {

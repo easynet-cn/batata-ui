@@ -1,5 +1,5 @@
 // ============================================
-// 通用类型
+// Common types
 // ============================================
 
 export interface PageResult<T> {
@@ -15,7 +15,7 @@ export interface ListResult<T> {
 }
 
 // ============================================
-// 配置管理类型
+// Config management types
 // ============================================
 
 export type ConfigType = 'text' | 'json' | 'xml' | 'yaml' | 'html' | 'properties' | 'toml' | 'hcl'
@@ -70,7 +70,7 @@ export interface ConfigListenerInfo {
 }
 
 // ============================================
-// 服务管理类型
+// Service management types
 // ============================================
 
 export interface ServiceInfo {
@@ -128,7 +128,7 @@ export interface SubscriberInfo {
 }
 
 // ============================================
-// 命名空间类型
+// Namespace types
 // ============================================
 
 export interface Namespace {
@@ -166,7 +166,7 @@ export interface ServerState {
 }
 
 // ============================================
-// 集群管理类型
+// Cluster management types
 // ============================================
 
 export type ClusterNodeState = 'UP' | 'DOWN' | 'SUSPICIOUS' | 'STARTING' | 'ISOLATION'
@@ -219,7 +219,7 @@ export interface NodeInfo {
 }
 
 // ============================================
-// 权限控制类型
+// Access control types
 // ============================================
 
 export interface UserInfo {
@@ -240,7 +240,7 @@ export interface PermissionInfo {
 }
 
 // ============================================
-// AI/MCP 管理类型
+// AI/MCP management types
 // ============================================
 
 export * from './mcp'
@@ -333,7 +333,7 @@ export interface AppSettings {
 }
 
 // ============================================
-// 认证类型
+// Authentication types
 // ============================================
 
 export interface LoginRequest {

@@ -2359,7 +2359,7 @@ export const translations = {
     mcpServerDetail: 'MCP 服务器详情',
     mcpServerDetailDesc: '查看服务器详情和可用工具',
     searchMcpServer: '按服务器名称搜索',
-    // MCP 版本治理
+    // MCP version governance
     mcpVersions: 'MCP 版本',
     mcpVersion: '版本',
     versionReviewed: '已审核',
@@ -3491,7 +3491,7 @@ export const translations = {
     dataTable: '数据表格',
     codeEditor: '代码编辑器',
 
-    // Apollo（兼容 Apollo 的配置中心）
+    // Apollo (an Apollo-compatible configuration center)
     apollo: 'Apollo',
     apolloApps: '应用',
     apolloAppId: '应用ID',
