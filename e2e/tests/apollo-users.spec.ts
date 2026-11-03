@@ -16,7 +16,8 @@ test.describe('apollo users', () => {
     await dialog.locator('input[type="text"]').nth(0).fill(userId) // userId
     await dialog.locator('input[type="text"]').nth(1).fill('E2E User') // name
     await dialog.locator('input[type="text"]').nth(2).fill('e2e@batata.local') // email
-    await dialog.locator('input[type="password"]').fill('E2Epass123!')
+    await dialog.locator('input[type="password"]').nth(0).fill('E2Epass123!')
+    await dialog.locator('input[type="password"]').nth(1).fill('E2Epass123!')
     await dialog.getByRole('button', { name: /create/i }).click()
 
     const row = page.locator('table tbody tr', { hasText: userId })
@@ -42,7 +43,8 @@ test.describe('apollo users', () => {
       await dialog.locator('input[type="text"]').nth(0).fill(userId)
       await dialog.locator('input[type="text"]').nth(1).fill('E2E User')
       await dialog.locator('input[type="text"]').nth(2).fill('e2e@batata.local')
-      await dialog.locator('input[type="password"]').fill('E2Epass123!')
+      await dialog.locator('input[type="password"]').nth(0).fill('E2Epass123!')
+      await dialog.locator('input[type="password"]').nth(1).fill('E2Epass123!')
       await dialog.getByRole('button', { name: /create/i }).click()
       return dialog
     }
@@ -58,5 +60,30 @@ test.describe('apollo users', () => {
     page.on('dialog', (d) => d.accept())
     const row = page.locator('table tbody tr', { hasText: userId })
     await row.getByRole('button', { name: /delete/i }).click()
+  })
+
+  test('failure: mismatched confirm-password keeps the dialog open', async ({ page }) => {
+    await switchToApollo(page)
+    await page.goto('/apollo/users')
+
+    const userId = `e2e-pw-${uniqueName('u')}`
+    await page.getByRole('button', { name: /Create User/i }).click()
+    const dialog = page.locator('.fixed.inset-0')
+    await dialog.locator('input[type="text"]').nth(0).fill(userId)
+    await dialog.locator('input[type="text"]').nth(1).fill('E2E User')
+    await dialog.locator('input[type="text"]').nth(2).fill('e2e@batata.local')
+    await dialog.locator('input[type="password"]').nth(0).fill('E2Epass123!')
+    await dialog.locator('input[type="password"]').nth(1).fill('DifferentPass456!')
+    await dialog.getByRole('button', { name: /create/i }).click()
+
+    // Mismatch guard: dialog stays open and no row is created.
+    await expect(dialog).toBeVisible()
+    await expect(page.locator('table tbody tr', { hasText: userId })).toHaveCount(0)
+
+    // Clean up the dialog for the next run.
+    await dialog
+      .getByRole('button', { name: /cancel/i })
+      .click()
+      .catch(() => undefined)
   })
 })

@@ -57,7 +57,7 @@ After reading every `src/views/apollo/*` view, the Portal admin views' **functio
 **B-class gaps: essentially no functional missing features** — differences are mainly in e2e coverage (see §4).
 Two items worth noting:
 
-- `ApolloUserManagementView` create user has **no confirm-password** (unlike Nacos B5; upstream Apollo also only needs password, so not enforced). Can add later if Nacos parity is desired.
+- `ApolloUserManagementView` create user now has **confirm-password** matching Nacos B5 (local-only field + mismatch guard; `confirmPassword` is excluded from the API payload so the backend still receives only `password`).
 - `ApolloClustersView`'s cluster-permission dialog embeds `ApolloRoleAssign`; its role-assignment interaction was not e2e-covered (tracked as A11).
 
 ## 4. e2e Blind Spots (A class, all filled A1–A11)
@@ -90,7 +90,7 @@ Existing apollo e2e had only 6 specs, all for the OpenAPI consumer face. The **P
 - [x] **A9** `apollo-global-search.spec.ts`
 - [x] **A10** `apollo-audit.spec.ts`
 - [x] **A11** `apollo-cluster-role-assign.spec.ts`
-- [ ] (optional) Add confirm-password to `ApolloUserManagementView` for Nacos parity
+- [x] (optional) Add confirm-password to `ApolloUserManagementView` for Nacos parity (B5-style: local field + mismatch guard, excluded from payload)
 
 ## 6. Notes
 

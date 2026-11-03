@@ -14,12 +14,15 @@ const error = ref('')
 const keyword = ref('')
 const showCreate = ref(false)
 function openCreate() {
+  form.value = { userId: '', name: '', email: '', password: '' }
+  confirmPassword.value = ''
   showCreate.value = true
 }
 function userStatusClass(u: ApolloUserDTO) {
   return u.enabled ? 'text-success' : 'text-danger'
 }
 const form = ref({ userId: '', name: '', email: '', password: '' })
+const confirmPassword = ref('')
 
 async function load() {
   loading.value = true
@@ -39,10 +42,20 @@ async function load() {
 
 async function create() {
   error.value = ''
+  if (form.value.password !== confirmPassword.value) {
+    error.value = t('passwordMismatch')
+    return
+  }
   try {
-    await apolloApi.createUser(form.value)
+    await apolloApi.createUser({
+      userId: form.value.userId,
+      name: form.value.name,
+      email: form.value.email,
+      password: form.value.password,
+    })
     showCreate.value = false
     form.value = { userId: '', name: '', email: '', password: '' }
+    confirmPassword.value = ''
     await load()
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } }; message?: string }
@@ -155,6 +168,15 @@ onMounted(load)
         <div>
           <label class="block text-xs mb-1">{{ t('password') }} *</label
           ><input v-model="form.password" type="password" class="input" />
+        </div>
+        <div>
+          <label class="block text-xs mb-1">{{ t('confirmPassword') }} *</label
+          ><input
+            v-model="confirmPassword"
+            type="password"
+            class="input"
+            :placeholder="t('confirmPasswordPlaceholder')"
+          />
         </div>
       </div>
     </FormModal>
