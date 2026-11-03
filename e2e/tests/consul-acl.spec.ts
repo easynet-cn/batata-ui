@@ -7,6 +7,7 @@ import {
   deleteAclRole,
   createAclToken,
   deleteAclToken,
+  findAclToken,
 } from '../helpers/consul-api'
 
 test.describe('consul ACL management', () => {
@@ -176,6 +177,51 @@ test.describe('consul ACL management', () => {
     await aclTokenListPage.search(description)
     await expect(aclTokenListPage.row(description)).toHaveCount(1)
 
+    await aclTokenListPage.deleteToken(description)
+    await aclTokenListPage.search(description)
+    await expect(aclTokenListPage.row(description)).toHaveCount(0)
+  })
+
+  test('create a token bound to a policy with an expiration TTL', async ({
+    page,
+    aclTokenListPage,
+    aclTokenEditorPage,
+    consulApi,
+    cleanup,
+  }) => {
+    const policyName = uniqueName('e2e-bind')
+    const policyId = await createAclPolicy(consulApi, {
+      Name: policyName,
+      Description: 'e2e policy binding',
+      Rules: 'key "" { policy = "read" }',
+    })
+    expect(policyId).toBeTruthy()
+    cleanup.push(() => deleteAclPolicy(consulApi, policyId!).then(() => undefined))
+
+    await switchToConsul(page)
+    await aclTokenEditorPage.gotoCreate()
+    await expect(aclTokenEditorPage.heading).toBeVisible()
+
+    const description = `e2e-token-bind-${uniqueName('t')}`
+    await aclTokenEditorPage.createToken(description, { policyName, ttl: '24h' })
+
+    // token appears in the list
+    await aclTokenListPage.goto()
+    await aclTokenListPage.search(description)
+    await expect(aclTokenListPage.row(description)).toHaveCount(1)
+
+    // binding + TTL persisted server-side
+    const token = await findAclToken(consulApi, description)
+    expect(token).toBeTruthy()
+    expect(token!.Policies?.some((p) => p.ID === policyId)).toBe(true)
+
+    cleanup.push(async () => {
+      if (token?.AccessorID) {
+        await deleteAclToken(consulApi, token.AccessorID)
+      }
+    })
+
+    // delete via UI
     await aclTokenListPage.deleteToken(description)
     await aclTokenListPage.search(description)
     await expect(aclTokenListPage.row(description)).toHaveCount(0)

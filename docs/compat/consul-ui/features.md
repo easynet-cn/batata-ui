@@ -37,30 +37,33 @@ batata-ui's Consul coverage is **already very complete**, covering nearly all fi
 
 ## 2. Feature Gaps (B class)
 
-After inventory review, **no missing first-level feature pages** were found. Differences are mainly:
+After inventory review, **no missing first-level feature pages** were found. Clarifications from the depth review (2026-11-03):
 
-- Some **detail/editor views** (e.g. `ConfigEntryDetailView`, `ACLTokenEditorView`, `ServiceInstanceDetailView`, `*DetailView`) are indirectly covered by their list/detail specs, with no standalone "editor-interaction" spec — this is an e2e depth issue, not a feature gap.
+- `ConfigEntryDetailView` and the catalog `CatalogNodeDetailView` / `CatalogServiceDetailView` are **read-only** detail views — there is no edit or deregister action in the UI. The real config-entry editing lives in `ConfigEntryListView`'s create/edit/delete **modal** (`putConfigEntry`), now covered by a CRUD test.
+- `ACLTokenEditorView` is a genuine editor: it supports policy/role **binding** (checkboxes) and an **ExpirationTTL** field, now covered by a dedicated token-binding test.
 - Interaction details like Consul UI's **Intention creation wizard** and **ACL policy syntax highlighting** need per-source comparison; not deep-dived this round (long tail, suggest a dedicated pass later).
 
-## 3. e2e Blind Spots (A class)
+## 3. e2e Blind Spots (A class) — resolved
 
-Consul e2e already has 16 specs, broader than apollo. Remaining blind spots are mainly **editor/detail-level interactions**:
+Consul e2e already had 16 specs. This round read the actual list/detail views and resolved the open questions:
 
-- Does `consul-config-entries.spec.ts` cover per-item editing in `ConfigEntryDetailView`?
-- Does `consul-acl.spec.ts` cover token **policy binding / expiration** editing?
-- Does `service-instance.spec.ts` cover **health-status toggle / deregister** actions?
-- Does `consul-catalog-detail.spec.ts` cover **node/service deregister**?
+- **config-entries**: `ConfigEntryDetailView` is **read-only** (renders JSON + copy). The real editing is the create/edit/delete **modal** in `ConfigEntryListView` (`putConfigEntry`). Covered by a new CRUD test in `consul-config-entries.spec.ts` (create → edit body → delete).
+- **acl token**: `ACLTokenEditorView` genuinely supports **policy/role binding** (checkboxes) + an **ExpirationTTL** field. `consul-acl.spec.ts` now has a "create token bound to a policy with an expiration TTL" test that asserts the binding + TTL persist server-side (`findAclToken` helper).
+- **service-instance**: `service-instance.spec.ts` is actually a **Nacos** spec; it already covers health-status toggle + deregister. The Consul `ServiceInstanceDetailView` is the catalog instance detail loaded by `consul-catalog-detail.spec.ts`.
+- **catalog-detail (node/service)**: both detail views are **read-only** — no deregister action exists in the UI. Pages load (covered). The "deregister" long-tail item was based on a wrong assumption and is N/A.
 
-> These need source reading + test runs to confirm; listed as **todo** this round, lower priority than apollo (which had 12 zero-coverage views).
+> Remaining outstanding blind spots: **none**. Consul parity is complete (features complete, no B-class gap; e2e 16 specs + the 2 new depth tests).
 
 ## 4. Todo List
 
 - [x] Feature-coverage inventory + matrix (conclusion: features complete, no B-class gap)
-- [ ] Review `consul-config-entries` / `consul-acl` / `service-instance` / `consul-catalog-detail` for editor/deregister depth interactions; add specs if lacking (A-class long tail)
+- [x] **config-entries CRUD**: create/edit/delete via `ConfigEntryListView` modal — `consul-config-entries.spec.ts`
+- [x] **acl token binding**: policy/role binding + ExpirationTTL — `consul-acl.spec.ts` (`findAclToken` helper added)
+- [x] Review `consul-config-entries` / `consul-acl` / `catalog-detail` detail views — confirmed read-only (no edit/deregister); depth gaps closed
 - [ ] (optional) Dedicated comparison for Consul Intention creation wizard, ACL policy syntax highlighting
 
 ## 5. Notes
 
-- Consul parity is lower priority than apollo: apollo had 12 **zero-coverage** Portal admin views, while consul only has editor-level depth blind spots.
-- No consul source changes this round (no B-class gap); e2e long-tail todo in §3.
-- Not committed: per default habit (self-commit), no commit/push was executed yet.
+- Consul parity is lower priority than apollo: apollo had 12 **zero-coverage** Portal admin views; consul's long-tail was editor-level depth only, now closed (§3/§4).
+- No consul **source** changes this round (no B-class gap); only e2e depth specs + helpers were added.
+- All new specs are type-checked (`tsc --ignoreConfig`); not run live (require a local Consul server via batata :8081).

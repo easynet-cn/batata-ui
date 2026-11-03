@@ -238,12 +238,40 @@ export class ACLTokenEditorPage {
     return this.page.getByPlaceholder('Enter description')
   }
 
+  get expirationTtlInput(): Locator {
+    return this.page.getByPlaceholder('e.g., 24h, 30m')
+  }
+
   get submitButton(): Locator {
     return this.page.getByRole('button', { name: 'Create Token' })
   }
 
-  async createToken(description: string): Promise<void> {
+  get updateButton(): Locator {
+    return this.page.getByRole('button', { name: 'Update Token' })
+  }
+
+  async bindPolicy(name: string): Promise<void> {
+    await this.page.locator('label', { hasText: name }).getByRole('checkbox').check()
+  }
+
+  async bindRole(name: string): Promise<void> {
+    await this.page.locator('label', { hasText: name }).getByRole('checkbox').check()
+  }
+
+  async createToken(
+    description: string,
+    opts?: { policyName?: string; roleName?: string; ttl?: string },
+  ): Promise<void> {
     await this.descriptionInput.fill(description)
+    if (opts?.policyName) {
+      await this.bindPolicy(opts.policyName)
+    }
+    if (opts?.roleName) {
+      await this.bindRole(opts.roleName)
+    }
+    if (opts?.ttl) {
+      await this.expirationTtlInput.fill(opts.ttl)
+    }
     await this.submitButton.click()
     await expect(this.page).toHaveURL(/\/consul\/acl\/tokens/, { timeout: 10_000 })
   }

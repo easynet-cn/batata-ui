@@ -109,11 +109,34 @@ export async function deleteAclRole(ctx: APIRequestContext, id: string): Promise
 
 export async function listAclTokens(
   ctx: APIRequestContext,
-): Promise<Array<{ AccessorID: string }>> {
+): Promise<Array<{ AccessorID: string; Description?: string; Policies?: Array<{ ID: string }> }>> {
   const res = await ctx.get('/acl/tokens')
   if (!res.ok()) return []
-  const data = (await res.json()) as { tokens?: Array<{ AccessorID: string }> }
+  const data = (await res.json()) as {
+    tokens?: Array<{ AccessorID: string; Description?: string; Policies?: Array<{ ID: string }> }>
+  }
   return data.tokens || []
+}
+
+export async function getAclToken(
+  ctx: APIRequestContext,
+  accessorId: string,
+): Promise<{ AccessorID: string; Description?: string; Policies?: Array<{ ID: string }> } | null> {
+  const res = await ctx.get(`/acl/token/${encodeURIComponent(accessorId)}`)
+  if (!res.ok()) return null
+  return (await res.json()) as {
+    AccessorID: string
+    Description?: string
+    Policies?: Array<{ ID: string }>
+  }
+}
+
+export async function findAclToken(
+  ctx: APIRequestContext,
+  description: string,
+): Promise<{ AccessorID: string; Description?: string; Policies?: Array<{ ID: string }> } | null> {
+  const tokens = await listAclTokens(ctx)
+  return tokens.find((t) => t.Description === description) ?? null
 }
 
 export async function createAclToken(
