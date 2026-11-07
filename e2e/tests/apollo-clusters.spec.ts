@@ -1,4 +1,4 @@
-import { test, expect, uniqueName } from '../fixtures'
+import { test, expect, uniqueName, confirmAlert } from '../fixtures'
 import { switchToApollo } from '../fixtures/apollo-pages'
 import { createApp, deleteApp } from '../helpers/apollo-api'
 
@@ -16,15 +16,21 @@ test.describe('apollo clusters', () => {
 
     const clusterName = `e2e-cl-${uniqueName('c')}`
     await page.getByRole('button', { name: /Create Cluster/i }).click()
-    const dialog = page.locator('.fixed.inset-0')
+    const dialog = page.getByRole('dialog')
     await dialog.locator('input').nth(0).fill(clusterName) // name
     await dialog.locator('input').nth(1).fill('e2e cluster') // comment
     await dialog.getByRole('button', { name: /create/i }).click()
 
-    await expect(page.getByText(clusterName)).toBeVisible()
+    await expect(page.getByText(clusterName).first()).toBeVisible()
 
-    page.on('dialog', (d) => d.accept())
-    await page.locator('button[title="Delete"]').click()
+    // Every cluster chip on every env card owns a Delete button; the unscoped
+    // locator matches hundreds of them (strict-mode violation).
+    await page
+      .locator('div.group', { hasText: clusterName })
+      .first()
+      .locator('button[title="Delete"]')
+      .click()
+    await confirmAlert(page)
     await expect(page.getByText(clusterName)).toHaveCount(0)
   })
 

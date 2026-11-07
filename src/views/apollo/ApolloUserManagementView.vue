@@ -14,14 +14,14 @@ const error = ref('')
 const keyword = ref('')
 const showCreate = ref(false)
 function openCreate() {
-  form.value = { userId: '', name: '', email: '', password: '' }
+  form.value = { username: '', name: '', email: '', password: '' }
   confirmPassword.value = ''
   showCreate.value = true
 }
 function userStatusClass(u: ApolloUserDTO) {
   return u.enabled ? 'text-success' : 'text-danger'
 }
-const form = ref({ userId: '', name: '', email: '', password: '' })
+const form = ref({ username: '', name: '', email: '', password: '' })
 const confirmPassword = ref('')
 
 async function load() {
@@ -48,13 +48,13 @@ async function create() {
   }
   try {
     await apolloApi.createUser({
-      userId: form.value.userId,
+      username: form.value.username,
       name: form.value.name,
       email: form.value.email,
       password: form.value.password,
     })
     showCreate.value = false
-    form.value = { userId: '', name: '', email: '', password: '' }
+    form.value = { username: '', name: '', email: '', password: '' }
     confirmPassword.value = ''
     await load()
   } catch (e: unknown) {
@@ -66,7 +66,7 @@ async function create() {
 async function toggle(u: ApolloUserDTO) {
   error.value = ''
   try {
-    await apolloApi.updateUserEnabled(u.userId, !u.enabled)
+    await apolloApi.updateUserEnabled(u.username, !u.enabled)
     await load()
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } }; message?: string }
@@ -81,7 +81,7 @@ async function remove(u: ApolloUserDTO) {
     return
   error.value = ''
   try {
-    await apolloApi.deleteUser(u.userId)
+    await apolloApi.deleteUser(u.username)
     await load()
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } }; message?: string }
@@ -121,8 +121,8 @@ onMounted(load)
           </tr>
         </thead>
         <tbody>
-          <tr v-for="u in users" :key="u.userId" class="border-t border-border">
-            <td class="px-3 py-2 font-mono">{{ u.userId }}</td>
+          <tr v-for="u in users" :key="u.username" class="border-t border-border">
+            <td class="px-3 py-2 font-mono">{{ u.username }}</td>
             <td class="px-3 py-2">{{ u.name }}</td>
             <td class="px-3 py-2">{{ u.email }}</td>
             <td class="px-3 py-2">
@@ -155,7 +155,7 @@ onMounted(load)
       <div class="space-y-3">
         <div>
           <label class="block text-xs mb-1">{{ t('username') }} *</label
-          ><input v-model="form.userId" class="input" />
+          ><input v-model="form.username" class="input" />
         </div>
         <div>
           <label class="block text-xs mb-1">{{ t('name') }}</label

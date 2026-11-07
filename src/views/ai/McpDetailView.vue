@@ -17,16 +17,18 @@
         </p>
       </div>
       <button class="btn btn-secondary btn-sm" @click="goEdit">
-        <Pencil class="w-3.5 h-3.5" /> 编辑
+        <Pencil class="w-3.5 h-3.5" /> {{ t('edit') }}
       </button>
     </div>
 
     <div v-if="error" class="p-3 rounded border border-danger/30 bg-danger/5 text-xs text-danger">
       {{ error }}
-      <button class="ml-2 underline" @click="reload">重试</button>
+      <button class="ml-2 underline" @click="reload">{{ t('retry') }}</button>
     </div>
 
-    <div v-if="loading" class="card p-8 text-center text-sm text-text-tertiary">加载中...</div>
+    <div v-if="loading" class="card p-8 text-center text-sm text-text-tertiary">
+      {{ t('loading') }}
+    </div>
 
     <template v-else-if="detail">
       <!-- Version selector + lifecycle actions -->
@@ -34,7 +36,7 @@
         <div class="p-4 space-y-3">
           <div class="flex items-center justify-between flex-wrap gap-2">
             <div class="flex items-center gap-2">
-              <label class="text-xs text-text-secondary">版本:</label>
+              <label class="text-xs text-text-secondary">{{ t('version') }}:</label>
               <select
                 v-if="versions.length > 0"
                 v-model="selectedVersion"
@@ -45,7 +47,7 @@
                   v{{ v.version }} ({{ versionStatusLabel(v.status) }}){{ v.latest ? ' ★' : '' }}
                 </option>
               </select>
-              <span v-else class="text-xs text-text-tertiary">无版本记录</span>
+              <span v-else class="text-xs text-text-tertiary">{{ t('mcpNoVersions') }}</span>
             </div>
 
             <VersionLifecycleActionBar>
@@ -61,7 +63,7 @@
                 {{ action.label }}
               </button>
               <CreateDraftFromVersionButton
-                label="从当前版本创建草稿"
+                :label="t('mcpCreateDraftFrom')"
                 :divider="availableActions.length > 0"
                 @click="handleCreateDraft"
               />
@@ -76,12 +78,12 @@
           <AiResourceStatusControls
             :enabled="detail.enabled !== false"
             :scope="scope"
-            enabled-label="已启用"
-            disabled-label="已禁用"
-            public-label="公开"
-            private-label="私有"
-            visibility-label="可见性授权"
-            visibility-tooltip="配置可见性授权"
+            :enabled-label="t('enabled')"
+            :disabled-label="t('disabled')"
+            :public-label="t('mcpScopePublic')"
+            :private-label="t('mcpScopePrivate')"
+            :visibility-label="t('mcpScope')"
+            :visibility-tooltip="t('mcpVisibilityTooltip')"
             @update:enabled="handleToggleEnabled"
             @update:scope="handleScopeChange"
             @visibility-click="visibilityDialogOpen = true"
@@ -93,25 +95,29 @@
       <div class="card">
         <div class="p-4">
           <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2 mb-3">
-            基本信息
+            {{ t('basicInfo') }}
           </h3>
           <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-xs">
             <div>
-              <dt class="text-text-tertiary">命名空间</dt>
+              <dt class="text-text-tertiary">{{ t('serverName') }}</dt>
+              <dd class="text-text-primary">{{ detail.name || mcpName }}</dd>
+            </div>
+            <div>
+              <dt class="text-text-tertiary">{{ t('namespace') }}</dt>
               <dd class="text-text-primary">{{ detail.namespaceId || '—' }}</dd>
             </div>
             <div>
-              <dt class="text-text-tertiary">协议</dt>
+              <dt class="text-text-tertiary">{{ t('protocol') }}</dt>
               <dd class="text-text-primary uppercase">
                 {{ detail.frontProtocol || detail.protocol || '—' }}
               </dd>
             </div>
             <div>
-              <dt class="text-text-tertiary">版本</dt>
+              <dt class="text-text-tertiary">{{ t('version') }}</dt>
               <dd class="text-text-primary">{{ detail.version || '—' }}</dd>
             </div>
             <div>
-              <dt class="text-text-tertiary">工具数</dt>
+              <dt class="text-text-tertiary">{{ t('toolCount') }}</dt>
               <dd class="text-text-primary">{{ detail.toolSpec?.tools?.length || 0 }}</dd>
             </div>
           </dl>
@@ -122,7 +128,7 @@
       <div class="card">
         <div class="p-4">
           <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2 mb-3">
-            工具
+            {{ t('mcpToolsSection') }}
           </h3>
           <McpToolList :tools="detail.toolSpec?.tools" :tools-meta="detail.toolSpec?.toolsMeta" />
         </div>
@@ -132,7 +138,7 @@
       <div v-if="hasEndpoints" class="card">
         <div class="p-4">
           <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2 mb-3">
-            端点
+            {{ t('mcpEndpointsSection') }}
           </h3>
           <div class="space-y-2">
             <div
@@ -161,6 +167,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, Pencil, Loader2 } from '@lucide/vue'
+import { useI18n } from '@/i18n'
 import { useMcpStore } from '@/stores/mcp'
 import { useNamespaceStore } from '@/stores/namespace'
 import { mcpApi } from '@/api/mcp'
@@ -186,6 +193,7 @@ const props = defineProps<{
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 const store = useMcpStore()
 const namespaceStore = useNamespaceStore()
 
@@ -234,14 +242,14 @@ const availableActions = computed<LifecycleActionDef[]>(() => {
   // globalAdmin assumed false for now; could be wired from auth store
   const actions = getMcpVersionActions(status, pipeline, false)
   const labelMap: Record<string, string> = {
-    editDraft: '编辑草稿',
-    submit: '提交审核',
-    publish: '发布',
-    forcePublish: '强制发布',
-    redraft: '退回草稿',
-    online: '上线',
-    offline: '下线',
-    deleteDraft: '删除草稿',
+    editDraft: t('mcpEditDraft'),
+    submit: t('mcpSubmitReview'),
+    publish: t('mcpPublish'),
+    forcePublish: t('mcpForcePublish'),
+    redraft: t('mcpRedraft'),
+    online: t('mcpOnline'),
+    offline: t('mcpOffline'),
+    deleteDraft: t('mcpDeleteDraft'),
   }
   const dangerSet = new Set(['deleteDraft'])
   return actions.map((a) => ({
@@ -340,7 +348,7 @@ async function handleLifecycleAction(action: string) {
     await (mcpApi[method] as (identity: McpVersionIdentity) => Promise<unknown>)(identity)
     await reload()
   } catch (err) {
-    store.error = err instanceof Error ? err.message : '操作失败'
+    store.error = err instanceof Error ? err.message : t('operationFailed')
     logger.error('Lifecycle action failed:', err)
   } finally {
     actionLoading.value = false
@@ -369,7 +377,7 @@ async function handleToggleEnabled(enabled: boolean) {
     })
     await reload()
   } catch (err) {
-    store.error = err instanceof Error ? err.message : '切换启用状态失败'
+    store.error = err instanceof Error ? err.message : t('toggleEnabledFailed')
     logger.error('Toggle enabled failed:', err)
   }
 }
@@ -384,7 +392,7 @@ async function handleScopeChange(newScope: string) {
       scope: scope.value,
     })
   } catch (err) {
-    store.error = err instanceof Error ? err.message : '修改可见性失败'
+    store.error = err instanceof Error ? err.message : t('scopeChangeFailed')
     logger.error('Scope change failed:', err)
   }
 }

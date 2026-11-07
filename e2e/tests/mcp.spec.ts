@@ -15,7 +15,8 @@ test.describe('mcp server management', () => {
     await mcpListPage.openEditor()
     await expect(mcpEditorPage.nameInput).toBeVisible()
     await mcpEditorPage.createHttpServer(name)
-    await expect(mcpListPage.page).toHaveURL(/\/mcp$/, { timeout: 15_000 })
+    // Saving a draft navigates to the detail page, not back to the list.
+    await expect(mcpListPage.page).toHaveURL(/\/mcp\/detail/, { timeout: 15_000 })
     cleanup.push(() => deleteMcpServer(api, name).then(() => undefined))
   })
 
@@ -37,7 +38,8 @@ test.describe('mcp server management', () => {
     await expect(row).toHaveCount(1)
 
     // ---- Open the editor for this server and confirm it is populated ----
-    await mcpListPage.page.goto(`/mcp/edit?namespace=public&name=${encodeURIComponent(name)}`)
+    // The editor reads `mcpName` / `namespaceId` (see McpEditorView.vue).
+    await mcpListPage.page.goto(`/mcp/edit?namespaceId=public&mcpName=${encodeURIComponent(name)}`)
     await expect(mcpEditorPage.nameInput).toHaveValue(name)
   })
 })

@@ -4,7 +4,7 @@ test.describe('settings', () => {
   test('settings page loads with appearance controls', async ({ page }) => {
     await page.goto('/settings')
 
-    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible()
     await expect(page.getByText('Appearance')).toBeVisible()
 
     // Theme selector with light/dark/system options.

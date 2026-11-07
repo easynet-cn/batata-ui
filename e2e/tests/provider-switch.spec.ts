@@ -42,9 +42,9 @@ test.describe('provider switching', () => {
 
     // Check for batata-specific nav items
     const nav = page.locator('nav[aria-label="Main navigation"]')
-    await expect(nav.getByText('Configuration')).toBeVisible()
-    await expect(nav.getByText('Services')).toBeVisible()
-    await expect(nav.getByText('Namespace')).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'Configuration List' })).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'Service List' })).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'Namespaces' })).toBeVisible()
   })
 
   test('consul sidebar shows consul navigation items', async ({ page }) => {
@@ -53,8 +53,8 @@ test.describe('provider switching', () => {
 
     // Check for consul-specific nav items
     const nav = page.locator('nav[aria-label="Main navigation"]')
-    await expect(nav.getByText('KV Store')).toBeVisible()
-    await expect(nav.getByText('Intentions')).toBeVisible()
-    await expect(nav.getByText('ACL Tokens')).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'KV Store' })).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'Intentions' })).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'ACL Tokens' })).toBeVisible()
   })
 })

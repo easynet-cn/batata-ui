@@ -1,4 +1,4 @@
-import { test, expect, uniqueName } from '../fixtures'
+import { test, expect, uniqueName, confirmAlert } from '../fixtures'
 import {
   createApp,
   deleteApp,
@@ -28,13 +28,12 @@ test.describe('apollo namespace items', () => {
     await expect(page.getByText(NS).first()).toBeVisible()
 
     // Create item via UI
-    await page.getByRole('button', { name: /Create Item/i }).click()
-    await page.getByPlaceholder('key.name').fill(key)
-    await page.getByPlaceholder('value').fill(value)
-    await page
-      .locator('.fixed.inset-0')
-      .getByRole('button', { name: /create/i })
-      .click()
+    await page.getByRole('button', { name: 'Add Item' }).first().click()
+    await page.getByPlaceholder('key.name', { exact: true }).fill(key)
+    // The page also has a 'Search key/value' input, so match the textarea exactly.
+    await page.getByPlaceholder('value', { exact: true }).fill(value)
+    // ApolloAppDetailView's item modal uses :submit-text="t('save')".
+    await page.getByRole('dialog').getByRole('button', { name: /save/i }).click()
     cleanup.push(() => deleteItem(apolloApi, appId, ENV, CLUSTER, NS, key).then(() => undefined))
 
     const row = page.locator('table tbody tr', { hasText: key })
@@ -42,8 +41,8 @@ test.describe('apollo namespace items', () => {
     await expect(row).toContainText(value)
 
     // Delete item via UI
-    page.on('dialog', (d) => d.accept())
     await row.getByTitle('Delete').click()
+    await confirmAlert(page)
     await expect(page.locator('table tbody tr', { hasText: key })).toHaveCount(0)
   })
 

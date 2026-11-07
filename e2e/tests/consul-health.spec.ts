@@ -7,12 +7,12 @@ test.describe('consul health checks', () => {
     await page.goto('/consul/health')
 
     await expect(page.getByRole('heading', { name: 'Health Checks' })).toBeVisible()
-    await expect(page.getByText('Check ID')).toBeVisible()
-    await expect(page.getByText('Node')).toBeVisible()
-    await expect(page.getByText('Service')).toBeVisible()
-    await expect(page.getByText('Status')).toBeVisible()
-    await expect(page.getByText('Output')).toBeVisible()
-    await expect(page.getByText('Type')).toBeVisible()
+    await expect(page.getByText('Check ID').first()).toBeVisible()
+    await expect(page.getByText('Node').first()).toBeVisible()
+    await expect(page.getByText('Service').first()).toBeVisible()
+    await expect(page.getByText('Status').first()).toBeVisible()
+    await expect(page.getByText('Output').first()).toBeVisible()
+    await expect(page.getByText('Type').first()).toBeVisible()
   })
 
   test('passing/warning tab filters the health checks', async ({ page }) => {

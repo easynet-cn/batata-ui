@@ -21,13 +21,15 @@ test.describe('apollo cluster role assignment', () => {
 
     // Create a cluster via the UI.
     await page.getByRole('button', { name: /Create Cluster/i }).click()
-    const dialog = page.locator('.fixed.inset-0')
+    const dialog = page.getByRole('dialog')
     await dialog.locator('input').nth(0).fill(clusterName)
     await dialog.getByRole('button', { name: /create/i }).click()
-    await expect(page.locator('.badge', { hasText: clusterName })).toBeVisible()
+    // The same cluster name can appear on more than one env card.
+    const clusterBadge = page.locator('.badge', { hasText: clusterName }).first()
+    await expect(clusterBadge).toBeVisible()
 
     // Open the cluster permission modal (embeds ApolloRoleAssign).
-    await page.locator('.badge', { hasText: clusterName }).click()
+    await clusterBadge.click()
     await expect(page.getByText('Cluster Permission')).toBeVisible()
 
     const modifyCard = page.locator('.card', { hasText: 'Cluster Modify Permission' })

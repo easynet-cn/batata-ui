@@ -83,7 +83,10 @@ import { ref, computed, watch } from 'vue'
 import { ChevronDown, Wrench, Loader2 } from '@lucide/vue'
 import { mcpApi } from '@/api/mcp'
 import { useBatataStore } from '@/stores/batata'
+import { useI18n } from '@/i18n'
 import type { SelectedMcpTool } from '@/types/copilot'
+
+const { t } = useI18n()
 
 interface McpTool {
   name: string
@@ -168,7 +171,7 @@ const handleServerChange = async () => {
       }
     }
   } catch (err) {
-    toolsError.value = err instanceof Error ? err.message : '加载工具失败'
+    toolsError.value = err instanceof Error ? err.message : t('loadToolsFailed')
   } finally {
     loadingTools.value = false
   }

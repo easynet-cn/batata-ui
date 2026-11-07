@@ -25,7 +25,7 @@ export default defineConfig({
     storageState: path.join(__dirname, '.auth/user.json'),
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: 'off',
   },
   projects: [
     {

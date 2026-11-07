@@ -1,4 +1,4 @@
-import { test, expect, uniqueName } from '../fixtures'
+import { test, expect, uniqueName, confirmAlert } from '../fixtures'
 import { switchToApollo } from '../fixtures/apollo-pages'
 
 // A5 — ApolloUserTokensView (user token lifecycle)
@@ -10,18 +10,20 @@ test.describe('apollo user tokens', () => {
     await expect(page.getByRole('heading', { name: /User Tokens/i })).toBeVisible()
 
     const tokenName = `e2e-token-${uniqueName('t')}`
-    const before = await page.locator('table tbody tr').count()
+    // The empty state is a `<tr>` too; only count rows with action buttons.
+    const dataRows = page.locator('table tbody tr:has(button)')
+    const before = await dataRows.count()
 
     await page.getByRole('button', { name: /^Add$/i }).click()
-    const dialog = page.locator('.fixed.inset-0')
-    await dialog.locator('input[type="text"]').nth(0).fill(tokenName)
-    await dialog.locator('input[type="text"]').nth(1).fill('2026-12-31')
+    const dialog = page.getByRole('dialog')
+    await dialog.locator('input:not([type])').nth(0).fill(tokenName)
+    await dialog.locator('input:not([type])').nth(1).fill('2026-12-31')
     await dialog.getByRole('button', { name: /create/i }).click()
 
     // The issued token value is surfaced to the user exactly once.
     await expect(page.getByText(/Token Value/i)).toBeVisible()
     await expect(page.locator('table tbody tr', { hasText: tokenName })).toHaveCount(1)
-    await expect(page.locator('table tbody tr')).toHaveCount(before + 1)
+    await expect(dataRows).toHaveCount(before + 1)
   })
 
   test('rotate a token re-issues its value', async ({ page }) => {
@@ -30,8 +32,8 @@ test.describe('apollo user tokens', () => {
     const tokenName = `e2e-rot-${uniqueName('t')}`
 
     await page.getByRole('button', { name: /^Add$/i }).click()
-    const dialog = page.locator('.fixed.inset-0')
-    await dialog.locator('input[type="text"]').nth(0).fill(tokenName)
+    const dialog = page.getByRole('dialog')
+    await dialog.locator('input:not([type])').nth(0).fill(tokenName)
     await dialog.getByRole('button', { name: /create/i }).click()
     await expect(page.getByText(/Token Value/i)).toBeVisible()
 
@@ -40,8 +42,8 @@ test.describe('apollo user tokens', () => {
     // rotate re-issues a token value banner.
     await expect(page.getByText(/Token Value/i)).toBeVisible()
 
-    page.on('dialog', (d) => d.accept())
     await row.getByRole('button', { name: /delete/i }).click()
+    await confirmAlert(page)
     await expect(page.locator('table tbody tr', { hasText: tokenName })).toHaveCount(0)
   })
 
@@ -49,18 +51,19 @@ test.describe('apollo user tokens', () => {
     await switchToApollo(page)
     await page.goto('/apollo/user-tokens')
     const tokenName = `e2e-del-${uniqueName('t')}`
-    const before = await page.locator('table tbody tr').count()
+    const dataRows = page.locator('table tbody tr:has(button)')
+    const before = await dataRows.count()
 
     await page.getByRole('button', { name: /^Add$/i }).click()
-    const dialog = page.locator('.fixed.inset-0')
-    await dialog.locator('input[type="text"]').nth(0).fill(tokenName)
+    const dialog = page.getByRole('dialog')
+    await dialog.locator('input:not([type])').nth(0).fill(tokenName)
     await dialog.getByRole('button', { name: /create/i }).click()
     await expect(page.locator('table tbody tr', { hasText: tokenName })).toHaveCount(1)
 
     const row = page.locator('table tbody tr', { hasText: tokenName })
-    page.on('dialog', (d) => d.accept())
     await row.getByRole('button', { name: /delete/i }).click()
+    await confirmAlert(page)
     await expect(page.locator('table tbody tr', { hasText: tokenName })).toHaveCount(0)
-    await expect(page.locator('table tbody tr')).toHaveCount(before)
+    await expect(dataRows).toHaveCount(before)
   })
 })

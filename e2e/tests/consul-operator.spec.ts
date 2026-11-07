@@ -9,15 +9,15 @@ test.describe('consul operator', () => {
     await expect(page.getByRole('heading', { name: 'Operator' })).toBeVisible()
 
     // Raft configuration table headers.
-    await expect(page.getByText('Node')).toBeVisible()
-    await expect(page.getByText('ID')).toBeVisible()
-    await expect(page.getByText('Address')).toBeVisible()
-    await expect(page.getByText('Leader')).toBeVisible()
-    await expect(page.getByText('Voter')).toBeVisible()
-    await expect(page.getByText('Protocol')).toBeVisible()
-    await expect(page.getByText('Last Index')).toBeVisible()
+    await expect(page.getByText('Node').first()).toBeVisible()
+    await expect(page.getByText('ID').first()).toBeVisible()
+    await expect(page.getByText('Address').first()).toBeVisible()
+    await expect(page.getByText('Leader').first()).toBeVisible()
+    await expect(page.getByText('Voter').first()).toBeVisible()
+    await expect(page.getByText('Protocol').first()).toBeVisible()
+    await expect(page.getByText('Last Index').first()).toBeVisible()
 
     // Cluster usage section.
-    await expect(page.getByText('Cluster Usage')).toBeVisible()
+    await expect(page.getByText('Cluster Usage').first()).toBeVisible()
   })
 })

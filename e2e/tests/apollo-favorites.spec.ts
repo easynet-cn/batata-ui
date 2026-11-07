@@ -8,11 +8,17 @@ test.describe('apollo favorites', () => {
     await switchToApollo(page)
     await page.goto('/apollo/favorites')
     await expect(page.getByRole('heading', { name: /Favorites/i })).toBeVisible()
-    await expect(page.getByText('App ID')).toBeVisible()
-    await expect(page.getByText('App Name')).toBeVisible()
-    await expect(page.getByText('Environments')).toBeVisible()
-    await expect(page.getByText('Cluster')).toBeVisible()
-    await expect(page.getByText('Namespace')).toBeVisible()
+    // The view renders a card-style empty state instead of a table when
+    // there are no favorites, so the column headers are conditional.
+    if ((await page.locator('table').count()) === 0) {
+      await expect(page.getByText('No data found')).toBeVisible()
+    } else {
+      await expect(page.getByText('App ID').first()).toBeVisible()
+      await expect(page.getByText('App Name').first()).toBeVisible()
+      await expect(page.getByText('Environments').first()).toBeVisible()
+      await expect(page.getByText('Cluster').first()).toBeVisible()
+      await expect(page.getByText('Namespace').first()).toBeVisible()
+    }
   })
 
   test('shows empty state or navigates on row click', async ({ page }) => {

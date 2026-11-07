@@ -803,14 +803,13 @@ const confirmImport = async () => {
 const handleExport = async () => {
   if (selectedIds.value.length === 0) return
   try {
-    const response = await batataApi.exportConfig(selectedIds.value)
-    const blob = new Blob([response.data as BlobPart], { type: 'application/zip' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `batata_config_export_${Date.now()}.zip`
-    a.click()
-    window.URL.revokeObjectURL(url)
+    // `selectedIds` holds config IDs, but `ExportRequest.dataIds` filters by
+    // dataId. Resolve them first or the backend finds nothing to export.
+    const dataIds = configs.value
+      .filter((config) => selectedIds.value.includes(config.id))
+      .map((config) => config.dataId)
+    const url = batataApi.exportConfigUrl(dataIds, props.namespace.namespace)
+    triggerDownload(url, `batata_config_export_${Date.now()}.zip`)
   } catch (error) {
     logger.error('Failed to export config', error)
     toast.apiError(error)
@@ -819,18 +818,28 @@ const handleExport = async () => {
 
 const handleExportAll = async () => {
   try {
-    const response = await batataApi.exportConfig([], props.namespace.namespace)
-    const blob = new Blob([response.data as BlobPart], { type: 'application/zip' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `batata_config_export_all_${Date.now()}.zip`
-    a.click()
-    window.URL.revokeObjectURL(url)
+    const url = batataApi.exportConfigUrl([], props.namespace.namespace)
+    triggerDownload(url, `batata_config_export_all_${Date.now()}.zip`)
   } catch (error) {
     logger.error('Failed to export all configs', error)
     toast.apiError(error)
   }
+}
+
+// Trigger a real browser download via a same-origin anchor. The token is
+// embedded in the URL (see exportConfigUrl), so the request is authenticated
+// without a custom header and Playwright can capture the download event.
+const triggerDownload = (url: string, filename: string) => {
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  setTimeout(() => {
+    if (a.parentNode) {
+      a.parentNode.removeChild(a)
+    }
+  }, 1000)
 }
 
 const handleClone = (config: ConfigInfo) => {
@@ -860,15 +869,21 @@ const handleCloneSelected = () => {
 const confirmClone = async () => {
   if (cloneItems.value.length === 0) return
   try {
-    await batataApi.cloneConfig({
+    const response = await batataApi.cloneConfig({
       configBeans: cloneItems.value.map((item) => ({
         cfgId: item.cfgId,
         dataId: item.dataId,
         group: item.group,
       })),
+      namespaceId: props.namespace.namespace,
       targetNamespaceId: cloneTargetNs.value,
       policy: clonePolicy.value,
     })
+    const result = response.data.data
+    if (!result || result.successCount === 0) {
+      toast.error(result?.failData?.[0]?.reason || t('cloneError'))
+      return
+    }
     showCloneModal.value = false
     toast.success(t('cloneSuccess'))
     selectedIds.value = []

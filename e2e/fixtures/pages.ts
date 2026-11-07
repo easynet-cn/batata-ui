@@ -114,7 +114,11 @@ export class UserListPage {
     const dialog = this.page.getByRole('dialog')
     await expect(dialog).toBeVisible()
     await dialog.locator('input[type="text"]').fill(username)
-    await dialog.locator('input[type="password"]').fill(password)
+    // The create form validates Password against Confirm Password. Filling only
+    // the first leaves the mismatch guard active and the modal never closes.
+    const passwords = dialog.locator('input[type="password"]')
+    await passwords.nth(0).fill(password)
+    await passwords.nth(1).fill(password)
     await dialog.getByRole('button', { name: 'Create' }).click()
     await expect(dialog).toBeHidden()
   }
@@ -250,7 +254,8 @@ export class McpListPage {
   }
 
   row(name: string): Locator {
-    return this.page.locator('tbody tr').filter({ hasText: name })
+    // The MCP list is a card grid; each card title is an h3 with the server name.
+    return this.page.getByRole('heading', { name, exact: true, level: 3 })
   }
 
   async search(name: string): Promise<void> {

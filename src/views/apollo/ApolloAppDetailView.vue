@@ -318,7 +318,7 @@ async function loadBranch() {
         namespace.value,
         branch.value.branchName,
       )
-      grayRulesText.value = rule.rules || ''
+      grayRulesText.value = rule?.rules || ''
       grayRuleRows.value = parseGrayRules(grayRulesText.value)
     }
   } finally {

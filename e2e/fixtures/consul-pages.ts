@@ -66,8 +66,8 @@ export class KVListPage {
 
   async deleteKey(key: string): Promise<void> {
     await this.row(key).getByTitle('Delete').click()
-    // KV list uses a custom delete modal (not ConfirmModal)
-    const modal = this.page.locator('.fixed.inset-0')
+    // KV list delete confirmation uses FormModal (role="dialog").
+    const modal = this.page.getByRole('dialog')
     await expect(modal).toBeVisible()
     await modal.getByRole('button', { name: 'Delete' }).click()
     await expect(modal).toBeHidden()

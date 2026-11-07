@@ -1,4 +1,4 @@
-import { test as base, expect } from '@playwright/test'
+import { test as base, expect, type Page } from '@playwright/test'
 import {
   ServiceListPage,
   UserListPage,
@@ -160,6 +160,19 @@ export const test = base.extend<{
       await task().catch(() => undefined)
     }
   },
+  // Force the English locale for every context so UI text (placeholders,
+  // labels) is deterministic. The app defaults to Chinese when `batata_lang`
+  // is unset, which breaks English selectors used throughout the specs.
+  context: async ({ context }, use) => {
+    await context.addInitScript(() => {
+      try {
+        localStorage.setItem('batata_lang', 'en')
+      } catch {
+        /* ignore */
+      }
+    })
+    await use(context)
+  },
 })
 
 export {
@@ -190,4 +203,16 @@ export {
 
 export function uniqueName(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+}
+
+/**
+ * Accept the app's custom confirmation modal (role="alertdialog").
+ * The UI never calls window.confirm, so a page.on('dialog') handler
+ * cannot see it. The confirm button is always the last footer button.
+ */
+export async function confirmAlert(page: Page): Promise<void> {
+  const dialog = page.getByRole('alertdialog')
+  await expect(dialog).toBeVisible()
+  await dialog.locator('.modal-footer button').last().click()
+  await expect(dialog).toBeHidden()
 }

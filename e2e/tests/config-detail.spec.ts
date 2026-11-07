@@ -47,7 +47,7 @@ test.describe('config detail', () => {
 
     // ---- Basic info + content render ----
     await expect(page.getByText('Config Detail')).toBeVisible()
-    await expect(page.getByText(DATA_ID)).toBeVisible()
+    await expect(page.getByText(DATA_ID).first()).toBeVisible()
     await expect(page.getByText('Config Content')).toBeVisible()
 
     // ---- Version compare: opens a diff modal (previous version vs current) ----

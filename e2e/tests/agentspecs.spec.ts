@@ -5,7 +5,7 @@ test.describe('agent specs', () => {
     await page.goto('/agentspecs')
 
     await expect(page.getByRole('heading', { name: 'Agent Specs' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Create AgentSpec' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Create AgentSpec' }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Upload AgentSpec' })).toBeVisible()
   })
 
@@ -13,6 +13,6 @@ test.describe('agent specs', () => {
     await page.goto('/agentspec/detail?agentSpecName=e2e-agentspec')
 
     await expect(page).toHaveURL(/\/agentspec\/detail/)
-    await expect(page.getByText('Basic Info')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'e2e-agentspec', level: 1 })).toBeVisible()
   })
 })

@@ -7,11 +7,11 @@ test.describe('consul config entries', () => {
     await page.goto('/consul/config-entries')
 
     await expect(page.getByRole('heading', { name: 'Config Entries' })).toBeVisible()
-    await expect(page.getByText('Name')).toBeVisible()
-    await expect(page.getByText('Namespace')).toBeVisible()
-    await expect(page.getByText('Create Index')).toBeVisible()
-    await expect(page.getByText('Modify Index')).toBeVisible()
-    await expect(page.getByText('Actions')).toBeVisible()
+    await expect(page.getByText('Name').first()).toBeVisible()
+    await expect(page.getByText('Namespace').first()).toBeVisible()
+    await expect(page.getByText('Create Index').first()).toBeVisible()
+    await expect(page.getByText('Modify Index').first()).toBeVisible()
+    await expect(page.getByText('Actions').first()).toBeVisible()
   })
 
   test('kind filter tabs are present', async ({ page }) => {
@@ -32,7 +32,7 @@ test.describe('consul config entries', () => {
 
     const name = `e2e-ce-${uniqueName('t')}`
     const bodyV1 = '{"Protocol":"tcp"}'
-    const bodyV2 = '{"Protocol":"udp"}'
+    const bodyV2 = '{"Protocol":"http"}'
 
     // ---- Create ----
     await page.getByRole('button', { name: 'Create Config Entry' }).click()

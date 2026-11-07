@@ -37,7 +37,7 @@ test.describe('apollo gray release', () => {
 
     // Switch to the gray release tab and verify the branch is present
     await page.getByRole('button', { name: /Gray Release/i }).click()
-    await expect(page.getByText('gray')).toBeVisible()
+    await expect(page.getByText('gray').first()).toBeVisible()
     await expect(page.getByRole('button', { name: /Merge & Publish/i })).toBeVisible()
   })
 })

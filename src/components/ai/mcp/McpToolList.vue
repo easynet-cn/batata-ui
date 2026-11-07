@@ -1,7 +1,7 @@
 <template>
   <div class="mcp-tool-list">
     <div v-if="!tools || tools.length === 0" class="text-center py-8 text-text-tertiary text-xs">
-      暂无工具
+      {{ t('mcpNoTools') }}
     </div>
     <div v-else class="space-y-2">
       <div
@@ -16,7 +16,9 @@
               {{ tool.description }}
             </p>
           </div>
-          <span v-if="isToolEnabled(tool)" class="badge badge-success text-[9px]">启用</span>
+          <span v-if="isToolEnabled(tool)" class="badge badge-success text-[9px]">
+            {{ t('toolEnabled') }}
+          </span>
         </div>
 
         <div v-if="tool.inputSchema" class="mt-2">
@@ -35,7 +37,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from '@/i18n'
 import type { McpTool } from '@/types/mcp'
+
+const { t } = useI18n()
 
 defineProps<{
   tools?: McpTool[]

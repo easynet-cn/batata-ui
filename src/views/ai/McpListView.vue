@@ -2,13 +2,13 @@
   <div class="mcp-list-view">
     <!-- Header -->
     <div class="flex items-center justify-between gap-3 mb-4">
-      <h1 class="text-base font-semibold text-text-primary">MCP 服务</h1>
+      <h1 class="text-base font-semibold text-text-primary">{{ t('mcpServers') }}</h1>
       <div class="flex items-center gap-2">
         <button class="btn btn-secondary btn-sm" @click="store.openImportDialog()">
-          <Upload class="w-3.5 h-3.5" /> 导入
+          <Upload class="w-3.5 h-3.5" /> {{ t('import') }}
         </button>
         <button class="btn btn-primary btn-sm" @click="goCreate">
-          <Plus class="w-3.5 h-3.5" /> 新建
+          <Plus class="w-3.5 h-3.5" /> {{ t('addMcpServer') }}
         </button>
       </div>
     </div>
@@ -21,16 +21,19 @@
           v-model="searchInput"
           type="text"
           class="input pl-8 text-xs"
-          placeholder="搜索 MCP 服务名称"
+          :placeholder="t('searchMcpServer')"
           @keyup.enter="handleSearch"
         />
       </div>
+      <button class="btn btn-secondary btn-sm" @click="handleSearch">
+        <Search class="w-3.5 h-3.5" /> {{ t('search') }}
+      </button>
       <select v-model="searchModeInput" class="input text-xs w-auto" @change="handleSearch">
-        <option value="blur">模糊</option>
-        <option value="accurate">精确</option>
+        <option value="blur">{{ t('mcpSearchBlur') }}</option>
+        <option value="accurate">{{ t('mcpSearchAccurate') }}</option>
       </select>
       <button class="btn btn-ghost btn-sm" @click="handleReset">
-        <RotateCcw class="w-3.5 h-3.5" /> 重置
+        <RotateCcw class="w-3.5 h-3.5" /> {{ t('reset') }}
       </button>
     </div>
 
@@ -40,12 +43,13 @@
       class="flex items-center justify-between mb-3 px-3 py-2 rounded bg-primary/5 border border-primary/20"
     >
       <span class="text-xs text-text-secondary">
-        已选择 <strong class="text-primary">{{ store.selectedNames.size }}</strong> 项
+        {{ t('selectedLabel') }}
+        <strong class="text-primary">{{ store.selectedNames.size }}</strong> {{ t('items') }}
       </span>
       <button class="btn btn-danger btn-sm" :disabled="batchDeleting" @click="handleBatchDelete">
         <Trash2 v-if="!batchDeleting" class="w-3.5 h-3.5" />
         <Loader2 v-else class="w-3.5 h-3.5 animate-spin" />
-        批量删除
+        {{ t('batchDelete') }}
       </button>
     </div>
 
@@ -55,7 +59,7 @@
       class="mb-3 p-3 rounded border border-danger/30 bg-danger/5 text-xs text-danger"
     >
       {{ store.error }}
-      <button class="ml-2 underline" @click="reload">重试</button>
+      <button class="ml-2 underline" @click="reload">{{ t('retry') }}</button>
     </div>
 
     <!-- Loading skeleton -->
@@ -92,9 +96,9 @@
     <!-- Empty -->
     <div v-else class="flex flex-col items-center justify-center py-16 text-text-tertiary">
       <Inbox class="w-12 h-12 mb-2 opacity-50" />
-      <p class="text-sm">暂无 MCP 服务</p>
+      <p class="text-sm">{{ t('noMcpServers') }}</p>
       <button class="btn btn-primary btn-sm mt-3" @click="goCreate">
-        <Plus class="w-3.5 h-3.5" /> 新建第一个 MCP 服务
+        <Plus class="w-3.5 h-3.5" /> {{ t('createFirstMcpServer') }}
       </button>
     </div>
 
@@ -103,12 +107,12 @@
       v-if="store.total > 0"
       class="flex items-center justify-between mt-4 text-xs text-text-secondary"
     >
-      <span>共 {{ store.total }} 条</span>
+      <span>{{ t('total') }} {{ store.total }} {{ t('items') }}</span>
       <div class="flex items-center gap-2">
         <select v-model.number="pageSize" class="input text-xs w-auto" @change="handlePageSize">
-          <option :value="12">12 / 页</option>
-          <option :value="24">24 / 页</option>
-          <option :value="48">48 / 页</option>
+          <option :value="12">12 / {{ t('pageUnit') }}</option>
+          <option :value="24">24 / {{ t('pageUnit') }}</option>
+          <option :value="48">48 / {{ t('pageUnit') }}</option>
         </select>
         <button class="btn btn-ghost btn-sm" :disabled="store.pageNo <= 1" @click="handlePrevPage">
           <ChevronLeft class="w-3.5 h-3.5" />
@@ -143,7 +147,7 @@
           class="w-full text-left px-3 py-1.5 text-xs hover:bg-bg-secondary text-text-primary"
           @click="handleDelete(moreMenu.mcp!)"
         >
-          <Trash2 class="w-3.5 h-3.5 inline mr-1" /> 删除
+          <Trash2 class="w-3.5 h-3.5 inline mr-1" /> {{ t('delete') }}
         </button>
       </div>
     </Teleport>
@@ -264,7 +268,7 @@ async function handleDelete(mcp: McpServerBasicInfo) {
   if (
     !(await confirm({
       title: t('confirmDelete'),
-      message: `确认删除 MCP 服务「${mcp.name}」？`,
+      message: t('confirmDeleteMcpServerNamed').replace('{name}', mcp.name),
       danger: true,
     }))
   )
@@ -279,7 +283,10 @@ async function handleBatchDelete() {
   if (
     !(await confirm({
       title: t('confirmDelete'),
-      message: `确认删除选中的 ${store.selectedNames.size} 个 MCP 服务？`,
+      message: t('confirmBatchDeleteMcpServer').replace(
+        '{count}',
+        String(store.selectedNames.size),
+      ),
       danger: true,
     }))
   )

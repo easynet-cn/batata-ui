@@ -1,4 +1,4 @@
-import { test, expect, uniqueName } from '../fixtures'
+import { test, expect, uniqueName, confirmAlert } from '../fixtures'
 import { switchToApollo } from '../fixtures/apollo-pages'
 
 // A2 — ApolloUserManagementView (admin user CRUD)
@@ -12,10 +12,10 @@ test.describe('apollo users', () => {
     const userId = `e2e-user-${uniqueName('u')}`
     await page.getByRole('button', { name: /Create User/i }).click()
 
-    const dialog = page.locator('.fixed.inset-0')
-    await dialog.locator('input[type="text"]').nth(0).fill(userId) // userId
-    await dialog.locator('input[type="text"]').nth(1).fill('E2E User') // name
-    await dialog.locator('input[type="text"]').nth(2).fill('e2e@batata.local') // email
+    const dialog = page.getByRole('dialog')
+    await dialog.locator('input:not([type])').nth(0).fill(userId) // userId
+    await dialog.locator('input:not([type])').nth(1).fill('E2E User') // name
+    await dialog.locator('input:not([type])').nth(2).fill('e2e@batata.local') // email
     await dialog.locator('input[type="password"]').nth(0).fill('E2Epass123!')
     await dialog.locator('input[type="password"]').nth(1).fill('E2Epass123!')
     await dialog.getByRole('button', { name: /create/i }).click()
@@ -27,8 +27,8 @@ test.describe('apollo users', () => {
     const toggle = row.getByRole('button', { name: /Enable|Disable/i })
     await expect(toggle).toBeVisible()
 
-    page.on('dialog', (d) => d.accept())
     await row.getByRole('button', { name: /delete/i }).click()
+    await confirmAlert(page)
     await expect(page.locator('table tbody tr', { hasText: userId })).toHaveCount(0)
   })
 
@@ -39,10 +39,10 @@ test.describe('apollo users', () => {
     const userId = `e2e-dup-${uniqueName('u')}`
     const openAndFill = async () => {
       await page.getByRole('button', { name: /Create User/i }).click()
-      const dialog = page.locator('.fixed.inset-0')
-      await dialog.locator('input[type="text"]').nth(0).fill(userId)
-      await dialog.locator('input[type="text"]').nth(1).fill('E2E User')
-      await dialog.locator('input[type="text"]').nth(2).fill('e2e@batata.local')
+      const dialog = page.getByRole('dialog')
+      await dialog.locator('input:not([type])').nth(0).fill(userId)
+      await dialog.locator('input:not([type])').nth(1).fill('E2E User')
+      await dialog.locator('input:not([type])').nth(2).fill('e2e@batata.local')
       await dialog.locator('input[type="password"]').nth(0).fill('E2Epass123!')
       await dialog.locator('input[type="password"]').nth(1).fill('E2Epass123!')
       await dialog.getByRole('button', { name: /create/i }).click()
@@ -55,11 +55,16 @@ test.describe('apollo users', () => {
     // Second creation with the same id should be rejected; dialog stays open.
     const dialog2 = await openAndFill()
     await expect(dialog2).toBeVisible()
+    await expect(page.getByText(/User already exists/i)).toBeVisible()
+
+    // The modal overlays the table, so dismiss it before the cleanup click.
+    await dialog2.getByRole('button', { name: /cancel/i }).click()
+    await expect(dialog2).toBeHidden()
 
     // Cleanup the first user.
-    page.on('dialog', (d) => d.accept())
     const row = page.locator('table tbody tr', { hasText: userId })
     await row.getByRole('button', { name: /delete/i }).click()
+    await confirmAlert(page)
   })
 
   test('failure: mismatched confirm-password keeps the dialog open', async ({ page }) => {
@@ -68,10 +73,10 @@ test.describe('apollo users', () => {
 
     const userId = `e2e-pw-${uniqueName('u')}`
     await page.getByRole('button', { name: /Create User/i }).click()
-    const dialog = page.locator('.fixed.inset-0')
-    await dialog.locator('input[type="text"]').nth(0).fill(userId)
-    await dialog.locator('input[type="text"]').nth(1).fill('E2E User')
-    await dialog.locator('input[type="text"]').nth(2).fill('e2e@batata.local')
+    const dialog = page.getByRole('dialog')
+    await dialog.locator('input:not([type])').nth(0).fill(userId)
+    await dialog.locator('input:not([type])').nth(1).fill('E2E User')
+    await dialog.locator('input:not([type])').nth(2).fill('e2e@batata.local')
     await dialog.locator('input[type="password"]').nth(0).fill('E2Epass123!')
     await dialog.locator('input[type="password"]').nth(1).fill('DifferentPass456!')
     await dialog.getByRole('button', { name: /create/i }).click()

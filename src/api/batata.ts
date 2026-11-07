@@ -9,6 +9,7 @@ import type {
   ConfigGrayInfo,
   ServiceInfo,
   ServiceDetail,
+  ClusterInfo,
   InstanceInfo,
   SubscriberInfo,
   Namespace,
@@ -67,6 +68,35 @@ export interface BatataResponse<T = unknown> {
   code: number
   message: string
   data: T
+}
+
+/** Result of `POST /v3/console/cs/config/clone` (upstream `ImportResult`). */
+export interface CloneResult {
+  successCount: number
+  skipCount: number
+  failCount: number
+  failData?: Array<{ dataId: string; group: string; reason: string }>
+}
+
+/** Wire shape of upstream `ServiceDetailInfo` (GET /v3/console/ns/service). */
+interface RawServiceDetail {
+  namespaceId?: string
+  serviceName?: string
+  groupName?: string
+  protectThreshold?: number
+  metadata?: Record<string, string> | null
+  selector?: { type: string; expression?: string } | null
+  ephemeral?: boolean
+  clusterMap?: Record<string, RawClusterInfo>
+}
+
+/** Wire shape of one `clusterMap` entry. */
+interface RawClusterInfo {
+  clusterName?: string
+  healthChecker?: { type?: string; path?: string; headers?: string }
+  healthyCheckPort?: number
+  useInstancePortForCheck?: boolean
+  metadata?: Record<string, string>
 }
 
 // Cache configuration
@@ -135,6 +165,11 @@ class BatataApi {
         this.cleanupController(response.config)
 
         const { data } = response
+        // Blob responses (e.g. config/zip export) carry no JSON envelope, so the
+        // `code` check below must be skipped or it would throw on every download.
+        if (response.config.responseType === 'blob') {
+          return response
+        }
         if (data.code !== 0 && data.code !== 200) {
           if (isSessionExpired(data.message, (data as { data?: unknown }).data)) {
             storage.remove(config.storage.tokenKey)
@@ -499,11 +534,18 @@ class BatataApi {
 
   async cloneConfig(data: {
     configBeans: Array<{ cfgId: number; dataId: string; group: string }>
+    // Upstream ConsoleConfigController reads the source namespace from
+    // `namespaceId`; without it the server assumes the target namespace.
+    namespaceId: string
     targetNamespaceId: string
     policy: 'ABORT' | 'SKIP' | 'OVERWRITE'
   }) {
-    return this.instance.post<BatataResponse>('/cs/config/clone', data.configBeans, {
-      params: { targetNamespaceId: data.targetNamespaceId, policy: data.policy },
+    return this.instance.post<BatataResponse<CloneResult>>('/cs/config/clone', data.configBeans, {
+      params: {
+        namespaceId: data.namespaceId,
+        targetNamespaceId: data.targetNamespaceId,
+        policy: data.policy,
+      },
     })
   }
 
@@ -517,11 +559,39 @@ class BatataApi {
     })
   }
 
-  async exportConfig(ids: string[], namespaceId?: string) {
-    return this.instance.get('/cs/config/export2', {
-      params: { dataIds: ids.join(','), namespaceId },
+  // Batata's console exposes `/cs/config/export` (equivalent to upstream's
+  // admin `/v3/admin/cs/config/export`). Upstream's console surface is
+  // `/cs/config/export2` with `ids` (config IDs); batata has not implemented
+  // that route, so the UI uses the dataId-based endpoint instead.
+  async exportConfig(dataIds: string[], namespaceId?: string) {
+    return this.instance.get('/cs/config/export', {
+      params: { dataIds: dataIds.join(','), namespaceId },
       responseType: 'blob',
     })
+  }
+
+  // Build a same-origin export URL that carries the auth token as a query
+  // parameter. The backend's `extract_token` accepts `accessToken` from the
+  // query string, so a plain anchor navigation (rather than an axios blob
+  // fetch) performs a real browser download that e2e tooling can capture.
+  //
+  // This is an absolute browser URL, not an axios-relative one: it must repeat
+  // the `/v3/console` prefix that `BatataApi`'s `baseURL` normally supplies,
+  // otherwise it hits the SPA fallback and downloads `index.html` instead.
+  // `ids` here are config **dataId** values, matching `ExportRequest.dataIds`.
+  exportConfigUrl(dataIds: string[], namespaceId?: string): string {
+    const params = new URLSearchParams()
+    if (dataIds.length) {
+      params.set('dataIds', dataIds.join(','))
+    }
+    if (namespaceId) {
+      params.set('namespaceId', namespaceId)
+    }
+    const token = storage.get(config.storage.tokenKey)
+    if (token) {
+      params.set('accessToken', token)
+    }
+    return `${config.api.baseUrl}/v3/console/cs/config/export?${params.toString()}`
   }
 
   // Configs that have history records
@@ -613,10 +683,80 @@ class BatataApi {
     >
   }
 
+  /**
+   * Upstream `ConsoleServiceController#getServiceDetail` returns a
+   * `ServiceDetailInfo` (`serviceName` + `clusterMap` keyed by cluster name,
+   * no instance list). The UI's `ServiceDetail` type expects a flat
+   * `clusters[]` array with nested `instances`. Adapt here rather than
+   * changing the backend response, so the console API stays wire-compatible
+   * with Nacos. Instances come from `/ns/instance/list`.
+   */
   async getServiceDetail(serviceName: string, groupName: string, namespaceId?: string) {
-    return this.instance.get<BatataResponse<ServiceDetail>>('/ns/service', {
-      params: { serviceName, groupName, namespaceId },
-    })
+    const detailResponse = await this.instance.get<BatataResponse<RawServiceDetail>>(
+      '/ns/service',
+      {
+        params: { serviceName, groupName, namespaceId },
+      },
+    )
+    const instanceResponse = await this.getInstanceList(
+      serviceName,
+      groupName,
+      namespaceId,
+      1,
+      1000,
+    ).catch(() => null)
+
+    const raw = detailResponse.data.data ?? ({} as RawServiceDetail)
+    const instances = instanceResponse?.data.data?.list ?? []
+    const byCluster = new Map<string, InstanceInfo[]>()
+    for (const instance of instances) {
+      const key = instance.clusterName || 'DEFAULT'
+      const bucket = byCluster.get(key)
+      if (bucket) {
+        bucket.push(instance)
+      } else {
+        byCluster.set(key, [instance])
+      }
+    }
+
+    const rawClusters = raw.clusterMap ?? {}
+    const clusters: ClusterInfo[] = Object.entries(rawClusters).map(([key, cluster]) => ({
+      name: cluster.clusterName || key,
+      healthChecker: {
+        type: (cluster.healthChecker?.type || 'TCP') as ClusterInfo['healthChecker']['type'],
+        path: cluster.healthChecker?.path,
+        headers: cluster.healthChecker?.headers,
+      },
+      healthyCheckPort: cluster.healthyCheckPort,
+      useInstancePortForCheck: cluster.useInstancePortForCheck,
+      metadata: cluster.metadata,
+      instances: byCluster.get(cluster.clusterName || key) ?? [],
+    }))
+    // A cluster can exist only because an instance belongs to it.
+    for (const [key, list] of byCluster) {
+      if (!clusters.some((cluster) => cluster.name === key)) {
+        clusters.push({
+          name: key,
+          healthChecker: { type: 'TCP' },
+          instances: list,
+        })
+      }
+    }
+
+    const allInstances = clusters.flatMap((cluster) => cluster.instances ?? [])
+    const detail: ServiceDetail = {
+      name: raw.serviceName || serviceName,
+      groupName: raw.groupName || groupName,
+      clusterCount: clusters.length,
+      ipCount: allInstances.length,
+      healthyInstanceCount: allInstances.filter((instance) => instance.healthy).length,
+      protectThreshold: raw.protectThreshold ?? 0,
+      selector: raw.selector ?? undefined,
+      metadata: raw.metadata ?? undefined,
+      clusters,
+    }
+    detailResponse.data.data = detail as never
+    return detailResponse as unknown as AxiosResponse<BatataResponse<ServiceDetail>>
   }
 
   async createService(data: {
@@ -701,8 +841,11 @@ class BatataApi {
     namespaceId?: string
     clusterName: string
     healthChecker: { type: string; path?: string; headers?: string }
-    healthyCheckPort?: number
-    useInstancePortForCheck?: boolean
+    // Upstream `UpdateClusterForm` uses `checkPort` / `useInstancePort4Check`
+    // on the write path (the read-side `ClusterMetadata` uses
+    // `healthyCheckPort` / `useInstancePortForCheck`).
+    checkPort?: number
+    useInstancePort4Check?: boolean
     metadata?: Record<string, string>
   }) {
     return this.instance.put<BatataResponse>('/ns/service/cluster', data)

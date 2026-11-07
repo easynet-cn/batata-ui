@@ -667,8 +667,8 @@ const submitCluster = async () => {
       namespaceId: (namespaceId as string) || props.namespace.namespace,
       clusterName: clusterForm.clusterName,
       healthChecker: clusterForm.healthChecker,
-      healthyCheckPort: clusterForm.healthyCheckPort,
-      useInstancePortForCheck: clusterForm.useInstancePortForCheck,
+      checkPort: clusterForm.healthyCheckPort,
+      useInstancePort4Check: clusterForm.useInstancePortForCheck,
       metadata,
     })
     showClusterModal.value = false

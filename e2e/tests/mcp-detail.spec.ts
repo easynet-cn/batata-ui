@@ -7,7 +7,8 @@ test.describe('mcp server detail', () => {
     expect(await createMcpServer(api, { name, type: 'off', namespace: 'public' })).toBeTruthy()
     cleanup.push(() => deleteMcpServer(api, name).then(() => undefined))
 
-    await page.goto(`/mcp/detail?namespace=public&name=${encodeURIComponent(name)}`)
+    // The app reads `mcpName` / `namespaceId` (see McpDetailView.vue).
+    await page.goto(`/mcp/detail?namespaceId=public&mcpName=${encodeURIComponent(name)}`)
     await expect(page.getByRole('heading', { name })).toBeVisible()
     await expect(page.getByText('Server Name')).toBeVisible()
   })

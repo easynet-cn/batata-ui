@@ -1,13 +1,15 @@
 <template>
   <div class="tool-manager space-y-3">
     <div class="flex items-center justify-between">
-      <h4 class="text-sm font-semibold text-text-primary">工具列表 ({{ localTools.length }})</h4>
+      <h4 class="text-sm font-semibold text-text-primary">
+        {{ t('mcpToolListTitle') }} ({{ localTools.length }})
+      </h4>
       <div class="flex items-center gap-2">
         <button class="btn btn-ghost btn-sm" @click="toggleImport()">
-          <Download class="w-3.5 h-3.5" /> 从 MCP 端点导入
+          <Download class="w-3.5 h-3.5" /> {{ t('mcpImportFromEndpoint') }}
         </button>
         <button class="btn btn-primary btn-sm" @click="addTool">
-          <Plus class="w-3.5 h-3.5" /> 新增工具
+          <Plus class="w-3.5 h-3.5" /> {{ t('mcpAddTool') }}
         </button>
       </div>
     </div>
@@ -30,23 +32,27 @@
         class="input text-xs"
         placeholder="Endpoint path (e.g. /mcp)"
       />
-      <input v-model="importForm.authToken" class="input text-xs" placeholder="Auth Token (可选)" />
+      <input
+        v-model="importForm.authToken"
+        class="input text-xs"
+        :placeholder="t('mcpAuthTokenOptional')"
+      />
       <div class="flex justify-end gap-2">
-        <button class="btn btn-secondary btn-sm" @click="closeImport()">取消</button>
+        <button class="btn btn-secondary btn-sm" @click="closeImport()">{{ t('cancel') }}</button>
         <button
           class="btn btn-primary btn-sm"
           :disabled="importing || !importForm.baseUrl"
           @click="handleImport"
         >
           <Loader2 v-if="importing" class="w-3.5 h-3.5 animate-spin" />
-          导入工具
+          {{ t('mcpImportTools') }}
         </button>
       </div>
     </div>
 
     <!-- Empty -->
     <div v-if="localTools.length === 0" class="text-center py-8 text-text-tertiary text-xs">
-      暂无工具，点击「新增工具」或从 MCP 端点导入
+      {{ t('mcpNoToolsHint') }}
     </div>
 
     <!-- Tool list -->
@@ -65,14 +71,14 @@
                 placeholder="tool_name"
                 @input="emitTools"
               />
-              <button class="btn btn-ghost btn-sm" @click="removeTool(index)" title="删除">
+              <button class="btn btn-ghost btn-sm" @click="removeTool(index)" :title="t('delete')">
                 <Trash2 class="w-3.5 h-3.5" />
               </button>
             </div>
             <input
               v-model="tool.description"
               class="input text-xs mt-1.5 w-full"
-              placeholder="工具描述"
+              :placeholder="t('mcpToolDescriptionPlaceholder')"
               @input="emitTools"
             />
           </div>
@@ -98,7 +104,10 @@ import { ref, watch } from 'vue'
 import { Plus, Trash2, Download, Loader2 } from '@lucide/vue'
 import { mcpApi } from '@/api/mcp'
 import { logger } from '@/utils/logger'
+import { useI18n } from '@/i18n'
 import type { McpTool } from '@/types/mcp'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   tools: McpTool[]

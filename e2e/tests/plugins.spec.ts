@@ -6,9 +6,9 @@ test.describe('plugin management', () => {
     await expect(page.getByRole('heading', { name: 'Plugins' })).toBeVisible()
 
     // Verify stats cards
-    await expect(page.getByText('Total Plugins')).toBeVisible()
-    await expect(page.getByText('Enabled')).toBeVisible()
-    await expect(page.getByText('Disabled')).toBeVisible()
+    await expect(page.getByText('Total Plugins').first()).toBeVisible()
+    await expect(page.getByText('Enabled').first()).toBeVisible()
+    await expect(page.getByText('Disabled').first()).toBeVisible()
   })
 
   test('plugin page shows table with correct headers', async ({ page }) => {
@@ -16,11 +16,11 @@ test.describe('plugin management', () => {
     await expect(page.getByRole('heading', { name: 'Plugins' })).toBeVisible()
 
     // Verify table headers
-    await expect(page.getByText('Plugin Name')).toBeVisible()
-    await expect(page.getByText('Plugin Type')).toBeVisible()
-    await expect(page.getByText('Version')).toBeVisible()
-    await expect(page.getByText('Status')).toBeVisible()
-    await expect(page.getByText('Description')).toBeVisible()
+    // Scope to columnheaders: 'Status'/'Enabled' also appear as hidden
+    // <option> elements in the filter selects.
+    for (const header of ['Plugin Name', 'Plugin Type', 'Version', 'Status', 'Description']) {
+      await expect(page.getByRole('columnheader', { name: header })).toBeVisible()
+    }
   })
 
   test('plugin page has search and filter controls', async ({ page }) => {
@@ -48,7 +48,7 @@ test.describe('plugin management', () => {
     await page.getByRole('button', { name: 'Search' }).click()
 
     // Should show no data
-    await expect(page.getByText('No data found')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('No data found').first()).toBeVisible({ timeout: 10_000 })
   })
 
   test('refresh button works', async ({ page }) => {

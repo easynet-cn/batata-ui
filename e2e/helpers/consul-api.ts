@@ -3,7 +3,11 @@ import type { APIRequestContext } from '@playwright/test'
 
 export type { APIRequestContext }
 
-export const CONSUL_BASE = `${process.env.E2E_BASE_URL || 'http://localhost:8081'}/consul-api/v1`
+// Trailing slash is required: Playwright resolves a request path that starts
+// with `/` against the ORIGIN, discarding the whole baseURL path. Every helper
+// therefore uses a relative path (no leading slash) so URLs land under
+// `/consul-api/v1/`. Keep both halves in sync.
+export const CONSUL_BASE = `${process.env.E2E_BASE_URL || 'http://localhost:8081'}/consul-api/v1/`
 
 /**
  * Create a Consul API request context.
@@ -30,7 +34,7 @@ export async function putKV(
   value: string,
   flags = 0,
 ): Promise<boolean> {
-  const res = await ctx.put(`/kv/${encodeURIComponent(key)}`, {
+  const res = await ctx.put(`kv/${key}`, {
     params: flags ? { flags } : undefined,
     data: value,
     headers: { 'Content-Type': 'text/plain' },
@@ -39,18 +43,18 @@ export async function putKV(
 }
 
 export async function deleteKV(ctx: APIRequestContext, key: string): Promise<boolean> {
-  const res = await ctx.delete(`/kv/${encodeURIComponent(key)}`)
+  const res = await ctx.delete(`kv/${key}`)
   return res.ok()
 }
 
 export async function getKV(ctx: APIRequestContext, key: string): Promise<string | null> {
-  const res = await ctx.get(`/kv/${encodeURIComponent(key)}`, { params: { raw: '' } })
+  const res = await ctx.get(`kv/${key}`, { params: { raw: '' } })
   if (!res.ok()) return null
   return res.text()
 }
 
 export async function listKV(ctx: APIRequestContext, prefix = ''): Promise<string[]> {
-  const res = await ctx.get('/kv/', { params: { keys: '', ...(prefix ? { prefix } : {}) } })
+  const res = await ctx.get('kv/', { params: { keys: '', ...(prefix ? { prefix } : {}) } })
   if (!res.ok()) return []
   return (await res.json()) as string[]
 }
@@ -62,67 +66,66 @@ export async function listKV(ctx: APIRequestContext, prefix = ''): Promise<strin
 export async function listAclPolicies(
   ctx: APIRequestContext,
 ): Promise<Array<{ ID: string; Name: string }>> {
-  const res = await ctx.get('/acl/policies')
+  const res = await ctx.get('acl/policies')
   if (!res.ok()) return []
-  const data = (await res.json()) as { policies?: Array<{ ID: string; Name: string }> }
-  return data.policies || []
+  return (await res.json()) as Array<{ ID: string; Name: string }>
 }
 
 export async function createAclPolicy(
   ctx: APIRequestContext,
   payload: { Name: string; Description?: string; Rules?: string; Datacenters?: string[] },
 ): Promise<string | null> {
-  const res = await ctx.put('/acl/policy', { data: payload })
+  const res = await ctx.put('acl/policy', { data: payload })
   if (!res.ok()) return null
   const data = (await res.json()) as { ID?: string }
   return data.ID ?? null
 }
 
 export async function deleteAclPolicy(ctx: APIRequestContext, id: string): Promise<boolean> {
-  const res = await ctx.delete(`/acl/policy/${id}`)
+  const res = await ctx.delete(`acl/policy/${id}`)
   return res.ok()
 }
 
 export async function listAclRoles(
   ctx: APIRequestContext,
 ): Promise<Array<{ ID: string; Name: string }>> {
-  const res = await ctx.get('/acl/roles')
+  const res = await ctx.get('acl/roles')
   if (!res.ok()) return []
-  const data = (await res.json()) as { roles?: Array<{ ID: string; Name: string }> }
-  return data.roles || []
+  return (await res.json()) as Array<{ ID: string; Name: string }>
 }
 
 export async function createAclRole(
   ctx: APIRequestContext,
   payload: { Name: string; Description?: string },
 ): Promise<string | null> {
-  const res = await ctx.put('/acl/role', { data: payload })
+  const res = await ctx.put('acl/role', { data: payload })
   if (!res.ok()) return null
   const data = (await res.json()) as { ID?: string }
   return data.ID ?? null
 }
 
 export async function deleteAclRole(ctx: APIRequestContext, id: string): Promise<boolean> {
-  const res = await ctx.delete(`/acl/role/${id}`)
+  const res = await ctx.delete(`acl/role/${id}`)
   return res.ok()
 }
 
 export async function listAclTokens(
   ctx: APIRequestContext,
 ): Promise<Array<{ AccessorID: string; Description?: string; Policies?: Array<{ ID: string }> }>> {
-  const res = await ctx.get('/acl/tokens')
+  const res = await ctx.get('acl/tokens')
   if (!res.ok()) return []
-  const data = (await res.json()) as {
-    tokens?: Array<{ AccessorID: string; Description?: string; Policies?: Array<{ ID: string }> }>
-  }
-  return data.tokens || []
+  return (await res.json()) as Array<{
+    AccessorID: string
+    Description?: string
+    Policies?: Array<{ ID: string }>
+  }>
 }
 
 export async function getAclToken(
   ctx: APIRequestContext,
   accessorId: string,
 ): Promise<{ AccessorID: string; Description?: string; Policies?: Array<{ ID: string }> } | null> {
-  const res = await ctx.get(`/acl/token/${encodeURIComponent(accessorId)}`)
+  const res = await ctx.get(`acl/token/${encodeURIComponent(accessorId)}`)
   if (!res.ok()) return null
   return (await res.json()) as {
     AccessorID: string
@@ -143,13 +146,13 @@ export async function createAclToken(
   ctx: APIRequestContext,
   payload: { Description: string; Policies?: Array<{ ID: string }>; Roles?: Array<{ ID: string }> },
 ): Promise<{ AccessorID: string; SecretID: string } | null> {
-  const res = await ctx.put('/acl/token', { data: payload })
+  const res = await ctx.put('acl/token', { data: payload })
   if (!res.ok()) return null
   return (await res.json()) as { AccessorID: string; SecretID: string }
 }
 
 export async function deleteAclToken(ctx: APIRequestContext, accessorId: string): Promise<boolean> {
-  const res = await ctx.delete(`/acl/token/${accessorId}`)
+  const res = await ctx.delete(`acl/token/${accessorId}`)
   return res.ok()
 }
 
@@ -160,12 +163,13 @@ export async function deleteAclToken(ctx: APIRequestContext, accessorId: string)
 export async function listIntentions(
   ctx: APIRequestContext,
 ): Promise<Array<{ ID: string; SourceName: string; DestinationName: string }>> {
-  const res = await ctx.get('/connect/intentions')
+  const res = await ctx.get('connect/intentions')
   if (!res.ok()) return []
-  const data = (await res.json()) as {
-    intentions?: Array<{ ID: string; SourceName: string; DestinationName: string }>
-  }
-  return data.intentions || []
+  return (await res.json()) as Array<{
+    ID: string
+    SourceName: string
+    DestinationName: string
+  }>
 }
 
 export async function createIntention(
@@ -177,14 +181,14 @@ export async function createIntention(
     Description?: string
   },
 ): Promise<string | null> {
-  const res = await ctx.post('/connect/intentions', { data: payload })
+  const res = await ctx.post('connect/intentions', { data: payload })
   if (!res.ok()) return null
   const data = (await res.json()) as { ID?: string }
   return data.ID ?? null
 }
 
 export async function deleteIntention(ctx: APIRequestContext, id: string): Promise<boolean> {
-  const res = await ctx.delete(`/connect/intentions/${id}`)
+  const res = await ctx.delete(`connect/intentions/${id}`)
   return res.ok()
 }
 
@@ -201,7 +205,7 @@ export async function getIntention(
     HTTP?: { PathExact?: string; PathPrefix?: string; PathRegex?: string; Methods?: string[] }
   }>
 } | null> {
-  const res = await ctx.get(`/connect/intentions/${id}`)
+  const res = await ctx.get(`connect/intentions/${id}`)
   if (!res.ok()) return null
   return (await res.json()) as Awaited<ReturnType<typeof getIntention>>
 }
@@ -211,7 +215,7 @@ export async function getIntention(
 // ---------------------------------------------------------------------------
 
 export async function listSessions(ctx: APIRequestContext): Promise<Array<{ ID: string }>> {
-  const res = await ctx.get('/session/list')
+  const res = await ctx.get('session/list')
   if (!res.ok()) return []
   const data = (await res.json()) as Array<{ ID: string }>
   return Array.isArray(data) ? data : []
@@ -221,14 +225,14 @@ export async function createSession(
   ctx: APIRequestContext,
   payload: { Name?: string; Node?: string; TTL?: string; Behavior?: 'Release' | 'Delete' },
 ): Promise<string | null> {
-  const res = await ctx.put('/session/create', { data: payload })
+  const res = await ctx.put('session/create', { data: payload })
   if (!res.ok()) return null
   const data = (await res.json()) as { ID?: string }
   return data.ID ?? null
 }
 
 export async function destroySession(ctx: APIRequestContext, id: string): Promise<boolean> {
-  const res = await ctx.put(`/session/destroy/${id}`)
+  const res = await ctx.put(`session/destroy/${id}`)
   return res.ok()
 }
 
@@ -239,7 +243,7 @@ export async function destroySession(ctx: APIRequestContext, id: string): Promis
 export async function listCatalogServices(
   ctx: APIRequestContext,
 ): Promise<Record<string, unknown>> {
-  const res = await ctx.get('/catalog/services')
+  const res = await ctx.get('catalog/services')
   if (!res.ok()) return {}
   return (await res.json()) as Record<string, unknown>
 }
@@ -247,13 +251,13 @@ export async function listCatalogServices(
 export async function listCatalogNodes(
   ctx: APIRequestContext,
 ): Promise<Array<{ Node: string; Address: string }>> {
-  const res = await ctx.get('/catalog/nodes')
+  const res = await ctx.get('catalog/nodes')
   if (!res.ok()) return []
   return (await res.json()) as Array<{ Node: string; Address: string }>
 }
 
 export async function getConsulLeader(ctx: APIRequestContext): Promise<string | null> {
-  const res = await ctx.get('/status/leader')
+  const res = await ctx.get('status/leader')
   if (!res.ok()) return null
   return res.text()
 }

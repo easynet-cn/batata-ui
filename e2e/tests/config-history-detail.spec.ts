@@ -38,11 +38,15 @@ test.describe('config history detail', () => {
 
     // ---- Header + dataId render ----
     await expect(page.getByText('History Detail')).toBeVisible()
-    await expect(page.getByText(DATA_ID)).toBeVisible()
+    // The breadcrumb also contains the dataId (`<id> / DEFAULT_GROUP`), so a
+    // substring match resolves to two elements. Match the exact heading text.
+    await expect(page.getByText(DATA_ID, { exact: true })).toBeVisible()
 
-    // ---- Operation type label and badge (Update) ----
+    // ---- Operation type label and value ----
+    // "Update" is rendered twice: once as the header badge and once as the
+    // operation-type field value. Assert the field value specifically.
     await expect(page.getByText('Operation Type')).toBeVisible()
-    await expect(page.getByText('Update')).toBeVisible()
+    await expect(page.getByText('Update', { exact: true }).first()).toBeVisible()
 
     // ---- Metadata fields render (group, namespace, op type, source user, source ip, md5) ----
     await expect(page.getByText('Source User')).toBeVisible()

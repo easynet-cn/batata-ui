@@ -13,7 +13,8 @@ test.describe('consul dashboard', () => {
     // Verify statistics cards
     await expect(page.getByText('Total Services')).toBeVisible()
     await expect(page.getByText('Total Nodes')).toBeVisible()
-    await expect(page.getByText('Health Checks')).toBeVisible()
+    // Both the sidebar link and the stat card carry this label.
+    await expect(page.locator('#main-content').getByText('Health Checks')).toBeVisible()
     await expect(page.getByText('Datacenters')).toBeVisible()
 
     // Verify quick actions section

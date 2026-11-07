@@ -7,10 +7,10 @@
       </button>
       <div>
         <h1 class="text-base font-semibold text-text-primary">
-          {{ isEdit ? '编辑 MCP 服务' : '新建 MCP 服务' }}
+          {{ isEdit ? t('editMcpServer') : t('createMcpServer') }}
         </h1>
         <p class="text-xs text-text-secondary mt-0.5">
-          {{ isEdit ? '修改 MCP 服务配置并保存为新版本' : '创建一个新的 MCP 服务' }}
+          {{ isEdit ? t('editMcpServerDesc') : t('createMcpServerDesc') }}
         </p>
       </div>
     </div>
@@ -19,30 +19,34 @@
       {{ error }}
     </div>
 
-    <div v-if="loading" class="card p-8 text-center text-sm text-text-tertiary">加载中...</div>
+    <div v-if="loading" class="card p-8 text-center text-sm text-text-tertiary">
+      {{ t('loading') }}
+    </div>
 
     <template v-else>
       <!-- Basic Info -->
       <div class="card">
         <div class="p-4 space-y-3">
           <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2">
-            基本信息
+            {{ t('basicInfo') }}
           </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-medium text-text-primary mb-1">
-                服务名称 <span class="text-danger">*</span>
+                {{ t('serverName') }} <span class="text-danger">*</span>
               </label>
               <input
                 v-model="form.name"
                 type="text"
                 class="input"
                 :disabled="isEdit"
-                placeholder="例如: my-mcp-server"
+                :placeholder="t('serverNamePlaceholder')"
               />
             </div>
             <div>
-              <label class="block text-xs font-medium text-text-primary mb-1">协议类型</label>
+              <label class="block text-xs font-medium text-text-primary mb-1">
+                {{ t('mcpProtocolType') }}
+              </label>
               <select v-model="form.frontProtocol" class="input">
                 <option value="mcp-sse">MCP SSE</option>
                 <option value="mcp-streamable">MCP Streamable HTTP</option>
@@ -53,8 +57,15 @@
             </div>
           </div>
           <div>
-            <label class="block text-xs font-medium text-text-primary mb-1">描述</label>
-            <textarea v-model="form.description" rows="2" class="input" placeholder="服务描述" />
+            <label class="block text-xs font-medium text-text-primary mb-1">
+              {{ t('description') }}
+            </label>
+            <textarea
+              v-model="form.description"
+              rows="2"
+              class="input"
+              :placeholder="t('mcpDescriptionPlaceholder')"
+            />
           </div>
         </div>
       </div>
@@ -63,7 +74,7 @@
       <div class="card">
         <div class="p-4 space-y-3">
           <h3 class="text-sm font-medium text-text-primary border-b border-border pb-2">
-            端点配置
+            {{ t('mcpEndpointConfig') }}
           </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
@@ -72,7 +83,7 @@
                 v-model="form.baseUrl"
                 type="text"
                 class="input"
-                placeholder="https://api.example.com"
+                :placeholder="t('mcpBaseUrlPlaceholder')"
               />
             </div>
             <div>
@@ -82,13 +93,13 @@
           </div>
           <div>
             <label class="block text-xs font-medium text-text-primary mb-1">
-              Auth Token (可选)
+              {{ t('mcpAuthTokenOptional') }}
             </label>
             <input
               v-model="form.authToken"
               type="text"
               class="input"
-              placeholder="Bearer token 或 API key"
+              :placeholder="t('mcpAuthTokenPlaceholder')"
             />
           </div>
         </div>
@@ -103,10 +114,10 @@
 
       <!-- Actions -->
       <div class="flex items-center justify-end gap-2">
-        <button class="btn btn-secondary" @click="goBack">取消</button>
+        <button class="btn btn-secondary" @click="goBack">{{ t('cancel') }}</button>
         <button class="btn btn-primary" :disabled="saving || !form.name" @click="handleSave">
           <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
-          {{ isEdit ? '保存' : '创建' }}
+          {{ isEdit ? t('save') : t('create') }}
         </button>
       </div>
     </template>
@@ -117,6 +128,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, Loader2 } from '@lucide/vue'
+import { useI18n } from '@/i18n'
 import { mcpApi } from '@/api/mcp'
 import ToolManager from '@/components/ai/mcp/ToolManager.vue'
 import { extractEndpoints } from '@/components/ai/mcp/endpoint-utils'
@@ -130,6 +142,7 @@ const props = defineProps<{
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 
 const isEdit = computed(() => !!route.query.mcpName)
 const namespaceId = computed(
@@ -187,7 +200,7 @@ async function loadDetail() {
       form.value.path = first.path || ''
     }
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '加载失败'
+    error.value = err instanceof Error ? err.message : t('loadFailed')
   } finally {
     loading.value = false
   }
@@ -247,7 +260,7 @@ async function handleSave() {
       query: { mcpName: form.value.name, namespaceId: namespaceId.value },
     })
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '保存失败'
+    error.value = err instanceof Error ? err.message : t('saveFailed')
   } finally {
     saving.value = false
   }

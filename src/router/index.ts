@@ -519,6 +519,20 @@ const consulChildren: RouteRecordRaw[] = [
 // Layout route name used for dynamic route swapping
 const LAYOUT_ROUTE_NAME = 'layout'
 
+/** Normalize the stored provider (legacy builds wrote the string `null`). */
+function normalizeProvider(value: string | null): ProviderType {
+  return value === 'consul' || value === 'apollo' ? value : 'batata'
+}
+
+/**
+ * Which route tree is currently installed in the router.
+ *
+ * This is deliberately separate from the persisted provider preference: a deep
+ * link such as `/apollo/audit` must install the Apollo children even when the
+ * stored preference (and therefore the auth session) is still `batata`.
+ */
+let activeRouteProvider: ProviderType = normalizeProvider(storage.get('batata_provider'))
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -557,13 +571,10 @@ const router = createRouter({
 })
 
 /**
- * Determine initial children based on stored provider preference.
+ * Determine initial children based on the stored provider preference.
  */
 function getInitialChildren(): RouteRecordRaw[] {
-  const provider = storage.get('batata_provider')
-  // Normalize provider value - handle string 'null' or invalid values
-  const normalizedProvider = provider === 'null' || !provider ? 'batata' : (provider as string)
-  switch (normalizedProvider) {
+  switch (activeRouteProvider) {
     case 'consul':
       return consulChildren
     case 'apollo':
@@ -717,6 +728,7 @@ export function switchProviderRoutes(provider: ProviderType) {
     meta: { requiresAuth: true },
     children,
   })
+  activeRouteProvider = provider
 }
 
 // Auth guard
@@ -724,11 +736,25 @@ router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
 
   // Auto-switch provider based on path for direct links
-  const provider = storage.get('batata_provider') || 'batata'
-  const normalizedProvider = provider === 'null' || !provider ? 'batata' : (provider as string)
+  const normalizedProvider = normalizeProvider(storage.get('batata_provider'))
 
-  if (to.path.startsWith('/consul') && normalizedProvider !== 'consul') {
-    switchProviderRoutes('consul')
+  // A deep link decides which route tree is needed (`/apollo/*`, `/consul/*`),
+  // otherwise fall back to the persisted preference. Only the route tree is
+  // swapped here - the stored preference stays untouched so `restoreSession`
+  // keeps using the provider the user actually logged in with.
+  const desiredProvider: ProviderType = to.path.startsWith('/apollo')
+    ? 'apollo'
+    : to.path.startsWith('/consul')
+      ? 'consul'
+      : normalizedProvider
+
+  if (desiredProvider !== activeRouteProvider) {
+    switchProviderRoutes(desiredProvider)
+    // `to` was already resolved against the old tree. Re-enter the same URL so
+    // vue-router resolves it against the freshly added children; without this
+    // the navigation lands on the catch-all "Page Not Found" route.
+    next({ path: to.path, query: to.query, hash: to.hash, replace: true })
+    return
   }
 
   // Consul with ACL disabled: skip auth entirely

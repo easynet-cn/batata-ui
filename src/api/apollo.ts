@@ -30,7 +30,9 @@ const operator = (op?: string) => (op ? { operator: op } : undefined)
 
 // ---------------- P3 DTOs (aligned with apollo-portal) ----------------
 export interface ApolloUserDTO {
-  userId: string
+  // Upstream `OpenUserDTO` / `UserPO.getUsername()`: the openapi user payload
+  // is keyed by `username`, not `userId`.
+  username: string
   name?: string
   email?: string
   enabled?: boolean
@@ -653,10 +655,10 @@ class ApolloApi {
     clusterName: string,
     namespaceName: string,
     branchName: string,
-  ): Promise<ApolloGrayReleaseRuleDTO> {
+  ): Promise<ApolloGrayReleaseRuleDTO | null> {
     return this.instance
       .get(
-        `/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/branches/${branchName}`,
+        `/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/branches/${branchName}/rules`,
       )
       .then((r) => r.data)
   }
@@ -802,17 +804,20 @@ class ApolloApi {
   }
 
   createUser(user: {
-    userId: string
+    username: string
     name?: string
     email?: string
     password?: string
   }): Promise<void> {
-    return this.instance.post('/users', user).then(() => undefined)
+    // Upstream `UserController.createOrUpdateUser` decides between create and
+    // update with the `isCreate` request parameter.
+    return this.instance.post('/users', user, { params: { isCreate: true } }).then(() => undefined)
   }
 
   updateUserEnabled(username: string, enabled: boolean, password?: string): Promise<void> {
+    // Upstream `PUT /users/enabled` takes a `UserPO` body keyed by `username`.
     return this.instance
-      .put(`/users/${username}`, { userId: username, enabled, password })
+      .put('/users/enabled', { username, enabled, password })
       .then(() => undefined)
   }
 

@@ -9,11 +9,11 @@ test.describe('consul sessions', () => {
     await expect(sessionListPage.heading).toBeVisible()
 
     // Verify table headers
-    await expect(page.getByText('Session ID')).toBeVisible()
-    await expect(page.getByText('Name')).toBeVisible()
-    await expect(page.getByText('Node')).toBeVisible()
-    await expect(page.getByText('TTL')).toBeVisible()
-    await expect(page.getByText('Behavior')).toBeVisible()
+    await expect(page.getByText('Session ID').first()).toBeVisible()
+    await expect(page.getByText('Name').first()).toBeVisible()
+    await expect(page.getByText('Node').first()).toBeVisible()
+    await expect(page.getByText('TTL').first()).toBeVisible()
+    await expect(page.getByText('Behavior').first()).toBeVisible()
   })
 
   test('create a session via API and destroy it through the UI', async ({

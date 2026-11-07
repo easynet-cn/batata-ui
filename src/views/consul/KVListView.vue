@@ -288,7 +288,22 @@ const displayItems = computed<DisplayItem[]>(() => {
   for (const key of kvKeys.value) {
     // Remove current prefix from key for relative display
     const relative = key.startsWith(prefix) ? key.slice(prefix.length) : key
-    if (!relative) continue
+    if (relative === '') {
+      // Exact-match leaf (key === prefix): still display it as a regular key
+      // so a search for the full leaf key returns its row.
+      const detail = kvDetails.value.get(key)
+      const decoded = decodeBase64(detail?.Value ?? null)
+      items.push({
+        key: key,
+        fullKey: key,
+        displayKey: key,
+        isFolder: false,
+        decodedValue: truncate(decoded),
+        flags: detail?.Flags ?? 0,
+        modifyIndex: detail?.ModifyIndex ?? 0,
+      })
+      continue
+    }
 
     // Check if this key is a folder (has further segments)
     const slashIndex = relative.indexOf('/')
@@ -357,10 +372,10 @@ function navigateToPrefix(prefix: string) {
 // Search handler
 function handleSearch() {
   if (searchQuery.value.trim()) {
+    // Use the query verbatim as the prefix. Appending a trailing slash would
+    // hide an exact-match leaf key (the backend prefix match requires the
+    // trailing slash only for listing a folder's children).
     currentPrefix.value = searchQuery.value.trim()
-    if (!currentPrefix.value.endsWith('/')) {
-      currentPrefix.value += '/'
-    }
   } else {
     currentPrefix.value = ''
   }

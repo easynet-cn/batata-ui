@@ -63,7 +63,7 @@
           overflow: hidden;
         "
       >
-        {{ mcp.description || '暂无描述' }}
+        {{ mcp.description || t('noDescription') }}
       </p>
 
       <!-- Capabilities + tools -->
@@ -98,21 +98,25 @@
         class="badge text-[10px] px-1.5 py-0 h-4 font-medium"
         :class="enabledBadgeClass(mcp.enabled)"
       >
-        {{ mcp.enabled ? '已启用' : '已禁用' }}
+        {{ mcp.enabled ? t('enabled') : t('disabled') }}
       </span>
       <div class="flex items-center -mr-1">
-        <button class="btn btn-ghost btn-sm !h-6 !w-6 !p-0" @click="onView" title="详情">
+        <button class="btn btn-ghost btn-sm !h-6 !w-6 !p-0" @click="onView" :title="t('details')">
           <Eye class="w-3 h-3" />
         </button>
         <button
           v-if="canEdit"
           class="btn btn-ghost btn-sm !h-6 !w-6 !p-0"
           @click="onEdit"
-          title="编辑"
+          :title="t('edit')"
         >
           <Pencil class="w-3 h-3" />
         </button>
-        <button class="btn btn-ghost btn-sm !h-6 !w-6 !p-0" @click="onMore($event)" title="更多">
+        <button
+          class="btn btn-ghost btn-sm !h-6 !w-6 !p-0"
+          @click="onMore($event)"
+          :title="t('actions')"
+        >
           <MoreHorizontal class="w-3 h-3" />
         </button>
       </div>
@@ -123,7 +127,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Eye, Pencil, MoreHorizontal, Wrench, Cpu, MessageSquare, Database, Zap } from '@lucide/vue'
+import { useI18n } from '@/i18n'
 import type { McpServerBasicInfo } from '@/types/mcp'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   mcp: McpServerBasicInfo

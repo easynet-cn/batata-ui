@@ -24,13 +24,14 @@ test.describe('consul catalog detail', () => {
 
   test('service instance detail page loads', async ({ page, consulApi }) => {
     await switchToConsul(page)
-    const res = await consulApi.get('/catalog/service/consul')
-    const nodes = (await res.json()) as Array<{ Node: string; Service: { ID: string } }>
+    // A leading '/' would resolve against the origin and drop the /v1 path of CONSUL_BASE.
+    const res = await consulApi.get('catalog/service/consul')
+    const nodes = (await res.json()) as Array<{ Node: string; ServiceID: string }>
     test.skip(!nodes.length, 'no service instances available')
 
-    const { Node, Service } = nodes[0]
+    const { Node, ServiceID } = nodes[0]
     await page.goto(
-      `/consul/catalog/service/consul/instance?node=${encodeURIComponent(Node)}&serviceId=${encodeURIComponent(Service.ID)}`,
+      `/consul/catalog/service/consul/instance?node=${encodeURIComponent(Node)}&serviceId=${encodeURIComponent(ServiceID)}`,
     )
     await expect(page.getByRole('heading', { name: /Instance Detail/ })).toBeVisible()
   })

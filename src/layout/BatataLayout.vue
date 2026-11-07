@@ -1170,6 +1170,13 @@ const apolloNavGroups = computed(() => {
 })
 
 const navGroups = computed(() => {
+  // Deep links such as /consul/kv or /apollo/apps are resolved against a
+  // swapped route tree while the persisted provider (used for auth session
+  // restoration) can still be `batata`. Mirror the router's URL-derived
+  // selection for the sidebar only; mutating the reactive provider here
+  // would trip fetchServerState()'s plugin-disabled fallback.
+  if (route.path.startsWith('/consul')) return consulNavGroups.value
+  if (route.path.startsWith('/apollo')) return apolloNavGroups.value
   switch (provider.value) {
     case 'consul':
       return consulNavGroups.value

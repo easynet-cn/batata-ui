@@ -13,10 +13,10 @@ test.describe('apollo apps', () => {
     await page.getByRole('button', { name: /Create App/i }).click()
     await page.getByPlaceholder('app-id').fill(appId)
     await page.getByPlaceholder('My App').fill(appId)
-    await page
-      .locator('.fixed.inset-0')
-      .getByRole('button', { name: /create/i })
-      .click()
+    // The create form is a real `dialog`, not a `.fixed.inset-0` overlay.
+    const createDialog = page.getByRole('dialog')
+    await expect(createDialog).toBeVisible()
+    await createDialog.getByRole('button', { name: 'Create', exact: true }).click()
     cleanup.push(() => deleteApp(apolloApi, appId).then(() => undefined))
 
     // Verify via API
@@ -39,15 +39,18 @@ test.describe('apollo apps', () => {
     expect(await createApp(apolloApi, appId)).toBeTruthy()
     cleanup.push(() => deleteApp(apolloApi, appId).then(() => undefined))
 
-    page.on('dialog', (d) => d.accept())
-
     await switchToApollo(page)
     await page.getByPlaceholder(/app name/i).fill(appId)
     const row = page.locator('table tbody tr', { hasText: appId })
     await expect(row).toHaveCount(1)
 
-    // Delete via UI
+    // Delete via UI. The app uses a custom `alertdialog` ("Confirm Delete"),
+    // not window.confirm, so a page.on('dialog') handler never sees it.
     await row.getByTitle('Delete').click()
+    const confirm = page.getByRole('alertdialog')
+    await expect(confirm).toBeVisible()
+    await confirm.getByRole('button', { name: 'Confirm' }).click()
+    await expect(confirm).toBeHidden()
     await page.getByPlaceholder(/app name/i).fill('')
     await expect(page.locator('table tbody tr', { hasText: appId })).toHaveCount(0)
   })

@@ -26,7 +26,7 @@ test.describe('config export', () => {
 
     const [download] = await Promise.all([
       page.waitForEvent('download'),
-      page.getByRole('button', { name: 'Export' }).click(),
+      page.getByRole('button', { name: 'Export', exact: true }).click(),
     ])
 
     await expect(download.suggestedFilename()).toMatch(/\.zip$/)

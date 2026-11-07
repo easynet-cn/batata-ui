@@ -13,10 +13,11 @@ test.describe('consul catalog', () => {
     await expect(catalogServiceListPage.heading).toBeVisible()
 
     // Verify table headers
-    await expect(page.getByText('Health Status')).toBeVisible()
-    await expect(page.getByText('Service Name')).toBeVisible()
-    await expect(page.getByText('Kind')).toBeVisible()
-    await expect(page.getByText('Instance Count')).toBeVisible()
+    // Scope to columnheader: getByText('Kind') also matches the hidden
+    // <option value="">All Kinds</option> in the filter <select>.
+    for (const header of ['Health Status', 'Service Name', 'Kind', 'Instance Count']) {
+      await expect(page.getByRole('columnheader', { name: header })).toBeVisible()
+    }
 
     // Verify refresh works
     await expect(catalogServiceListPage.refreshButton).toBeVisible()
@@ -44,7 +45,7 @@ test.describe('consul catalog', () => {
     const count = await rows.count()
     if (count === 0) {
       // Empty state message
-      await expect(page.getByText('No services found')).toBeVisible()
+      await expect(page.getByText('No services found').first()).toBeVisible()
     }
   })
 
@@ -54,9 +55,9 @@ test.describe('consul catalog', () => {
     await expect(catalogNodeListPage.heading).toBeVisible()
 
     // Verify table headers
-    await expect(page.getByText('Node Name')).toBeVisible()
-    await expect(page.getByText('Address')).toBeVisible()
-    await expect(page.getByText('Services')).toBeVisible()
+    for (const header of ['Node Name', 'Address', 'Services']) {
+      await expect(page.getByRole('columnheader', { name: header })).toBeVisible()
+    }
 
     // Compare with API
     const nodes = await listCatalogNodes(consulApi)
@@ -77,7 +78,7 @@ test.describe('consul catalog', () => {
     const rows = page.locator('tbody tr')
     const count = await rows.count()
     if (count === 0) {
-      await expect(page.getByText('No nodes found')).toBeVisible()
+      await expect(page.getByText('No nodes found').first()).toBeVisible()
     }
   })
 

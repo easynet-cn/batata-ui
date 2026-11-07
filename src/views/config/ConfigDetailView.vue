@@ -501,7 +501,7 @@ const handleClone = async () => {
 const confirmClone = async () => {
   if (!config.value) return
   try {
-    await batataApi.cloneConfig({
+    const response = await batataApi.cloneConfig({
       configBeans: [
         {
           cfgId: Number(config.value.id),
@@ -509,9 +509,18 @@ const confirmClone = async () => {
           group: config.value.groupName,
         },
       ],
+      namespaceId: (route.query.namespaceId as string) || props.namespace.namespace,
       targetNamespaceId: cloneTargetNs.value,
       policy: clonePolicy.value,
     })
+    // successCount: 0 means the server cloned nothing (e.g. an ABORT
+    // conflict). Keep the modal open and surface the reason instead of
+    // reporting a false success.
+    const result = response.data.data
+    if (!result || result.successCount === 0) {
+      toast.error(result?.failData?.[0]?.reason || t('cloneError'))
+      return
+    }
     showCloneModal.value = false
     toast.success(t('cloneSuccess'))
   } catch (error) {

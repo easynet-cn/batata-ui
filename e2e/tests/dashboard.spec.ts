@@ -6,10 +6,10 @@ test.describe('dashboard metrics', () => {
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
 
     // Verify all 4 stat cards are visible
-    await expect(page.getByText('Total Services')).toBeVisible()
-    await expect(page.getByText('Total Configurations')).toBeVisible()
-    await expect(page.getByText('Total Namespaces')).toBeVisible()
-    await expect(page.getByText('Cluster Nodes')).toBeVisible()
+    await expect(page.getByText('Total Services').first()).toBeVisible()
+    await expect(page.getByText('Total Configurations').first()).toBeVisible()
+    await expect(page.getByText('Total Namespaces').first()).toBeVisible()
+    await expect(page.getByText('Cluster Nodes').first()).toBeVisible()
 
     // Verify sub-labels
     await expect(page.getByText('Healthy').first()).toBeVisible()
@@ -20,7 +20,7 @@ test.describe('dashboard metrics', () => {
 
   test('dashboard shows quick action links', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByText('Quick Actions')).toBeVisible()
+    await expect(page.getByText('Quick Actions').first()).toBeVisible()
 
     // Verify quick action links
     await expect(page.getByRole('link', { name: 'Create Config' })).toBeVisible()
@@ -56,14 +56,14 @@ test.describe('dashboard metrics', () => {
     await page.goto('/')
 
     // Chart section headings
-    await expect(page.getByText('Service Health Distribution')).toBeVisible()
-    await expect(page.getByText('Configuration Type Distribution')).toBeVisible()
+    await expect(page.getByText('Service Health Distribution').first()).toBeVisible()
+    await expect(page.getByText('Configuration Type Distribution').first()).toBeVisible()
   })
 
   test('dashboard shows cluster nodes status section', async ({ page }) => {
     await page.goto('/')
 
-    await expect(page.getByText('Cluster Nodes Status')).toBeVisible()
+    await expect(page.getByText('Cluster Nodes Status').first()).toBeVisible()
   })
 
   test('refresh button updates dashboard data', async ({ page }) => {

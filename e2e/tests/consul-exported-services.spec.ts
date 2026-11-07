@@ -6,8 +6,13 @@ test.describe('consul exported services', () => {
     await switchToConsul(page)
     await page.goto('/consul/exported-services')
 
-    await expect(page.getByRole('heading', { name: 'Exported Services' })).toBeVisible()
-    await expect(page.getByText('Consumers')).toBeVisible()
-    await expect(page.getByText('Peers')).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'Exported Services', exact: true }),
+    ).toBeVisible()
+    // The page renders "Exported Services" / "Imported Services" panels with
+    // Peerings / Partitions / Source Peer columns, not Consumers/Peers sections.
+    await expect(page.getByRole('heading', { name: /Exported Services \(/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Imported Services \(/ })).toBeVisible()
+    await expect(page.getByRole('columnheader', { name: 'Peerings' })).toBeVisible()
   })
 })

@@ -64,7 +64,10 @@ test.describe('config history and rollback', () => {
       .click()
     const dialog = page.getByRole('alertdialog')
     await expect(dialog).toBeVisible()
-    await expect(dialog).toContainText(CONTENT_V2.trim())
+    // The preview renders each config line in its own element, so a single
+    // multi-line substring never matches. Assert the lines separately.
+    await expect(dialog).toContainText('app.name: history-test')
+    await expect(dialog).toContainText('app.version: 2')
     await dialog.getByRole('button', { name: 'Rollback' }).click()
     await expect(dialog).toBeHidden()
 

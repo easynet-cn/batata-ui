@@ -170,7 +170,9 @@ test.describe('consul intentions', () => {
     await dialog.getByRole('button', { name: /Add Permission/i }).click()
 
     // Fill the first L7 permission: PathExact matcher on /api.
-    await dialog.locator('select').nth(1).selectOption('PathExact')
+    // In the create dialog the <select> order is: nth(0)=intention Action,
+    // nth(1)=permission Action, nth(2)=permission HTTP PathType.
+    await dialog.locator('select').nth(2).selectOption('PathExact')
     await dialog.getByPlaceholder('/').fill('/api')
     await dialog.getByRole('button', { name: /create/i }).click()
     await expect(dialog).toBeHidden()

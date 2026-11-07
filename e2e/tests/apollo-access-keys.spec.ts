@@ -1,4 +1,4 @@
-import { test, expect, uniqueName } from '../fixtures'
+import { test, expect, uniqueName, confirmAlert } from '../fixtures'
 import { switchToApollo } from '../fixtures/apollo-pages'
 import { createApp, deleteApp } from '../helpers/apollo-api'
 
@@ -14,19 +14,21 @@ test.describe('apollo access keys', () => {
     await page.goto(`/apollo/access-keys?appId=${appId}`)
     await expect(page.getByRole('heading', { name: /Access Keys/i })).toBeVisible()
 
-    // Creating a key is immediate (no modal).
-    const before = await page.locator('table tbody tr').count()
+    // Creating a key is immediate (no modal). The empty state is also a
+    // `<tr>` inside tbody, so count only rows that carry the action buttons.
+    const dataRows = page.locator('table tbody tr:has(button)')
+    const before = await dataRows.count()
     await page.getByRole('button', { name: /Create/i }).click()
-    await expect(page.locator('table tbody tr')).toHaveCount(before + 1)
+    await expect(dataRows).toHaveCount(before + 1)
 
-    const row = page.locator('table tbody tr').last()
+    const row = dataRows.last()
     // Toggle enable/disable (first icon button) then delete (second, danger).
     await row.locator('button').nth(0).click()
     await expect(row.getByText(/Enabled|Disabled/i)).toBeVisible()
 
-    page.on('dialog', (d) => d.accept())
     await row.locator('button').nth(1).click()
-    await expect(page.locator('table tbody tr')).toHaveCount(before)
+    await confirmAlert(page)
+    await expect(dataRows).toHaveCount(before)
   })
 
   test('empty state when no appId is provided', async ({ page }) => {
