@@ -192,7 +192,25 @@ src/
 
 ## 连接 Batata 服务
 
-开发模式下默认将 `/v3` 请求代理到 `http://localhost:8081`。Console 端口（8081）仅提供 UI 与控制台接口，**不暴露** Nacos 兼容的数据接口，因此前端应始终连接 Console 服务，不要直连主服务（8848）。
+浏览器只访问一个端口：Console（生产默认 `8081`，开发态为 Vite `5173`）。`/v3`、`/consul-api`、`/apollo-api` 三条前缀全部是同源相对路径；开发与预览由 `gateway-routes.ts` 统一生成代理表，生产由 Console 服务内置网关转发到插件 HTTP 端口。8848 是独立的 SDK/Admin 端口，**不托管 UI**，前端不要直连。
+
+Consul / Apollo 插件默认关闭（`batata.plugin.consul.enabled` / `batata.plugin.apollo.enabled` 均为 `false`）。插件关闭且未配置远端目标时，网关不注册对应路径，请求返回 404（而不是 UI 的 HTML 200）；独立部署 Console（`-d console`）需显式配置 `batata.console.gateway.consul.target` / `...apollo.target` 指向 server 节点的插件端口。
+
+UI 是否显示 `CONSUL` / `APOLLO` 入口，只由 `GET /v3/console/server/state` 的 `consul_enabled` / `apollo_enabled` 决定（恒为字符串 `"true"` / `"false"`），不是构建期开关。需要启用这两个面板时，用命令行或环境变量显式开启，不修改配置文件：
+
+```bash
+./target/debug/batata-server -d merged -m standalone \
+  --batata.plugin.consul.enabled=true --batata.plugin.apollo.enabled=true
+# 或：BATATA_PLUGIN_CONSUL_ENABLED=true BATATA_PLUGIN_APOLLO_ENABLED=true ...
+```
+
+先执行 `pnpm build:ui` 把 SPA 同步到 `batata/console-ui`，再针对 8081 跑生产形态的网关用例：
+
+```bash
+pnpm exec playwright test --config e2e/playwright.config.ts gateway.spec.ts
+```
+
+若未安装 Playwright 自带 Chromium，可用 `E2E_CHROME_PATH` 指向本机 Chrome。完整契约见 `../batata/docs/deployment.md`。
 
 如需连接其他 Batata 服务，编辑 `.env.development`：
 
@@ -210,16 +228,16 @@ VITE_APOLLO_PROXY_TARGET=http://your-batata-server:8080
 
 ### Batata 服务默认端口
 
-| 端口  | 服务             | 说明                               |
-| ----- | ---------------- | ---------------------------------- |
-| 8848  | 主 HTTP API      | Nacos 兼容 API                     |
-| 8081  | Console HTTP API | Web 管理控制台 API                 |
-| 8080  | Apollo HTTP API  | Apollo 兼容的 Config/Admin/OpenAPI |
-| 9848  | SDK gRPC         | 客户端 SDK 通信                    |
-| 9849  | 集群 gRPC        | 节点间通信                         |
-| 8500  | Consul HTTP API  | Consul 兼容 API                    |
-| 9080  | MCP Registry     | MCP 服务器注册                     |
-| 15010 | xDS              | Service Mesh（Envoy/Istio）        |
+| 端口  | 服务             | 说明                                         |
+| ----- | ---------------- | -------------------------------------------- |
+| 8848  | 主 HTTP API      | Nacos 兼容 SDK/Admin API（不托管 UI）        |
+| 8081  | Console HTTP API | Web 管理控制台，**浏览器唯一入口**           |
+| 8080  | Apollo HTTP API  | Apollo 兼容 Config/Admin/OpenAPI（内部端口） |
+| 9848  | SDK gRPC         | 客户端 SDK 通信                              |
+| 9849  | 集群 gRPC        | 节点间通信                                   |
+| 8500  | Consul HTTP API  | Consul 兼容 API（内部端口）                  |
+| 9080  | MCP Registry     | MCP 服务器注册                               |
+| 15010 | xDS              | Service Mesh（Envoy/Istio）                  |
 
 ## E2E 测试
 

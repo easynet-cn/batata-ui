@@ -22,7 +22,9 @@ export default async function globalSetup(): Promise<void> {
   const statePath = path.join(storageDir, 'user.json')
   fs.mkdirSync(storageDir, { recursive: true })
 
-  const browser = await chromium.launch()
+  const browser = await chromium.launch(
+    process.env.E2E_CHROME_PATH ? { executablePath: process.env.E2E_CHROME_PATH } : {},
+  )
   const ctx = await browser.newContext()
   const request = ctx.request
 

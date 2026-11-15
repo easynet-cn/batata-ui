@@ -5,11 +5,14 @@ import { logger } from '@/utils/logger'
 const STORAGE_KEY = 'consul_blocking_queries'
 
 export interface BlockingQueryOptions<T> {
-  /** Function that performs the API call, receiving optional index/wait params */
-  queryFn: (params: {
-    index?: string
-    wait?: string
-  }) => Promise<{ data: T; headers: Record<string, string> }>
+  /** Function that performs the API call, receiving optional index/wait params and an abort signal */
+  queryFn: (
+    params: {
+      index?: string
+      wait?: string
+    },
+    signal?: AbortSignal,
+  ) => Promise<{ data: T; headers: Record<string, string> }>
   /** Callback invoked with the response data */
   onData: (data: T) => void
   /** Reactive boolean to enable/disable the composable externally */
@@ -83,7 +86,7 @@ export function useBlockingQuery<T>(options: BlockingQueryOptions<T>): BlockingQ
       }
 
       abortController = new AbortController()
-      const response = await queryFn(params)
+      const response = await queryFn(params, abortController.signal)
 
       if (!active) return
 
@@ -105,6 +108,14 @@ export function useBlockingQuery<T>(options: BlockingQueryOptions<T>): BlockingQ
     } catch (err: unknown) {
       if (!active) return
       loading.value = false
+
+      // A gateway failover moves the long poll to another node. The index
+      // from the previous node must not be reused there.
+      const failureResponse = (err as { response?: { headers?: Record<string, string> } } | null)
+        ?.response
+      if (failureResponse?.headers?.['x-batata-gateway-failover']) {
+        currentIndex = '0'
+      }
 
       const message = err instanceof Error ? err.message : 'Query failed'
       error.value = message

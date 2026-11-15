@@ -192,7 +192,25 @@ src/
 
 ## Connecting to Batata Server
 
-By default, the development server proxies `/v3` requests to `http://localhost:8081`. The console port (8081) serves the UI and console APIs only — it does **not** expose the Nacos-compatible data APIs, so the frontend should always connect to the console server and never directly to the main server (8848).
+The browser only ever talks to one port: the console (8081 in production, Vite 5173 in development). `/v3`, `/consul-api` and `/apollo-api` are all same-origin relative paths. Development and preview build their proxy table from `gateway-routes.ts`; in production the console server's built-in gateway forwards those prefixes to the plugin HTTP ports. Port 8848 is the separate SDK/Admin port, serves **no UI**, and must not be used by the frontend.
+
+The Consul and Apollo plugins are disabled by default (`batata.plugin.consul.enabled` / `batata.plugin.apollo.enabled` are `false`). When a plugin is off and no remote target is configured, the gateway leaves that path unregistered and the request returns 404 (never the UI's HTML 200). A separated console (`-d console`) must set `batata.console.gateway.consul.target` / `...apollo.target` to the plugin ports of a server node.
+
+The UI decides whether the `CONSUL` / `APOLLO` provider entries are shown from `GET /v3/console/server/state` (`consul_enabled` / `apollo_enabled`, always `"true"` or `"false"`), never from a build-time flag. To exercise those panes, start batata with explicit overrides — no config file changes:
+
+```bash
+./target/debug/batata-server -d merged -m standalone \
+  --batata.plugin.consul.enabled=true --batata.plugin.apollo.enabled=true
+# or: BATATA_PLUGIN_CONSUL_ENABLED=true BATATA_PLUGIN_APOLLO_ENABLED=true ...
+```
+
+Then run `pnpm build:ui` (syncs the SPA into `batata/console-ui`) and the production-shaped gateway spec against 8081:
+
+```bash
+pnpm exec playwright test --config e2e/playwright.config.ts gateway.spec.ts
+```
+
+If Playwright's bundled Chromium is missing, set `E2E_CHROME_PATH` to a local Chrome executable. See `../batata/docs/deployment.md` for the full contract.
 
 To connect to a different Batata server, edit `.env.development`:
 
@@ -210,16 +228,16 @@ VITE_APOLLO_PROXY_TARGET=http://your-batata-server:8080
 
 ### Default Batata Server Ports
 
-| Port  | Service          | Description                 |
-| ----- | ---------------- | --------------------------- |
-| 8848  | Main HTTP API    | Nacos-compatible API        |
-| 8081  | Console HTTP API | Web management console API  |
-| 8080  | Apollo HTTP API  | Apollo Config/Admin/OpenAPI |
-| 9848  | SDK gRPC         | Client SDK communication    |
-| 9849  | Cluster gRPC     | Inter-node communication    |
-| 8500  | Consul HTTP API  | Consul-compatible API       |
-| 9080  | MCP Registry     | MCP server registry         |
-| 15010 | xDS              | Service mesh (Envoy/Istio)  |
+| Port  | Service          | Description                                |
+| ----- | ---------------- | ------------------------------------------ |
+| 8848  | Main HTTP API    | Nacos-compatible SDK/Admin API (no UI)     |
+| 8081  | Console HTTP API | Web console, **only browser-facing entry** |
+| 8080  | Apollo HTTP API  | Apollo Config/Admin/OpenAPI (internal)     |
+| 9848  | SDK gRPC         | Client SDK communication                   |
+| 9849  | Cluster gRPC     | Inter-node communication                   |
+| 8500  | Consul HTTP API  | Consul-compatible API (internal)           |
+| 9080  | MCP Registry     | MCP server registry                        |
+| 15010 | xDS              | Service mesh (Envoy/Istio)                 |
 
 ## E2E Tests
 

@@ -3,6 +3,10 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8081'
+// Playwright's bundled Chromium is not always present (fresh clone, or an
+// install that skipped browser downloads). Point this at a locally installed
+// Chrome to run the suite without changing the default behaviour.
+const CHROME_PATH = process.env.E2E_CHROME_PATH
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
@@ -26,6 +30,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'off',
+    launchOptions: CHROME_PATH ? { executablePath: CHROME_PATH } : {},
   },
   projects: [
     {

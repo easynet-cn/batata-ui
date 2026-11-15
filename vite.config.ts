@@ -7,13 +7,12 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { compression } from 'vite-plugin-compression2'
 import { visualizer } from 'rollup-plugin-visualizer'
+import { createGatewayProxy } from './gateway-routes'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:8081'
-  const consulProxyTarget = env.VITE_CONSUL_PROXY_TARGET || 'http://localhost:8500'
-  const apolloProxyTarget = env.VITE_APOLLO_PROXY_TARGET || 'http://localhost:8080'
+  const gatewayProxy = createGatewayProxy(env)
 
   const plugins: PluginOption[] = [
     vue(),
@@ -132,28 +131,16 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       host: true,
-      proxy: {
-        '/v3': {
-          target: apiProxyTarget,
-          changeOrigin: true,
-        },
-        '/consul-api': {
-          target: consulProxyTarget,
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/consul-api/, ''),
-        },
-        '/apollo-api': {
-          target: apolloProxyTarget,
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/apollo-api/, ''),
-        },
-      },
+      proxy: gatewayProxy,
     },
 
-    // Preview server configuration
+    // Preview uses the same routes as dev. In the packaged build the console
+    // server (8081) implements these prefixes natively, so the browser still
+    // only needs one port.
     preview: {
       port: 4173,
       host: true,
+      proxy: gatewayProxy,
     },
 
     // Optimize dependencies

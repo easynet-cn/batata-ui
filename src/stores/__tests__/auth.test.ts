@@ -20,10 +20,22 @@ vi.mock('@/composables/useStorage', () => ({
 
 vi.mock('@/config', () => ({
   config: {
+    // The Consul and Apollo API modules instantiate their axios clients at
+    // module load, so the mock must expose the whole api/storage surface they
+    // read in their constructors.
+    api: {
+      baseUrl: '',
+      consulBaseUrl: '/consul-api/v1',
+      apolloBaseUrl: '/apollo-api/openapi/v1',
+      timeout: 30000,
+      retryCount: 3,
+    },
     storage: {
       tokenKey: 'batata-token',
       usernameKey: 'batata-username',
       userKey: 'batata_user',
+      consulTokenKey: 'consul-token',
+      apolloTokenKey: 'apollo-token',
     },
   },
 }))
@@ -47,14 +59,41 @@ describe('auth store', () => {
       const result = await store.login('admin', 'password')
 
       expect(result).toBe(true)
-      expect(store.currentUser).toEqual({ username: 'admin', token: 'test-token-123' })
+      expect(store.currentUser).toEqual({
+        username: 'admin',
+        token: 'test-token-123',
+        globalAdmin: false,
+      })
       expect(store.isAuthenticated).toBe(true)
       expect(store.username).toBe('admin')
       expect(storage.set).toHaveBeenCalledWith('batata-token', 'test-token-123')
       expect(storage.set).toHaveBeenCalledWith('batata-username', 'admin')
-      expect(storage.setJSON).toHaveBeenCalledWith('batata_user', { name: 'admin' })
+      expect(storage.setJSON).toHaveBeenCalledWith('batata_user', {
+        name: 'admin',
+        globalAdmin: false,
+      })
       expect(store.loading).toBe(false)
       expect(store.error).toBeNull()
+    })
+
+    it('carries the globalAdmin flag from the login response', async () => {
+      vi.mocked(batataApi.login).mockResolvedValue({
+        data: { accessToken: 'admin-token', globalAdmin: true },
+      } as never)
+
+      const store = useAuthStore()
+      await store.login('root', 'password')
+
+      expect(store.currentUser).toEqual({
+        username: 'root',
+        token: 'admin-token',
+        globalAdmin: true,
+      })
+      expect(store.isGlobalAdmin).toBe(true)
+      expect(storage.setJSON).toHaveBeenCalledWith('batata_user', {
+        name: 'root',
+        globalAdmin: true,
+      })
     })
 
     it('handles login failure with Error', async () => {
@@ -132,8 +171,23 @@ describe('auth store', () => {
       const result = store.restoreSession()
 
       expect(result).toBe(true)
-      expect(store.currentUser).toEqual({ username: 'saved-user', token: 'saved-token' })
+      expect(store.currentUser).toEqual({
+        username: 'saved-user',
+        token: 'saved-token',
+        globalAdmin: false,
+      })
       expect(store.isAuthenticated).toBe(true)
+    })
+
+    it('restores the globalAdmin flag from the stored user', () => {
+      vi.mocked(storage.getJSON).mockReturnValue({ name: 'saved-admin', globalAdmin: true })
+      vi.mocked(storage.get).mockReturnValue('saved-token')
+
+      const store = useAuthStore()
+      const result = store.restoreSession()
+
+      expect(result).toBe(true)
+      expect(store.isGlobalAdmin).toBe(true)
     })
 
     it('returns false when no saved user in storage', () => {

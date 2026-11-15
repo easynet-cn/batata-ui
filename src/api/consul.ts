@@ -36,6 +36,22 @@ import type {
   ConsulNamespace,
 } from '@/types/consul'
 
+/**
+ * Axios deadline for a Consul blocking query.
+ *
+ * The console gateway streams the response and applies no total timeout, but
+ * the browser's default 30s axios timeout would otherwise abort a `?wait=5m`
+ * long poll before the server answers. 15s of slack covers scheduling and the
+ * upstream's own wait handling.
+ */
+function blockingTimeoutMs(wait: string): number {
+  const match = /^(\d+)(s|m)$/.exec(wait.trim())
+  if (!match) return 5 * 60_000 + 15_000
+  const amount = Number(match[1])
+  const unitMs = match[2] === 'm' ? 60_000 : 1_000
+  return amount * unitMs + 15_000
+}
+
 class ConsulApi {
   private instance: AxiosInstance
 
@@ -51,9 +67,14 @@ class ConsulApi {
     // Retry interceptor
     setupRetryInterceptor(this.instance, config.api.retryCount)
 
-    // Request interceptor: attach Consul token
+    // Request interceptor: attach Consul token and widen the timeout for
+    // blocking queries. Only requests carrying `wait` are affected.
     this.instance.interceptors.request.use(
       (reqConfig) => {
+        const wait = (reqConfig.params as Record<string, unknown> | undefined)?.wait
+        if (typeof wait === 'string' && wait) {
+          reqConfig.timeout = blockingTimeoutMs(wait)
+        }
         const token = storage.get('consul-token')
         if (token) {
           reqConfig.headers['X-Consul-Token'] = token
