@@ -757,9 +757,12 @@ router.beforeEach((to, _from, next) => {
     return
   }
 
-  // Consul with ACL disabled: skip auth entirely
-  if (normalizedProvider === 'consul' && !authStore.consulAclEnabled) {
-    authStore.setConsulAclEnabled(false)
+  // Consul with ACL disabled: skip auth entirely. Only allow this once the
+  // server state has actually been read (consulAclLoaded); on a cold start the
+  // auth store fails closed with ACL assumed enabled, so a reload cannot slip
+  // an unauthenticated visitor into the Consul dashboard. LoginView loads the
+  // state and then either shows the token form or enters the dashboard.
+  if (normalizedProvider === 'consul' && authStore.consulAclLoaded && !authStore.consulAclEnabled) {
     if (to.path === '/login') {
       next('/consul/dashboard')
     } else {

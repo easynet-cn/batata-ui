@@ -61,6 +61,48 @@
       </div>
 
       <div class="px-10 pb-10 space-y-6">
+        <!-- Provider switcher. Must stay outside the provider-specific forms:
+             after signing out of Consul/Apollo the persisted provider still
+             points at that provider, so the login page must always offer a way
+             back to Batata (and to the other enabled provider). -->
+        <div v-if="consulEnabled || apolloEnabled" class="space-y-2">
+          <p class="text-xs font-bold text-gray-400 uppercase ml-1">{{ t('providerSwitch') }}</p>
+          <div class="flex rounded-xl bg-gray-100 dark:bg-gray-800 p-1">
+            <button
+              type="button"
+              @click="switchTo('batata')"
+              :class="[
+                'flex-1 py-2 text-xs font-bold rounded-lg transition-all',
+                providerTabClass('batata'),
+              ]"
+            >
+              BATATA
+            </button>
+            <button
+              v-if="consulEnabled"
+              type="button"
+              @click="switchTo('consul')"
+              :class="[
+                'flex-1 py-2 text-xs font-bold rounded-lg transition-all',
+                providerTabClass('consul'),
+              ]"
+            >
+              CONSUL
+            </button>
+            <button
+              v-if="apolloEnabled"
+              type="button"
+              @click="switchTo('apollo')"
+              :class="[
+                'flex-1 py-2 text-xs font-bold rounded-lg transition-all',
+                providerTabClass('apollo'),
+              ]"
+            >
+              APOLLO
+            </button>
+          </div>
+        </div>
+
         <!-- Consul ACL: Tab switcher (Token / SSO) -->
         <div
           v-if="isConsulAcl && oidcProviders.length > 0"
@@ -254,34 +296,6 @@
               {{ t('signIn') }}
             </template>
           </button>
-
-          <div v-if="consulEnabled" class="pt-2 border-t border-gray-100 dark:border-gray-800">
-            <button
-              type="button"
-              @click="enterConsul"
-              class="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-950/30 hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900/40 transition-colors"
-            >
-              <span>{{ t('enterConsul') }}</span>
-              <span aria-hidden="true">→</span>
-            </button>
-            <p class="mt-2 text-xs text-center text-gray-400 dark:text-gray-500">
-              {{ authStore.consulAclEnabled ? t('consulAclRequired') : t('consulNoAclHint') }}
-            </p>
-          </div>
-
-          <div class="pt-2 border-t border-gray-100 dark:border-gray-800">
-            <button
-              type="button"
-              @click="enterApollo"
-              class="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors"
-            >
-              <span>{{ t('enterApollo') }}</span>
-              <span aria-hidden="true">→</span>
-            </button>
-            <p class="mt-2 text-xs text-center text-gray-400 dark:text-gray-500">
-              {{ t('apolloTokenLoginHint') }}
-            </p>
-          </div>
         </form>
 
         <div v-if="isConsulAcl" class="text-center">
@@ -311,13 +325,21 @@ import consulApi from '@/api/consul'
 import { storage } from '@/composables/useStorage'
 import { useProvider } from '@/composables/useProvider'
 import { switchProviderRoutes } from '@/router'
+import type { ProviderType } from '@/types'
 
 const { t, language, setLanguage } = useI18n()
 const router = useRouter()
 const batataStore = useBatataStore()
 const authStore = useAuthStore()
 const { isDark, toggleTheme } = useTheme()
-const { setProvider, consulEnabled, setConsulEnabled } = useProvider()
+const {
+  provider: storedProvider,
+  setProvider,
+  consulEnabled,
+  apolloEnabled,
+  setConsulEnabled,
+  setApolloEnabled,
+} = useProvider()
 
 const username = ref('')
 const password = ref('')
@@ -332,34 +354,59 @@ const oidcProviders = ref<Array<{ Name: string; DisplayName?: string; Kind: stri
 const selectedOidcProvider = ref('')
 const oidcLoading = ref(false)
 
-const provider = computed(() => {
-  const p = storage.get('batata_provider') || 'batata'
-  return p === 'null' || !p ? 'batata' : (p as string)
-})
+// Reactive provider. Reading localStorage directly inside a computed has no
+// reactive dependency, so the value was cached for the lifetime of the login
+// page and never followed setProvider() - switching provider silently kept
+// the old form until a full reload.
+const provider = computed<ProviderType>(() =>
+  storedProvider.value === 'consul' || storedProvider.value === 'apollo'
+    ? storedProvider.value
+    : 'batata',
+)
 
 const isConsulAcl = computed(() => provider.value === 'consul' && authStore.consulAclEnabled)
 const isApollo = computed(() => provider.value === 'apollo')
+
+const providerTabClass = (p: ProviderType): string => {
+  if (provider.value !== p) {
+    return 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+  }
+  const activeColor =
+    p === 'batata'
+      ? 'text-blue-600 dark:text-blue-400'
+      : p === 'consul'
+        ? 'text-fuchsia-600 dark:text-fuchsia-400'
+        : 'text-emerald-600 dark:text-emerald-400'
+  return `bg-white dark:bg-gray-700 shadow-sm ${activeColor}`
+}
 
 onMounted(async () => {
   try {
     const res = await batataApi.getServerState()
     const state = res.data
 
-    // Set consul ACL state
+    // Reading the server state also marks the Consul ACL flag as "known".
+    // Until then authStore fails closed (ACL assumed enabled), so an
+    // unauthenticated cold start cannot bypass the login page.
     authStore.setConsulAclEnabled(state.consul_acl_enabled === 'true')
 
-    // Server-side capability: whether Consul is supported at all. This drives
-    // whether the login screen offers a Consul entry point, keeping it
-    // consistent with the post-login layout (BatataLayout also uses this flag).
+    // Both flags gate the login-page provider switcher, matching the
+    // server-state-driven entries in the post-login layout.
     setConsulEnabled(state.consul_enabled === 'true')
+    setApolloEnabled(state.apollo_enabled === 'true')
 
-    // If the remembered provider is Consul but the server does not support it,
-    // fall back to Batata instead of chasing a non-existent Consul screen.
-    if (provider.value === 'consul' && !consulEnabled.value) {
-      storage.set('batata_provider', 'batata')
+    // If the remembered provider is no longer supported by the server, fall
+    // back to Batata. setProvider() updates the reactive ref, so the form
+    // changes immediately instead of only after a reload.
+    if (
+      (provider.value === 'consul' && !consulEnabled.value) ||
+      (provider.value === 'apollo' && !apolloEnabled.value)
+    ) {
+      setProvider('batata')
+      switchProviderRoutes('batata')
     }
 
-    // Consul supported but ACL disabled: skip straight to the dashboard.
+    // Consul supported but ACL disabled: no credentials needed.
     if (provider.value === 'consul' && consulEnabled.value && !authStore.consulAclEnabled) {
       router.replace('/consul/dashboard')
       return
@@ -463,25 +510,25 @@ const continueWithoutLogin = () => {
   router.push('/consul/dashboard')
 }
 
-const enterConsul = () => {
-  setProvider('consul')
-  switchProviderRoutes('consul')
-  if (authStore.consulAclEnabled) {
-    // Stay on login page; UI re-renders into the Consul ACL form
-    loginError.value = ''
-    if (oidcProviders.value.length === 0) {
-      fetchOidcProviders()
-    }
-  } else {
-    router.replace('/consul/dashboard')
-  }
-}
-
-const enterApollo = () => {
-  setProvider('apollo')
-  switchProviderRoutes('apollo')
-  // Stay on login page; UI re-renders into the Apollo token form
+async function switchTo(p: ProviderType) {
+  if (provider.value === p) return
+  setProvider(p)
+  switchProviderRoutes(p)
   loginError.value = ''
+  username.value = ''
+  password.value = ''
+  consulToken.value = ''
+  apolloToken.value = ''
+  consulLoginTab.value = 'token'
+  if (p === 'consul' && authStore.consulAclEnabled && oidcProviders.value.length === 0) {
+    await fetchOidcProviders()
+  }
+  // Consul with ACL disabled needs no credentials - go straight to the
+  // dashboard, consistent with the router guard and onMounted. Only do this
+  // once the ACL state is known; before that we fail closed on the login page.
+  if (p === 'consul' && authStore.consulAclLoaded && !authStore.consulAclEnabled) {
+    await router.replace('/consul/dashboard')
+  }
 }
 
 const toggleLanguage = () => {

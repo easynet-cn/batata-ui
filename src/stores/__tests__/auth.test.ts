@@ -160,6 +160,20 @@ describe('auth store', () => {
       expect(storage.remove).toHaveBeenCalledWith('batata-username')
       expect(storage.remove).toHaveBeenCalledWith('batata_user')
     })
+
+    it('keeps batata_provider so the login page can still offer a switch back', async () => {
+      vi.mocked(batataApi.login).mockResolvedValue({
+        data: { accessToken: 'token' },
+      } as never)
+
+      const store = useAuthStore()
+      await store.login('admin', 'password')
+      store.logout()
+
+      // Signing out of Consul/Apollo intentionally lands on that provider's
+      // login page; LoginView owns the provider switcher, not logout().
+      expect(storage.remove).not.toHaveBeenCalledWith('batata_provider')
+    })
   })
 
   describe('restoreSession', () => {
@@ -236,6 +250,55 @@ describe('auth store', () => {
       expect(result).toBe(true)
       // Should not call storage since user is already set
       expect(storage.getJSON).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('consul ACL state', () => {
+    const asConsulSession = (token: string | null = null) => {
+      vi.mocked(storage.get).mockImplementation((key: string) =>
+        key === 'batata_provider' ? 'consul' : token,
+      )
+      vi.mocked(storage.getJSON).mockReturnValue(null)
+    }
+
+    it('fails closed before the server state is known', () => {
+      asConsulSession()
+      const store = useAuthStore()
+
+      // Cold start must not grant anonymous access just because the ACL flag
+      // has not been read yet (the old guard bypassed auth on this path).
+      expect(store.consulAclLoaded).toBe(false)
+      expect(store.restoreSession()).toBe(false)
+      expect(store.currentUser).toBeNull()
+    })
+
+    it('allows anonymous access only after ACL is confirmed disabled', () => {
+      asConsulSession()
+      const store = useAuthStore()
+      store.setConsulAclEnabled(false)
+      store.logout() // drop the anonymous user auto-created by the setter
+
+      expect(store.consulAclLoaded).toBe(true)
+      expect(store.restoreSession()).toBe(true)
+      expect(store.currentUser?.username).toBe('anonymous')
+    })
+
+    it('still requires a token when ACL is enabled', () => {
+      asConsulSession()
+      const store = useAuthStore()
+      store.setConsulAclEnabled(true)
+      store.logout()
+
+      expect(store.restoreSession()).toBe(false)
+      expect(store.currentUser).toBeNull()
+    })
+
+    it('restores a consul token regardless of ACL state', () => {
+      asConsulSession('consul-secret')
+      const store = useAuthStore()
+
+      expect(store.restoreSession()).toBe(true)
+      expect(store.currentUser?.token).toBe('consul-secret')
     })
   })
 

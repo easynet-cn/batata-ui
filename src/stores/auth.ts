@@ -10,7 +10,11 @@ export const useAuthStore = defineStore('auth', () => {
   const currentUser = ref<{ username: string; token: string; globalAdmin: boolean } | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
-  const consulAclEnabled = ref(false)
+  // Fail closed until the server state has been read: on a cold start we must
+  // not assume Consul ACL is disabled, otherwise the router guard lets an
+  // unauthenticated visitor straight into the Consul dashboard.
+  const consulAclEnabled = ref(true)
+  const consulAclLoaded = ref(false)
 
   const isAuthenticated = computed(() => !!currentUser.value)
   const username = computed(() => currentUser.value?.username || '')
@@ -28,8 +32,9 @@ export const useAuthStore = defineStore('auth', () => {
         currentUser.value = { username: 'consul', token: consulToken, globalAdmin: true }
         return true
       }
-      // If ACL is disabled, allow access without token
-      if (!consulAclEnabled.value) {
+      // Anonymous access only after the server confirmed ACL is disabled.
+      // Before that, consulAclEnabled defaults to true (fail closed).
+      if (consulAclLoaded.value && !consulAclEnabled.value) {
         currentUser.value = { username: 'anonymous', token: '', globalAdmin: false }
         return true
       }
@@ -157,6 +162,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function setConsulAclEnabled(enabled: boolean) {
     consulAclEnabled.value = enabled
+    consulAclLoaded.value = true
     // When ACL is disabled, auto-authenticate as anonymous
     if (!enabled) {
       const provider = storage.get('batata_provider') || 'batata'
@@ -221,6 +227,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     error,
     consulAclEnabled,
+    consulAclLoaded,
     isAuthenticated,
     isGlobalAdmin,
     username,
