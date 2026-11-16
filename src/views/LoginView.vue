@@ -250,6 +250,23 @@
           </button>
         </form>
 
+        <!-- Consul: signed out of anonymous access -->
+        <div v-else-if="isConsulSignedOut" class="text-center space-y-3 py-2">
+          <p class="text-sm font-bold text-gray-700 dark:text-gray-200">
+            {{ t('consulSignedOut') }}
+          </p>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            {{ t('consulSignedOutHint') }}
+          </p>
+          <button
+            type="button"
+            @click="continueWithoutLogin"
+            class="text-fuchsia-600 dark:text-fuchsia-400 hover:text-fuchsia-700 text-sm font-medium transition-colors"
+          >
+            {{ t('consulContinueWithout') }}
+          </button>
+        </div>
+
         <!-- Batata username/password login -->
         <form v-else @submit.prevent="handleSubmit" class="space-y-6">
           <div class="space-y-1">
@@ -324,6 +341,7 @@ import batataApi from '@/api/batata'
 import consulApi from '@/api/consul'
 import { storage } from '@/composables/useStorage'
 import { useProvider } from '@/composables/useProvider'
+import { useProviderSession } from '@/composables/useProviderSession'
 import { switchProviderRoutes } from '@/router'
 import type { ProviderType } from '@/types'
 
@@ -331,6 +349,7 @@ const { t, language, setLanguage } = useI18n()
 const router = useRouter()
 const batataStore = useBatataStore()
 const authStore = useAuthStore()
+const { switchToProvider } = useProviderSession()
 const { isDark, toggleTheme } = useTheme()
 const {
   provider: storedProvider,
@@ -365,6 +384,11 @@ const provider = computed<ProviderType>(() =>
 )
 
 const isConsulAcl = computed(() => provider.value === 'consul' && authStore.consulAclEnabled)
+// ACL disabled + explicit sign-out: show a re-entry panel instead of falling
+// through to the batata username/password form.
+const isConsulSignedOut = computed(
+  () => provider.value === 'consul' && authStore.isProviderSignedOut('consul'),
+)
 const isApollo = computed(() => provider.value === 'apollo')
 
 const providerTabClass = (p: ProviderType): string => {
@@ -406,8 +430,9 @@ onMounted(async () => {
       switchProviderRoutes('batata')
     }
 
-    // Consul supported but ACL disabled: no credentials needed.
-    if (provider.value === 'consul' && consulEnabled.value && !authStore.consulAclEnabled) {
+    // Consul supported but ACL disabled: no credentials needed. Skip the
+    // auto-entry after an explicit sign-out so /login remains usable.
+    if (provider.value === 'consul' && consulEnabled.value && authStore.consulAnonymousAllowed) {
       router.replace('/consul/dashboard')
       return
     }
@@ -505,15 +530,14 @@ async function handleOidcLogin() {
 }
 
 const continueWithoutLogin = () => {
-  // Allow anonymous access - set user with empty token
-  authStore.setConsulAclEnabled(false)
+  // Re-enter Consul's anonymous mode after an explicit sign-out.
+  authStore.loginAnonymously()
   router.push('/consul/dashboard')
 }
 
 async function switchTo(p: ProviderType) {
   if (provider.value === p) return
-  setProvider(p)
-  switchProviderRoutes(p)
+  const { authenticated } = switchToProvider(p)
   loginError.value = ''
   username.value = ''
   password.value = ''
@@ -523,11 +547,12 @@ async function switchTo(p: ProviderType) {
   if (p === 'consul' && authStore.consulAclEnabled && oidcProviders.value.length === 0) {
     await fetchOidcProviders()
   }
-  // Consul with ACL disabled needs no credentials - go straight to the
-  // dashboard, consistent with the router guard and onMounted. Only do this
-  // once the ACL state is known; before that we fail closed on the login page.
-  if (p === 'consul' && authStore.consulAclLoaded && !authStore.consulAclEnabled) {
-    await router.replace('/consul/dashboard')
+  // A provider that is already signed in enters directly instead of asking for
+  // credentials again. Otherwise stay on the login form for that provider.
+  if (authenticated) {
+    await router.replace(
+      p === 'consul' ? '/consul/dashboard' : p === 'apollo' ? '/apollo/apps' : '/',
+    )
   }
 }
 

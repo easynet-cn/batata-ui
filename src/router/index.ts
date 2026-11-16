@@ -758,11 +758,15 @@ router.beforeEach((to, _from, next) => {
   }
 
   // Consul with ACL disabled: skip auth entirely. Only allow this once the
-  // server state has actually been read (consulAclLoaded); on a cold start the
-  // auth store fails closed with ACL assumed enabled, so a reload cannot slip
-  // an unauthenticated visitor into the Consul dashboard. LoginView loads the
-  // state and then either shows the token form or enters the dashboard.
-  if (normalizedProvider === 'consul' && authStore.consulAclLoaded && !authStore.consulAclEnabled) {
+  // server state has actually been read (consulAclLoaded), and not after the
+  // user explicitly signed out of Consul — otherwise /login would bounce back
+  // to the dashboard and sign-out would appear to do nothing. On a cold start
+  // the store fails closed with ACL assumed enabled, so a reload cannot slip
+  // an unauthenticated visitor into the Consul dashboard.
+  if (normalizedProvider === 'consul' && authStore.consulAnonymousAllowed) {
+    // Establish the anonymous identity (or a stored token, if present) so the
+    // header and API clients see the right session on this provider.
+    authStore.restoreSession('consul')
     if (to.path === '/login') {
       next('/consul/dashboard')
     } else {
@@ -771,7 +775,9 @@ router.beforeEach((to, _from, next) => {
     return
   }
 
-  // Restore user session from localStorage if not already in store
+  // Rebuild the identity from the ACTIVE provider's own credentials. This is
+  // what makes switching to an already signed-in provider enter directly,
+  // instead of reusing another provider's stale global identity.
   authStore.restoreSession()
 
   if (to.meta.requiresAuth !== false && !authStore.isAuthenticated) {

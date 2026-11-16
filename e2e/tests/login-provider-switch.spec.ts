@@ -125,4 +125,115 @@ test.describe('login page provider switch', () => {
     // then reads the state and enters the dashboard anonymously.
     await expect(page).toHaveURL(/\/consul\/dashboard/, { timeout: 15_000 })
   })
+
+  test('signing out of anonymous Consul stays on /login and can re-enter', async ({ page }) => {
+    await seedProvider(page, 'consul', { consul_acl_enabled: 'false' })
+    await page.goto('/login')
+    await expect(page).toHaveURL(/\/consul\/dashboard/, { timeout: 15_000 })
+
+    // Open the header user menu and sign out.
+    await page
+      .locator('header button')
+      .filter({ hasText: /anonymous/i })
+      .first()
+      .click()
+    await page.getByRole('button', { name: 'Sign Out' }).click()
+
+    // The explicit sign-out must survive: /login must not bounce back to the
+    // Consul dashboard just because ACL is disabled.
+    await expect(page).toHaveURL(/\/login/, { timeout: 10_000 })
+    await expect(page.getByText('You have signed out of Consul')).toBeVisible()
+    expect(await page.evaluate(() => localStorage.getItem('batata_signed_out_providers'))).toBe(
+      'consul',
+    )
+
+    // A reload keeps the sign-out (the marker is persisted).
+    await page.reload()
+    await expect(page).toHaveURL(/\/login/)
+    await expect(page.getByText('You have signed out of Consul')).toBeVisible()
+
+    // Re-entering anonymously clears the marker and returns to the dashboard.
+    await page.getByRole('button', { name: 'Continue without logging in' }).click()
+    await expect(page).toHaveURL(/\/consul\/dashboard/, { timeout: 10_000 })
+    expect(
+      await page.evaluate(() => localStorage.getItem('batata_signed_out_providers')),
+    ).toBeNull()
+  })
+
+  test('signing out of Consul keeps the batata session for direct re-entry', async ({ page }) => {
+    // Seed a live batata session plus a Consul token session.
+    await page.addInitScript(() => {
+      localStorage.setItem('batata_lang', 'en')
+      localStorage.setItem('batata_provider', 'consul')
+      localStorage.setItem('batata-token', 'batata-secret-token')
+      localStorage.setItem('batata-username', 'admin')
+      localStorage.setItem('batata_user', JSON.stringify({ name: 'admin', globalAdmin: true }))
+      localStorage.setItem('consul-token', 'consul-secret-token')
+      localStorage.setItem('consul_user', 'my-consul-token')
+      localStorage.removeItem('apollo-token')
+      localStorage.removeItem('batata_signed_out_providers')
+    })
+    await page.route('**/v3/console/server/state', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(SERVER_STATE),
+      }),
+    )
+    await page.route('**/consul-api/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+    )
+    await page.route('**/apollo-api/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+    )
+
+    await page.goto('/consul/dashboard')
+    await expect(page).toHaveURL(/\/consul\/dashboard/)
+
+    // Sign out of Consul only.
+    await page
+      .locator('header button')
+      .filter({ hasText: /my-consul-token/i })
+      .first()
+      .click()
+    await page.getByRole('button', { name: 'Sign Out' }).click()
+    await expect(page).toHaveURL(/\/login/, { timeout: 10_000 })
+
+    // Batata credentials must be untouched.
+    expect(await page.evaluate(() => localStorage.getItem('batata-token'))).toBe(
+      'batata-secret-token',
+    )
+    expect(await page.evaluate(() => localStorage.getItem('consul-token'))).toBeNull()
+
+    // Switching to Batata enters directly — no username/password prompt.
+    await page.getByRole('button', { name: 'BATATA' }).click()
+    await expect(page).toHaveURL(/\/$/, { timeout: 10_000 })
+    await expect(page.getByRole('heading', { name: 'Welcome Back' })).toHaveCount(0)
+  })
+
+  test('header shows the readable token name, never the raw token tail', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('batata_lang', 'en')
+      localStorage.setItem('batata_provider', 'consul')
+      localStorage.setItem('consul-token', 'abcdefgh-secret-token-12345678')
+      localStorage.setItem('consul_user', 'prod-consul-admin')
+    })
+    await page.route('**/v3/console/server/state', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(SERVER_STATE),
+      }),
+    )
+    await page.route('**/consul-api/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+    )
+
+    await page.goto('/consul/dashboard')
+    await expect(page).toHaveURL(/\/consul\/dashboard/)
+    const header = page.locator('header')
+    await expect(header.getByText('prod-consul-admin')).toBeVisible()
+    // The old UI rendered '...' + the last 8 chars of the SecretID as identity.
+    await expect(header.getByText(/12345678/)).toHaveCount(0)
+  })
 })

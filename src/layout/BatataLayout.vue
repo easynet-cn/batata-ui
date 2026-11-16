@@ -424,7 +424,7 @@
               </div>
               <div class="hidden sm:block text-left">
                 <div class="text-xs font-bold text-gray-900 dark:text-gray-100 leading-none">
-                  {{ isConsulProvider ? consulTokenDisplay : user?.name || 'User' }}
+                  {{ user?.name || 'User' }}
                 </div>
                 <div
                   class="text-[10px] text-gray-400 dark:text-gray-500 leading-none mt-0.5 uppercase"
@@ -618,7 +618,7 @@ import { globalNotifications } from '@/composables/useNotifications'
 import { config } from '@/config'
 import { useTheme } from '@/composables/useTheme'
 import { useProvider } from '@/composables/useProvider'
-import { switchProviderRoutes } from '@/router'
+import { useProviderSession } from '@/composables/useProviderSession'
 import { storage } from '@/composables/useStorage'
 import FormModal from '@/components/common/FormModal.vue'
 import { toast } from '@/utils/error'
@@ -641,6 +641,7 @@ const {
   canReadOperator,
 } = useConsulAbilities()
 const { isDark, toggleTheme } = useTheme()
+const { switchToProvider, homeForProvider } = useProviderSession()
 const {
   provider,
   consulEnabled,
@@ -649,7 +650,6 @@ const {
   providerShadowClass,
   providerTextClass,
   providerLetter,
-  setProvider,
   setConsulEnabled,
   setApolloEnabled,
   consoleUiEnabled,
@@ -725,13 +725,11 @@ const user = computed(() =>
   batataStore.currentUser ? { name: batataStore.currentUser.username } : null,
 )
 const isConsulProvider = computed(() => provider.value === 'consul')
+// Keep the raw token only for the "switch token" action. Never render it as
+// the user identity — the readable token name lives in `currentUser.username`.
 const consulTokenId = computed(() => {
   if (!isConsulProvider.value) return ''
   return batataStore.currentUser?.token || ''
-})
-const consulTokenDisplay = computed(() => {
-  if (!consulTokenId.value) return user.value?.name || 'Anonymous'
-  return '...' + consulTokenId.value.slice(-8)
 })
 const defaultNamespace: Namespace = {
   namespace: '',
@@ -779,14 +777,12 @@ const fetchServerState = async () => {
     setConsoleUiEnabled(state?.console_ui_enabled !== 'false')
     // If consul is not enabled but user was on consul provider, switch back to batata
     if (!consulOn && provider.value === 'consul') {
-      setProvider('batata')
-      switchProviderRoutes('batata')
+      switchToProvider('batata')
       router.push('/')
     }
     // If apollo is not enabled but user was on apollo provider, switch back to batata
     if (!apolloOn && provider.value === 'apollo') {
-      setProvider('batata')
-      switchProviderRoutes('batata')
+      switchToProvider('batata')
       router.push('/')
     }
   } catch {
@@ -794,8 +790,7 @@ const fetchServerState = async () => {
     setConsulEnabled(false)
     setApolloEnabled(false)
     if (provider.value === 'consul' || provider.value === 'apollo') {
-      setProvider('batata')
-      switchProviderRoutes('batata')
+      switchToProvider('batata')
       router.push('/')
     }
   }
@@ -955,27 +950,12 @@ const isActiveRoute = (path: string) => {
 
 const handleSwitchProvider = (p: ProviderType) => {
   if (provider.value === p) return
-  setProvider(p)
-  switchProviderRoutes(p)
-  switch (p) {
-    case 'consul':
-      initConsul()
-      router.push('/consul/dashboard')
-      break
-    case 'apollo':
-      router.push('/apollo/apps')
-      break
-    default:
-      // Batata mode requires authentication, redirect to login if not authenticated
-      if (!batataStore.isAuthenticated) {
-        router.push('/login')
-      } else {
-        router.push('/')
-        // Re-fetch namespaces when (re)entering the batata provider, since the
-        // layout does not remount on provider switch.
-        fetchNamespaces()
-      }
-  }
+  const { authenticated } = switchToProvider(p)
+  if (p === 'consul') initConsul()
+  router.push(authenticated ? homeForProvider(p) : '/login')
+  // Re-fetch namespaces when (re)entering an authenticated batata provider,
+  // since the layout does not remount on provider switch.
+  if (p === 'batata' && authenticated) fetchNamespaces()
 }
 
 const nacosNavGroups = computed(() => {

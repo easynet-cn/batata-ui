@@ -141,45 +141,167 @@ describe('auth store', () => {
     })
   })
 
-  describe('logout', () => {
-    it('clears user state and storage', async () => {
-      vi.mocked(batataApi.login).mockResolvedValue({
-        data: { accessToken: 'token' },
-      } as never)
+  describe('per-provider sessions', () => {
+    const asProviders = (provider: string, tokens: Record<string, string | null> = {}) => {
+      vi.mocked(storage.get).mockImplementation(
+        (key: string) =>
+          ({
+            batata_provider: provider,
+            'batata-token': tokens.batata ?? null,
+            'consul-token': tokens.consul ?? null,
+            'apollo-token': tokens.apollo ?? null,
+            consul_user: tokens.consulName ?? null,
+            apollo_user: tokens.apolloName ?? null,
+            batata_signed_out_providers: tokens.signedOut ?? null,
+          })[key] ?? null,
+      )
+      vi.mocked(storage.getJSON).mockImplementation((key: string) =>
+        key === 'batata_user'
+          ? tokens.batata
+            ? { name: 'batata-user', globalAdmin: false }
+            : null
+          : null,
+      )
+    }
 
+    it('resolves each identity from its own provider credentials', () => {
+      asProviders('batata', {
+        batata: 'batata-token',
+        consul: 'consul-token',
+        consulName: 'my-consul-token',
+        apollo: 'apollo-token',
+        apolloName: 'apollo-user',
+      })
       const store = useAuthStore()
-      await store.login('admin', 'password')
-      expect(store.isAuthenticated).toBe(true)
+
+      expect(store.getSessionForProvider('batata')).toEqual({
+        username: 'batata-user',
+        token: 'batata-token',
+        globalAdmin: false,
+      })
+      expect(store.getSessionForProvider('consul')).toEqual({
+        username: 'my-consul-token',
+        token: 'consul-token',
+        globalAdmin: true,
+      })
+      expect(store.getSessionForProvider('apollo')).toEqual({
+        username: 'apollo-user',
+        token: 'apollo-token',
+        globalAdmin: true,
+      })
+    })
+
+    it('rebuilds currentUser for an explicitly requested provider', () => {
+      asProviders('batata', {
+        batata: 'batata-token',
+        consul: 'consul-token',
+        consulName: 'consul-name',
+      })
+      const store = useAuthStore()
+
+      expect(store.restoreSession()).toBe(true)
+      expect(store.currentUser?.username).toBe('batata-user')
+
+      // Switching provider rebuilds the identity from that provider's keys.
+      expect(store.restoreSession('consul')).toBe(true)
+      expect(store.currentUser).toEqual({
+        username: 'consul-name',
+        token: 'consul-token',
+        globalAdmin: true,
+      })
+
+      // And switching back restores the batata identity again.
+      expect(store.restoreSession('batata')).toBe(true)
+      expect(store.currentUser?.username).toBe('batata-user')
+    })
+
+    it('logout clears only the active provider credentials', () => {
+      asProviders('consul', {
+        batata: 'batata-token',
+        consul: 'consul-token',
+        apollo: 'apollo-token',
+      })
+      const store = useAuthStore()
+      store.restoreSession()
+      expect(store.currentUser?.token).toBe('consul-token')
 
       store.logout()
 
+      // Only Consul keys are removed; batata and Apollo stay signed in.
+      expect(storage.remove).toHaveBeenCalledWith('consul-token')
+      expect(storage.remove).not.toHaveBeenCalledWith('batata-token')
+      expect(storage.remove).not.toHaveBeenCalledWith('batata_user')
+      expect(storage.remove).not.toHaveBeenCalledWith('apollo-token')
+      expect(storage.remove).not.toHaveBeenCalledWith('apollo_user')
+      // The provider preference stays so the login page can offer a switcher.
+      expect(storage.remove).not.toHaveBeenCalledWith('batata_provider')
       expect(store.currentUser).toBeNull()
-      expect(store.isAuthenticated).toBe(false)
-      expect(store.username).toBe('')
+    })
+
+    it('logout of batata clears batata keys but keeps consul and apollo keys', () => {
+      asProviders('batata', {
+        batata: 'batata-token',
+        consul: 'consul-token',
+        apollo: 'apollo-token',
+      })
+      const store = useAuthStore()
+
+      store.logout()
+
       expect(storage.remove).toHaveBeenCalledWith('batata-token')
       expect(storage.remove).toHaveBeenCalledWith('batata-username')
       expect(storage.remove).toHaveBeenCalledWith('batata_user')
+      expect(storage.remove).not.toHaveBeenCalledWith('consul-token')
+      expect(storage.remove).not.toHaveBeenCalledWith('apollo-token')
     })
+  })
 
-    it('keeps batata_provider so the login page can still offer a switch back', async () => {
-      vi.mocked(batataApi.login).mockResolvedValue({
-        data: { accessToken: 'token' },
-      } as never)
-
+  describe('logout', () => {
+    it('marks the active provider as explicitly signed out (persisted)', () => {
+      asProvidersForLogout('consul')
       const store = useAuthStore()
-      await store.login('admin', 'password')
+
       store.logout()
 
-      // Signing out of Consul/Apollo intentionally lands on that provider's
-      // login page; LoginView owns the provider switcher, not logout().
-      expect(storage.remove).not.toHaveBeenCalledWith('batata_provider')
+      expect(store.explicitlyLoggedOut).toBe('consul')
+      expect(storage.set).toHaveBeenCalledWith('batata_signed_out_providers', 'consul')
+    })
+
+    it('successful login clears only its own signed-out marker', async () => {
+      asProvidersForLogout('batata')
+      vi.mocked(batataApi.login).mockResolvedValue({ data: { accessToken: 'token' } } as never)
+      const store = useAuthStore()
+      // Simulate a prior Consul sign-out with a persisted marker.
+      vi.mocked(storage.get).mockImplementation((key: string) =>
+        key === 'batata_signed_out_providers'
+          ? 'consul'
+          : key === 'batata_provider'
+            ? 'batata'
+            : null,
+      )
+      store.signedOutProviders.push('consul')
+      store.logout() // marks batata as well -> ['consul', 'batata']
+      expect(store.isProviderSignedOut('consul')).toBe(true)
+      expect(store.isProviderSignedOut('batata')).toBe(true)
+
+      await store.login('admin', 'password')
+
+      // Batata login clears only batata; Consul stays signed out.
+      expect(store.isProviderSignedOut('batata')).toBe(false)
+      expect(store.isProviderSignedOut('consul')).toBe(true)
     })
   })
 
   describe('restoreSession', () => {
+    const asBatata = (user: unknown, token: string | null) => {
+      vi.mocked(storage.get).mockImplementation((key: string) =>
+        key === 'batata_provider' ? 'batata' : key === 'batata-token' ? token : null,
+      )
+      vi.mocked(storage.getJSON).mockReturnValue(user as never)
+    }
+
     it('restores session from storage when user and token exist', () => {
-      vi.mocked(storage.getJSON).mockReturnValue({ name: 'saved-user' })
-      vi.mocked(storage.get).mockReturnValue('saved-token')
+      asBatata({ name: 'saved-user' }, 'saved-token')
 
       const store = useAuthStore()
       const result = store.restoreSession()
@@ -194,62 +316,46 @@ describe('auth store', () => {
     })
 
     it('restores the globalAdmin flag from the stored user', () => {
-      vi.mocked(storage.getJSON).mockReturnValue({ name: 'saved-admin', globalAdmin: true })
-      vi.mocked(storage.get).mockReturnValue('saved-token')
+      asBatata({ name: 'saved-admin', globalAdmin: true }, 'saved-token')
 
       const store = useAuthStore()
-      const result = store.restoreSession()
-
-      expect(result).toBe(true)
+      expect(store.restoreSession()).toBe(true)
       expect(store.isGlobalAdmin).toBe(true)
     })
 
     it('returns false when no saved user in storage', () => {
-      vi.mocked(storage.getJSON).mockReturnValue(null)
-      vi.mocked(storage.get).mockReturnValue(null)
+      asBatata(null, null)
 
       const store = useAuthStore()
-      const result = store.restoreSession()
-
-      expect(result).toBe(false)
+      expect(store.restoreSession()).toBe(false)
       expect(store.currentUser).toBeNull()
     })
 
     it('returns false when token is missing', () => {
-      vi.mocked(storage.getJSON).mockReturnValue({ name: 'user' })
-      vi.mocked(storage.get).mockReturnValue(null)
+      asBatata({ name: 'user' }, null)
 
       const store = useAuthStore()
-      const result = store.restoreSession()
-
-      expect(result).toBe(false)
+      expect(store.restoreSession()).toBe(false)
       expect(store.currentUser).toBeNull()
     })
 
     it('returns false when user name is missing', () => {
-      vi.mocked(storage.getJSON).mockReturnValue({})
-      vi.mocked(storage.get).mockReturnValue('token')
+      asBatata({}, 'token')
 
       const store = useAuthStore()
-      const result = store.restoreSession()
-
-      expect(result).toBe(false)
+      expect(store.restoreSession()).toBe(false)
       expect(store.currentUser).toBeNull()
     })
 
-    it('returns true immediately if user is already set', async () => {
-      vi.mocked(batataApi.login).mockResolvedValue({
-        data: { accessToken: 'token' },
-      } as never)
-
+    it('rebuilds from storage even when a stale identity is held in memory', () => {
+      asBatata(null, null)
       const store = useAuthStore()
-      await store.login('admin', 'password')
+      store.currentUser = { username: 'stale', token: 'stale', globalAdmin: false }
 
-      const result = store.restoreSession()
-
-      expect(result).toBe(true)
-      // Should not call storage since user is already set
-      expect(storage.getJSON).not.toHaveBeenCalled()
+      // The old short-circuit returned true without touching storage, which is
+      // what made a provider switch keep the previous provider's identity.
+      expect(store.restoreSession()).toBe(false)
+      expect(store.currentUser).toBeNull()
     })
   })
 
@@ -276,9 +382,9 @@ describe('auth store', () => {
       asConsulSession()
       const store = useAuthStore()
       store.setConsulAclEnabled(false)
-      store.logout() // drop the anonymous user auto-created by the setter
 
       expect(store.consulAclLoaded).toBe(true)
+      expect(store.consulAnonymousAllowed).toBe(true)
       expect(store.restoreSession()).toBe(true)
       expect(store.currentUser?.username).toBe('anonymous')
     })
@@ -287,7 +393,6 @@ describe('auth store', () => {
       asConsulSession()
       const store = useAuthStore()
       store.setConsulAclEnabled(true)
-      store.logout()
 
       expect(store.restoreSession()).toBe(false)
       expect(store.currentUser).toBeNull()
@@ -299,6 +404,45 @@ describe('auth store', () => {
 
       expect(store.restoreSession()).toBe(true)
       expect(store.currentUser?.token).toBe('consul-secret')
+    })
+
+    it('does not auto-enter anonymous Consul after an explicit sign-out', () => {
+      asConsulSession()
+      const store = useAuthStore()
+      store.setConsulAclEnabled(false)
+      store.logout()
+
+      expect(store.consulAnonymousAllowed).toBe(false)
+      expect(store.explicitlyLoggedOut).toBe('consul')
+      expect(store.restoreSession()).toBe(false)
+      expect(store.currentUser).toBeNull()
+    })
+
+    it('loginAnonymously re-enters Consul and clears the sign-out marker', () => {
+      asConsulSession()
+      const store = useAuthStore()
+      store.setConsulAclEnabled(false)
+      store.logout()
+
+      expect(store.loginAnonymously()).toBe(true)
+      expect(store.explicitlyLoggedOut).toBeNull()
+      expect(store.consulAnonymousAllowed).toBe(true)
+      expect(store.currentUser?.username).toBe('anonymous')
+    })
+
+    it('honours a persisted sign-out marker on a fresh store (reload)', () => {
+      vi.mocked(storage.get).mockImplementation((key: string) => {
+        if (key === 'batata_provider') return 'consul'
+        if (key === 'batata_signed_out_providers') return 'consul'
+        return null
+      })
+      vi.mocked(storage.getJSON).mockReturnValue(null)
+      const store = useAuthStore()
+      store.setConsulAclEnabled(false)
+
+      expect(store.explicitlyLoggedOut).toBe('consul')
+      expect(store.consulAnonymousAllowed).toBe(false)
+      expect(store.restoreSession()).toBe(false)
     })
   })
 
@@ -315,3 +459,11 @@ describe('auth store', () => {
     })
   })
 })
+
+// Small helper shared by the logout-marker tests (no API calls needed).
+function asProvidersForLogout(provider: string) {
+  vi.mocked(storage.get).mockImplementation((key: string) =>
+    key === 'batata_provider' ? provider : null,
+  )
+  vi.mocked(storage.getJSON).mockReturnValue(null)
+}
