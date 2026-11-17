@@ -48,6 +48,8 @@ import type {
   ApolloCommitDTO,
 } from '@/types/apollo'
 import CodeEditor from '@/components/common/CodeEditor.vue'
+import { validateContent } from '@/utils/formatters'
+import type { ConfigType } from '@/types'
 import ApolloRoleAssign from '@/views/apollo/ApolloRoleAssign.vue'
 import FormModal from '@/components/common/FormModal.vue'
 
@@ -532,17 +534,51 @@ async function deleteItem(item: ApolloItemDTO) {
 }
 
 // ---------------- Text mode ----------------
+// Upstream Apollo stores a namespace either as key/value lines (properties)
+// or as one whole-file item under the reserved "content" key
+// (json/xml/yaml/yml/txt). Mirror that contract so the editor's format select
+// actually affects serialization instead of always parsing as properties.
+const APOLLO_CONTENT_KEY = 'content'
+const SYNTAX_CHECKABLE_LANGUAGES: ConfigType[] = ['json', 'yaml']
+
 const textMode = ref(false)
 const textContent = ref('')
 const savingText = ref(false)
+const textSyntaxError = ref('')
+
+const textFormat = computed(() => currentNamespace.value?.format || 'properties')
+const isPropertiesText = computed(() => textFormat.value === 'properties')
+const textLanguage = computed<ConfigType>(() => {
+  switch (textFormat.value) {
+    case 'json':
+      return 'json'
+    case 'xml':
+      return 'xml'
+    case 'yml':
+    case 'yaml':
+      return 'yaml'
+    case 'txt':
+      return 'text'
+    default:
+      return 'properties'
+  }
+})
+
 function itemsToText(list: ApolloItemDTO[]): string {
+  if (!isPropertiesText.value) {
+    return list.find((i) => i.key === APOLLO_CONTENT_KEY)?.value ?? ''
+  }
   return list.map((i) => `${i.key}=${i.value}`).join('\n')
 }
 function openTextMode() {
+  textSyntaxError.value = ''
   textContent.value = itemsToText(items.value)
   textMode.value = true
 }
 function parseText(text: string): ApolloItemDTO[] {
+  if (!isPropertiesText.value) {
+    return [{ key: APOLLO_CONTENT_KEY, value: text }]
+  }
   const out: ApolloItemDTO[] = []
   for (const line of text.split('\n')) {
     const trimmed = line.trim()
@@ -554,6 +590,14 @@ function parseText(text: string): ApolloItemDTO[] {
   return out
 }
 async function saveText() {
+  textSyntaxError.value = ''
+  if (SYNTAX_CHECKABLE_LANGUAGES.includes(textLanguage.value)) {
+    const result = validateContent(textContent.value, textLanguage.value)
+    if (!result.valid) {
+      textSyntaxError.value = result.error || t('apolloInvalidTextSyntax')
+      return
+    }
+  }
   savingText.value = true
   try {
     const next = parseText(textContent.value)
@@ -670,6 +714,7 @@ function openReleaseModal() {
 
 function closeTextMode() {
   textMode.value = false
+  textSyntaxError.value = ''
 }
 
 function namespaceNameClass(ns: ApolloOpenNamespace): string {
@@ -1315,7 +1360,14 @@ onMounted(loadApp)
           </div>
 
           <div v-if="textMode" class="space-y-2">
-            <CodeEditor v-model="textContent" language="properties" :min-height="'400px'" />
+            <div class="flex items-center gap-2 text-sm text-text-secondary">
+              <span>{{ t('apolloFormat') }}: {{ textFormat }}</span>
+              <span v-if="SYNTAX_CHECKABLE_LANGUAGES.includes(textLanguage)" class="text-xs">
+                · {{ t('apolloSyntaxChecked') }}
+              </span>
+            </div>
+            <CodeEditor v-model="textContent" :language="textLanguage" :min-height="'400px'" />
+            <div v-if="textSyntaxError" class="text-danger text-sm">{{ textSyntaxError }}</div>
             <div class="flex justify-end gap-2">
               <button class="btn btn-ghost btn-sm" @click="closeTextMode()">
                 {{ t('cancel') }}
@@ -1448,8 +1500,7 @@ onMounted(loadApp)
                   <span v-if="ch.op !== 2" class="text-xs text-text-secondary">
                     <span v-if="ch.op === 1" class="text-danger line-through mr-1">{{
                       ch.oldValue
-                    }}</span
-                    >→ {{ ch.newValue }}</span
+                    }}</span>→ {{ ch.newValue }}</span
                   >
                 </div>
               </div>
@@ -1755,8 +1806,7 @@ onMounted(loadApp)
                   <span v-if="ch.op !== 2" class="text-xs text-text-secondary">
                     <span v-if="ch.op === 1" class="text-danger line-through mr-1">{{
                       ch.oldValue
-                    }}</span
-                    >→ {{ ch.newValue }}</span
+                    }}</span>→ {{ ch.newValue }}</span
                   >
                 </div>
               </div>
@@ -1905,8 +1955,10 @@ onMounted(loadApp)
           ><input v-model="nsForm.name" class="input" />
         </div>
         <div>
-          <label class="block text-xs mb-1">{{ t('apolloFormat') }}</label
-          ><select v-model="nsForm.format" class="input">
+          <label class="block text-xs mb-1">{{ t('apolloFormat') }}</label><select
+            v-model="nsForm.format"
+            class="input"
+          >
             <option v-for="f in formatOptions" :key="f" :value="f">{{ f }}</option>
           </select>
         </div>
@@ -1918,8 +1970,10 @@ onMounted(loadApp)
           >
         </div>
         <div>
-          <label class="block text-xs mb-1">{{ t('apolloComment') }}</label
-          ><input v-model="nsForm.comment" class="input" />
+          <label class="block text-xs mb-1">{{ t('apolloComment') }}</label><input
+            v-model="nsForm.comment"
+            class="input"
+          />
         </div>
       </div>
     </FormModal>
@@ -1996,8 +2050,10 @@ onMounted(loadApp)
           </div>
           <div class="flex gap-3">
             <div class="flex-1">
-              <label class="block text-xs mb-1">{{ t('apolloFormat') }}</label
-              ><select v-model="appNsForm.format" class="input">
+              <label class="block text-xs mb-1">{{ t('apolloFormat') }}</label><select
+                v-model="appNsForm.format"
+                class="input"
+              >
                 <option v-for="f in formatOptions" :key="f" :value="f">{{ f }}</option>
               </select>
             </div>
@@ -2037,8 +2093,7 @@ onMounted(loadApp)
           />
         </div>
         <div>
-          <label class="block text-xs mb-1">{{ t('apolloItemValue') }}</label
-          ><textarea
+          <label class="block text-xs mb-1">{{ t('apolloItemValue') }}</label><textarea
             v-model="itemForm.value"
             rows="4"
             class="input font-mono"
@@ -2046,8 +2101,11 @@ onMounted(loadApp)
           ></textarea>
         </div>
         <div>
-          <label class="block text-xs mb-1">{{ t('apolloComment') }}</label
-          ><input v-model="itemForm.comment" class="input" :placeholder="'comment'" />
+          <label class="block text-xs mb-1">{{ t('apolloComment') }}</label><input
+            v-model="itemForm.comment"
+            class="input"
+            :placeholder="'comment'"
+          />
         </div>
       </div>
     </FormModal>
@@ -2065,8 +2123,10 @@ onMounted(loadApp)
           ><input v-model="releaseForm.releaseTitle" class="input" />
         </div>
         <div>
-          <label class="block text-xs mb-1">{{ t('apolloReleaseComment') }}</label
-          ><input v-model="releaseForm.releaseComment" class="input" />
+          <label class="block text-xs mb-1">{{ t('apolloReleaseComment') }}</label><input
+            v-model="releaseForm.releaseComment"
+            class="input"
+          />
         </div>
       </div>
     </FormModal>
@@ -2165,8 +2225,7 @@ onMounted(loadApp)
           ><input v-model="grayItemForm.key" class="input" :placeholder="'key.name'" />
         </div>
         <div>
-          <label class="block text-xs mb-1">{{ t('apolloItemValue') }}</label
-          ><textarea
+          <label class="block text-xs mb-1">{{ t('apolloItemValue') }}</label><textarea
             v-model="grayItemForm.value"
             rows="4"
             class="input font-mono"
@@ -2174,8 +2233,11 @@ onMounted(loadApp)
           ></textarea>
         </div>
         <div>
-          <label class="block text-xs mb-1">{{ t('apolloComment') }}</label
-          ><input v-model="grayItemForm.comment" class="input" :placeholder="'comment'" />
+          <label class="block text-xs mb-1">{{ t('apolloComment') }}</label><input
+            v-model="grayItemForm.comment"
+            class="input"
+            :placeholder="'comment'"
+          />
         </div>
       </div>
     </FormModal>
@@ -2223,24 +2285,34 @@ onMounted(loadApp)
     >
       <div class="space-y-3">
         <div>
-          <label class="block text-xs mb-1">{{ t('apolloAppName') }}</label
-          ><input v-model="appEditForm.name" class="input" />
+          <label class="block text-xs mb-1">{{ t('apolloAppName') }}</label><input
+            v-model="appEditForm.name"
+            class="input"
+          />
         </div>
         <div>
-          <label class="block text-xs mb-1">{{ t('apolloOwnerName') }}</label
-          ><input v-model="appEditForm.ownerName" class="input" />
+          <label class="block text-xs mb-1">{{ t('apolloOwnerName') }}</label><input
+            v-model="appEditForm.ownerName"
+            class="input"
+          />
         </div>
         <div>
-          <label class="block text-xs mb-1">{{ t('apolloOwnerEmail') }}</label
-          ><input v-model="appEditForm.ownerEmail" class="input" />
+          <label class="block text-xs mb-1">{{ t('apolloOwnerEmail') }}</label><input
+            v-model="appEditForm.ownerEmail"
+            class="input"
+          />
         </div>
         <div>
-          <label class="block text-xs mb-1">{{ t('apolloOrgId') }}</label
-          ><input v-model="appEditForm.orgId" class="input" />
+          <label class="block text-xs mb-1">{{ t('apolloOrgId') }}</label><input
+            v-model="appEditForm.orgId"
+            class="input"
+          />
         </div>
         <div>
-          <label class="block text-xs mb-1">{{ t('apolloOrgName') }}</label
-          ><input v-model="appEditForm.orgName" class="input" />
+          <label class="block text-xs mb-1">{{ t('apolloOrgName') }}</label><input
+            v-model="appEditForm.orgName"
+            class="input"
+          />
         </div>
       </div>
     </FormModal>

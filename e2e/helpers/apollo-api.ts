@@ -69,12 +69,21 @@ export async function createNamespace(
   env: string,
   cluster: string,
   name: string,
+  format?: string,
 ): Promise<boolean> {
   // `OpenAppNamespaceDTO` requires appId + dataChangeCreatedBy in the body,
   // even though appId/env/cluster are already present in the path.
   const res = await ctx.post(
     `envs/${encodeURIComponent(env)}/apps/${encodeURIComponent(appId)}/clusters/${encodeURIComponent(cluster)}/namespaces`,
-    { data: { appId, name, dataChangeCreatedBy: 'e2e', comment: 'e2e' } },
+    {
+      data: {
+        appId,
+        name,
+        format: format ?? 'properties',
+        dataChangeCreatedBy: 'e2e',
+        comment: 'e2e',
+      },
+    },
   )
   if (res.ok()) return true
   // `createApp` already provisions the default `application` namespace, so
@@ -104,6 +113,28 @@ export async function createItem(
     { data: { key, value, comment: 'e2e', type: 0 } },
   )
   return res.ok()
+}
+
+export interface ApolloItem {
+  key: string
+  value: string
+}
+
+/** List all items of a namespace (helper for text-mode assertions). */
+export async function listItems(
+  ctx: APIRequestContext,
+  appId: string,
+  env: string,
+  cluster: string,
+  namespace: string,
+): Promise<ApolloItem[]> {
+  const res = await ctx.get(
+    `envs/${encodeURIComponent(env)}/apps/${encodeURIComponent(appId)}/clusters/${encodeURIComponent(cluster)}/namespaces/${encodeURIComponent(namespace)}/items`,
+    { params: { page: 0, size: 500 } },
+  )
+  if (!res.ok()) return []
+  const body = (await res.json()) as { content?: ApolloItem[] }
+  return body.content ?? []
 }
 
 export async function deleteItem(

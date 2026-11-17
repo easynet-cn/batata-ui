@@ -89,6 +89,17 @@ export class KVEditorPage {
     return this.page.getByPlaceholder('e.g., config/app/database')
   }
 
+  /** The Code toggle: on = CodeMirror editor, off = plain textarea (default on). */
+  get codeModeToggle(): Locator {
+    return this.page.getByRole('checkbox', { name: 'Code' })
+  }
+
+  /** CodeMirror editable area, present while code mode is on. */
+  get valueEditor(): Locator {
+    return this.page.locator('.cm-content').first()
+  }
+
+  /** Plain textarea, present only after switching code mode off. */
   get valueTextarea(): Locator {
     return this.page.getByPlaceholder('Enter value...')
   }
@@ -101,9 +112,20 @@ export class KVEditorPage {
     return this.page.getByRole('button', { name: 'Save' })
   }
 
+  /** Type into whichever value editor is currently active. */
+  async setValue(value: string): Promise<void> {
+    if (await this.valueTextarea.count()) {
+      await this.valueTextarea.fill(value)
+    } else {
+      await this.valueEditor.click()
+      await this.page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A')
+      await this.page.keyboard.type(value, { delay: 5 })
+    }
+  }
+
   async createKV(key: string, value: string, flags = 0): Promise<void> {
     await this.keyInput.fill(key)
-    await this.valueTextarea.fill(value)
+    await this.setValue(value)
     if (flags > 0) {
       await this.flagsInput.fill(String(flags))
     }

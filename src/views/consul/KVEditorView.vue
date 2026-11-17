@@ -47,12 +47,33 @@
           </p>
         </div>
 
-        <!-- Value Textarea -->
+        <!-- Value editor: syntax-highlighted code mode (default, matching
+             upstream Consul) with a toggle back to a plain textarea -->
         <div>
-          <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-            {{ t('consulKVValue') }}
-          </label>
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300">
+              {{ t('consulKVValue') }}
+            </label>
+            <label
+              class="flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-gray-400 cursor-pointer"
+            >
+              <input
+                v-model="codeMode"
+                type="checkbox"
+                class="rounded border-gray-300 text-fuchsia-600 focus:ring-fuchsia-500"
+              />
+              {{ t('consulKVCodeMode') }}
+            </label>
+          </div>
+          <CodeEditor
+            v-if="codeMode"
+            v-model="form.value"
+            language="yaml"
+            :min-height="'320px'"
+            :placeholder="t('consulKVValuePlaceholder')"
+          />
           <textarea
+            v-else
             v-model="form.value"
             rows="12"
             :placeholder="t('consulKVValuePlaceholder')"
@@ -117,10 +138,15 @@ import { useI18n } from '@/i18n'
 import consulApi from '@/api/consul'
 import { logger } from '@/utils/logger'
 import { decodeBase64 } from '@/utils/base64'
+import CodeEditor from '@/components/common/CodeEditor.vue'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+
+// Syntax-highlighted code mode is on by default, matching upstream Consul
+// (whose "Code" toggle defaults to true). Users can flip to a plain textarea.
+const codeMode = ref(true)
 
 const isEditMode = computed(() => route.query.mode === 'edit')
 const editKey = computed(() => (route.query.key as string) || '')

@@ -91,6 +91,40 @@ test.describe('consul KV store', () => {
     await expect(kvListPage.row(key)).toHaveCount(0)
   })
 
+  test('value editor has a code mode toggle that preserves content', async ({
+    page,
+    kvEditorPage,
+    consulApi,
+    cleanup,
+  }) => {
+    const key = `e2e-kv-code/${uniqueName('toggle')}`
+    const value = 'app:\n  name: e2e\n  env: test\n'
+    cleanup.push(() => deleteKV(consulApi, key).then(() => undefined))
+
+    await switchToConsul(page)
+    await kvEditorPage.gotoCreate()
+
+    // Code mode is on by default (matching upstream Consul).
+    await expect(kvEditorPage.codeModeToggle).toBeChecked()
+    await expect(kvEditorPage.valueEditor).toBeVisible()
+    await expect(kvEditorPage.valueTextarea).toHaveCount(0)
+
+    await kvEditorPage.keyInput.fill(key)
+    await kvEditorPage.setValue(value)
+
+    // Switching to plain text must keep the same content and expose a textarea.
+    await kvEditorPage.codeModeToggle.uncheck()
+    await expect(kvEditorPage.valueTextarea).toBeVisible()
+    await expect(kvEditorPage.valueEditor).toHaveCount(0)
+    await expect(kvEditorPage.valueTextarea).toHaveValue(value)
+
+    // ...and saving from plain-text mode persists it.
+    await kvEditorPage.saveButton.click()
+    await expect(page).toHaveURL(/\/consul\/kv/, { timeout: 10_000 })
+    const saved = await import('../helpers/consul-api').then((m) => m.getKV(consulApi, key))
+    expect(saved).toBe(value)
+  })
+
   test('entering a folder never re-creates a parent folder row', async ({
     page,
     kvListPage,
