@@ -33,3 +33,6 @@ blob-report/
 .idea/
 
 .trae/
+
+# WorkBuddy local working memory (not project source)
+.workbuddy/
