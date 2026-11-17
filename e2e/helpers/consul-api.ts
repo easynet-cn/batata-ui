@@ -54,7 +54,10 @@ export async function getKV(ctx: APIRequestContext, key: string): Promise<string
 }
 
 export async function listKV(ctx: APIRequestContext, prefix = ''): Promise<string[]> {
-  const res = await ctx.get('kv/', { params: { keys: '', ...(prefix ? { prefix } : {}) } })
+  // Consul lists by prefix in the URL path, not a `prefix` query parameter.
+  // The console backend follows the same contract (wildcard route `{key:.*}`)
+  // and ignores `?prefix=`. separator='/' folds one directory level.
+  const res = await ctx.get(`kv/${prefix}`, { params: { keys: '', separator: '/' } })
   if (!res.ok()) return []
   return (await res.json()) as string[]
 }

@@ -99,9 +99,14 @@ class ConsulApi {
   // KV Store API
   // ============================================
 
+  // Consul lists keys by prefix in the URL path (GET /v1/kv/<prefix>?keys),
+  // not via a `prefix` query parameter. The console backend follows the same
+  // contract: get_kv() reads the prefix from the wildcard route `{key:.*}` and
+  // ignores `?prefix=`. Pass `separator` to fold each directory level server
+  // side, matching upstream Consul's `?keys&separator=/`.
   async listKVKeys(prefix?: string, separator?: string) {
-    return this.instance.get<string[]>('/kv/', {
-      params: { keys: '', prefix, separator },
+    return this.instance.get<string[]>(`/kv/${prefix || ''}`, {
+      params: { keys: '', ...(separator ? { separator } : {}) },
     })
   }
 

@@ -279,22 +279,31 @@ function truncate(str: string, maxLen: number = 100): string {
   return str.slice(0, maxLen) + '...'
 }
 
-// Build display items from keys
+// Build display items from the key list returned by the backend.
+//
+// The backend folds one directory level with `separator='/'`, so the response
+// already contains only direct children of `currentPrefix`: folder entries end
+// with '/', leaves are full keys. We no longer synthesize folder rows from a
+// flat key list — that logic appended an unrelated parent segment to the
+// current prefix and produced an endlessly clickable parent-folder row.
 const displayItems = computed<DisplayItem[]>(() => {
   const prefix = currentPrefix.value
   const items: DisplayItem[] = []
-  const seenFolders = new Set<string>()
 
   for (const key of kvKeys.value) {
-    // Remove current prefix from key for relative display
-    const relative = key.startsWith(prefix) ? key.slice(prefix.length) : key
+    // Defensive: ignore anything outside the current prefix. Even if a server
+    // returned a broader list, a sibling key must never become a child folder.
+    if (prefix && !key.startsWith(prefix)) continue
+
+    const relative = prefix ? key.slice(prefix.length) : key
+
     if (relative === '') {
-      // Exact-match leaf (key === prefix): still display it as a regular key
-      // so a search for the full leaf key returns its row.
+      if (key.endsWith('/')) continue // the folder entry itself, not a child
+      // Exact-match leaf search (prefix === full key): keep its row visible.
       const detail = kvDetails.value.get(key)
       const decoded = decodeBase64(detail?.Value ?? null)
       items.push({
-        key: key,
+        key,
         fullKey: key,
         displayKey: key,
         isFolder: false,
@@ -305,51 +314,49 @@ const displayItems = computed<DisplayItem[]>(() => {
       continue
     }
 
-    // Check if this key is a folder (has further segments)
-    const slashIndex = relative.indexOf('/')
-    if (slashIndex !== -1 && slashIndex < relative.length - 1) {
-      // It's inside a subfolder
-      const folderName = relative.slice(0, slashIndex + 1)
-      if (!seenFolders.has(folderName)) {
-        seenFolders.add(folderName)
-        items.push({
-          key: folderName,
-          fullKey: prefix + folderName,
-          displayKey: folderName,
-          isFolder: true,
-          decodedValue: '',
-          flags: 0,
-          modifyIndex: 0,
-        })
-      }
-    } else if (relative.endsWith('/')) {
-      // Folder itself
-      if (!seenFolders.has(relative)) {
-        seenFolders.add(relative)
-        items.push({
-          key: relative,
-          fullKey: key,
-          displayKey: relative,
-          isFolder: true,
-          decodedValue: '',
-          flags: 0,
-          modifyIndex: 0,
-        })
-      }
-    } else {
-      // Regular key
-      const detail = kvDetails.value.get(key)
-      const decoded = decodeBase64(detail?.Value ?? null)
+    if (relative === '/') {
+      // Searching a directory prefix without a trailing slash folds to
+      // `<prefix>/`. Show a single folder so the user can step into it.
+      const segments = prefix.replace(/\/$/, '').split('/')
+      const displayKey = (segments[segments.length - 1] || prefix) + '/'
+      items.push({
+        key: relative,
+        fullKey: key,
+        displayKey,
+        isFolder: true,
+        decodedValue: '',
+        flags: 0,
+        modifyIndex: 0,
+      })
+      continue
+    }
+
+    if (relative.endsWith('/')) {
+      // Folder already folded by the backend separator='/'.
       items.push({
         key: relative,
         fullKey: key,
         displayKey: relative,
-        isFolder: false,
-        decodedValue: truncate(decoded),
-        flags: detail?.Flags ?? 0,
-        modifyIndex: detail?.ModifyIndex ?? 0,
+        isFolder: true,
+        decodedValue: '',
+        flags: 0,
+        modifyIndex: 0,
       })
+      continue
     }
+
+    // Regular leaf under the current prefix.
+    const detail = kvDetails.value.get(key)
+    const decoded = decodeBase64(detail?.Value ?? null)
+    items.push({
+      key: relative,
+      fullKey: key,
+      displayKey: relative,
+      isFolder: false,
+      decodedValue: truncate(decoded),
+      flags: detail?.Flags ?? 0,
+      modifyIndex: detail?.ModifyIndex ?? 0,
+    })
   }
 
   // Sort: folders first, then alphabetical
@@ -387,8 +394,10 @@ async function fetchKeys() {
   loading.value = true
   try {
     const prefix = currentPrefix.value || undefined
-    // Don't use separator to get all keys, then build folder structure locally
-    const response = await consulApi.listKVKeys(prefix)
+    // Ask the backend to fold one directory level with separator='/'. This is
+    // the upstream Consul contract (GET /v1/kv/<prefix>?keys&separator=/) and
+    // keeps each folder row scoped to the current prefix.
+    const response = await consulApi.listKVKeys(prefix, '/')
     kvKeys.value = response.data || []
 
     // Fetch details for non-folder keys

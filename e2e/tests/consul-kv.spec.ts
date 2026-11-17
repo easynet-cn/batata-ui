@@ -91,6 +91,44 @@ test.describe('consul KV store', () => {
     await expect(kvListPage.row(key)).toHaveCount(0)
   })
 
+  test('entering a folder never re-creates a parent folder row', async ({
+    page,
+    kvListPage,
+    consulApi,
+    cleanup,
+  }) => {
+    // Reproduces the reported "can keep clicking forever" bug: a sibling key
+    // outside the current prefix used to be folded into a bogus parent folder
+    // whose fullKey was `<prefix>/<parent>/`, so every click appended the parent
+    // again. With prefix-in-path + server-side folding, only real children are
+    // returned and rendered.
+    const root = `e2e-kv-loop/${uniqueName('nav')}`
+    const sibling = `${root}/sibling.txt`
+    const subFolder = `${root}/sub`
+    const leaf = `${subFolder}/leaf.txt`
+
+    expect(await putKV(consulApi, sibling, 'sibling')).toBeTruthy()
+    expect(await putKV(consulApi, leaf, 'leaf')).toBeTruthy()
+    cleanup.push(() => deleteKV(consulApi, root).then(() => undefined))
+
+    await switchToConsul(page)
+    await kvListPage.goto()
+
+    // Navigate into the `sub/` folder via search with a trailing slash.
+    await kvListPage.search(`${subFolder}/`)
+
+    // The real leaf is shown and no synthetic parent folder reappears.
+    await expect(kvListPage.row('leaf.txt')).toBeVisible()
+    await expect(kvListPage.row('sibling.txt')).toHaveCount(0)
+    await expect(kvListPage.row('e2e-kv-loop/')).toHaveCount(0)
+    await expect(kvListPage.row('sub/')).toHaveCount(0)
+
+    // The breadcrumb reflects exactly the entered prefix: the root folder
+    // segment appears once, never appended repeatedly down the path.
+    const rootSegments = kvListPage.page.locator('button').filter({ hasText: /^e2e-kv-loop$/ })
+    await expect(rootSegments).toHaveCount(1)
+  })
+
   test('KV list shows breadcrumb navigation', async ({ page, kvListPage, consulApi, cleanup }) => {
     const folder = `e2e-folder/${uniqueName('bc')}`
     const key = `${folder}/child`
