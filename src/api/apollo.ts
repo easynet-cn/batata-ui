@@ -70,6 +70,15 @@ export interface ApolloSystemInfoDTO {
   }[]
 }
 
+/** Response of the public Portal login endpoint (username/password -> PAT). */
+export interface ApolloLoginResponse {
+  tokenValue: string
+  userId?: string
+  username?: string
+  authType?: string
+  authorities?: string[]
+}
+
 class ApolloApi {
   private instance: AxiosInstance
 
@@ -97,6 +106,16 @@ class ApolloApi {
         return Promise.reject(error)
       },
     )
+  }
+
+  // ---------------- Auth ----------------
+  /**
+   * Public Portal login: exchanges username/password for a PAT. The endpoint
+   * is intentionally unwrapped by the backend auth middleware, so no
+   * X-Apollo-Token is needed (a stale one in storage is simply ignored).
+   */
+  login(username: string, password: string): Promise<ApolloLoginResponse> {
+    return this.instance.post('/user/login', { username, password }).then((r) => r.data)
   }
 
   // ---------------- Apps ----------------

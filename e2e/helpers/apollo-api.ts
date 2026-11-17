@@ -9,10 +9,27 @@ export type { APIRequestContext }
 // `/apollo-api/openapi/v1/`. Keep both halves in sync.
 export const APOLLO_BASE = `${process.env.E2E_BASE_URL || 'http://localhost:8081'}/apollo-api/openapi/v1/`
 
+/** Public Portal login: exchange username/password for an upstream-style PAT. */
+export async function apolloLogin(
+  ctx: APIRequestContext,
+  username: string,
+  password: string,
+): Promise<{ tokenValue: string; userId?: string; username?: string; authType?: string } | null> {
+  const res = await ctx.post('user/login', { data: { username, password } })
+  if (!res.ok()) return null
+  return (await res.json()) as {
+    tokenValue: string
+    userId?: string
+    username?: string
+    authType?: string
+  }
+}
+
 /**
  * Create an Apollo API request context.
  * The batata-plugin-apollo OpenAPI server does not enforce an Authorization
- * header, so no token is required by default.
+ * header by default. When it does, obtain a PAT via apolloLogin() and pass it
+ * as `X-Apollo-Token` in extraHTTPHeaders.
  */
 export async function apolloApiRequest(): Promise<APIRequestContext> {
   return pwRequest.newContext({

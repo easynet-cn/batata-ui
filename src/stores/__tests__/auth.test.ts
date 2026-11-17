@@ -8,6 +8,13 @@ vi.mock('@/api/batata', () => ({
   },
 }))
 
+vi.mock('@/api/apollo', () => ({
+  default: {
+    login: vi.fn(),
+    listApps: vi.fn(),
+  },
+}))
+
 vi.mock('@/composables/useStorage', () => ({
   storage: {
     get: vi.fn(),
@@ -41,6 +48,7 @@ vi.mock('@/config', () => ({
 }))
 
 import batataApi from '@/api/batata'
+import apolloApi from '@/api/apollo'
 import { storage } from '@/composables/useStorage'
 
 describe('auth store', () => {
@@ -138,6 +146,87 @@ describe('auth store', () => {
       await promise
 
       expect(store.loading).toBe(false)
+    })
+  })
+
+  describe('Apollo credential login', () => {
+    it('exchanges username/password for a PAT and stores it as the Apollo session', async () => {
+      vi.mocked(apolloApi.login).mockResolvedValue({
+        tokenValue: 'apollo_pat_e2e_secret',
+        userId: 'apollo-admin',
+        username: 'apollo-admin',
+        authType: 'USER_TOKEN',
+      })
+      vi.mocked(storage.get).mockImplementation((key: string) =>
+        key === 'batata_provider' ? 'apollo' : null,
+      )
+      const store = useAuthStore()
+
+      const result = await store.loginWithApolloCredentials('apollo-admin', 'secret')
+
+      expect(result).toBe(true)
+      expect(apolloApi.login).toHaveBeenCalledWith('apollo-admin', 'secret')
+      expect(store.currentUser).toEqual({
+        username: 'apollo-admin',
+        token: 'apollo_pat_e2e_secret',
+        globalAdmin: true,
+      })
+      expect(storage.set).toHaveBeenCalledWith('apollo-token', 'apollo_pat_e2e_secret')
+      expect(storage.set).toHaveBeenCalledWith('apollo_user', 'apollo-admin')
+      expect(store.loading).toBe(false)
+      expect(store.error).toBeNull()
+    })
+
+    it('falls back to the entered username when the response omits identity fields', async () => {
+      vi.mocked(apolloApi.login).mockResolvedValue({ tokenValue: 'apollo_pat_only' })
+      const store = useAuthStore()
+
+      await store.loginWithApolloCredentials('fallback-user', 'secret')
+
+      expect(store.currentUser?.username).toBe('fallback-user')
+      expect(storage.set).toHaveBeenCalledWith('apollo_user', 'fallback-user')
+    })
+
+    it('rejects a response without tokenValue', async () => {
+      vi.mocked(apolloApi.login).mockResolvedValue({} as never)
+      const store = useAuthStore()
+
+      const result = await store.loginWithApolloCredentials('apollo', 'secret')
+
+      expect(result).toBe(false)
+      expect(store.currentUser).toBeNull()
+      expect(store.error).toBe('Invalid Apollo credentials')
+      expect(storage.set).not.toHaveBeenCalled()
+    })
+
+    it('surfaces backend errors and keeps the Apollo session untouched', async () => {
+      vi.mocked(apolloApi.login).mockRejectedValue(new Error('Invalid username or password'))
+      const store = useAuthStore()
+
+      const result = await store.loginWithApolloCredentials('apollo', 'wrong')
+
+      expect(result).toBe(false)
+      expect(store.error).toBe('Invalid username or password')
+      expect(store.currentUser).toBeNull()
+      expect(storage.set).not.toHaveBeenCalled()
+      expect(store.loading).toBe(false)
+    })
+
+    it('clears only the Apollo signed-out marker on success', async () => {
+      vi.mocked(apolloApi.login).mockResolvedValue({
+        tokenValue: 'apollo_pat_ok',
+        userId: 'apollo',
+      })
+      vi.mocked(storage.get).mockImplementation((key: string) =>
+        key === 'batata_signed_out_providers' ? 'consul,apollo' : null,
+      )
+      const store = useAuthStore()
+
+      await store.loginWithApolloCredentials('apollo', 'apollo')
+
+      expect(store.isProviderSignedOut('apollo')).toBe(false)
+      expect(store.isProviderSignedOut('consul')).toBe(true)
+      expect(storage.set).toHaveBeenCalledWith('batata_signed_out_providers', 'consul')
     })
   })
 

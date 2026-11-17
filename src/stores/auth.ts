@@ -180,6 +180,39 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /**
+   * Portal-style login: exchange username/password for a PAT via the public
+   * /user/login endpoint. The returned tokenValue becomes the Apollo token used
+   * by every subsequent open-api request; the username comes from the server
+   * response so a non-default account is displayed correctly.
+   */
+  async function loginWithApolloCredentials(username: string, password: string): Promise<boolean> {
+    try {
+      loading.value = true
+      error.value = null
+      const response = await apolloApi.login(username, password)
+      if (!response?.tokenValue) {
+        error.value = 'Invalid Apollo credentials'
+        return false
+      }
+      const resolvedUsername = response.userId || response.username || username
+      currentUser.value = {
+        username: resolvedUsername,
+        token: response.tokenValue,
+        globalAdmin: true,
+      }
+      storage.set(config.storage.apolloTokenKey, response.tokenValue)
+      storage.set(APOLLO_USER_KEY, resolvedUsername)
+      clearSignedOut('apollo')
+      return true
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Invalid Apollo credentials'
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function loginWithApolloToken(token: string, username = 'apollo'): Promise<boolean> {
     try {
       loading.value = true
@@ -335,6 +368,7 @@ export const useAuthStore = defineStore('auth', () => {
     restoreSession,
     login,
     loginWithToken,
+    loginWithApolloCredentials,
     loginWithApolloToken,
     loginWithOIDC,
     completeOIDCLogin,
