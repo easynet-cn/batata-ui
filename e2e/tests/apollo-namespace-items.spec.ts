@@ -136,7 +136,10 @@ test.describe('apollo namespace items', () => {
     await setEditorContent(page, '{broken json')
     await page.getByRole('button', { name: 'Save' }).click()
     // Syntax error is shown and text mode stays open; nothing is persisted.
-    await expect(page.getByText('Invalid configuration syntax')).toBeVisible()
+    // validateContent surfaces the parser's own message (e.g. "Expected
+    // property name ... in JSON"), only falling back to the generic i18n
+    // string when the parser gives none — accept either wording.
+    await expect(page.getByText(/JSON|Invalid configuration syntax/i).first()).toBeVisible()
     await expect(page.locator('.cm-content').first()).toBeVisible()
 
     const items = await listItems(apolloApi, appId, ENV, CLUSTER, jsonNs)

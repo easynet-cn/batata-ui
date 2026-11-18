@@ -161,8 +161,13 @@ test.describe('login page provider switch', () => {
   })
 
   test('signing out of Consul keeps the batata session for direct re-entry', async ({ page }) => {
-    // Seed a live batata session plus a Consul token session.
+    // Seed a live batata session plus a Consul token session. addInitScript
+    // re-runs on every document navigation (including the router-driven reload
+    // when switching providers), so guard it to seed only once — otherwise it
+    // restores consul-token/provider after sign-out and undoes the switch.
     await page.addInitScript(() => {
+      if (sessionStorage.getItem('e2e_seeded')) return
+      sessionStorage.setItem('e2e_seeded', '1')
       localStorage.setItem('batata_lang', 'en')
       localStorage.setItem('batata_provider', 'consul')
       localStorage.setItem('batata-token', 'batata-secret-token')
@@ -173,6 +178,13 @@ test.describe('login page provider switch', () => {
       localStorage.removeItem('apollo-token')
       localStorage.removeItem('batata_signed_out_providers')
     })
+    // Catch-all for batata APIs first: the seeded batata token is a fixture
+    // value, so real /v3 calls would 401 and the expired-token interceptor
+    // would wipe it on entering the dashboard. More specific routes below are
+    // registered later and therefore take precedence.
+    await page.route('**/v3/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
+    )
     await page.route('**/v3/console/server/state', (route) =>
       route.fulfill({
         status: 200,
@@ -199,13 +211,15 @@ test.describe('login page provider switch', () => {
     await page.getByRole('button', { name: 'Sign Out' }).click()
     await expect(page).toHaveURL(/\/login/, { timeout: 10_000 })
 
-    // Batata credentials must be untouched.
+    // Batata credentials must be untouched; only the Consul token is gone.
     expect(await page.evaluate(() => localStorage.getItem('batata-token'))).toBe(
       'batata-secret-token',
     )
     expect(await page.evaluate(() => localStorage.getItem('consul-token'))).toBeNull()
 
     // Switching to Batata enters directly — no username/password prompt.
+    // The standalone /login page has its own provider switcher (not the layout
+    // header), so target it without a header scope.
     await page.getByRole('button', { name: 'BATATA' }).click()
     await expect(page).toHaveURL(/\/$/, { timeout: 10_000 })
     await expect(page.getByRole('heading', { name: 'Welcome Back' })).toHaveCount(0)

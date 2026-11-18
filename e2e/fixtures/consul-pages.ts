@@ -130,7 +130,10 @@ export class KVEditorPage {
       await this.flagsInput.fill(String(flags))
     }
     await this.saveButton.click()
-    await expect(this.page).toHaveURL(/\/consul\/kv/, { timeout: 10_000 })
+    // Anchor to the list URL: a loose /\/consul\/kv/ also matches /consul/kv/editor,
+    // so it resolved before the save navigation completed and left later reads
+    // racing the Raft commit. Wait for the list page itself.
+    await expect(this.page).toHaveURL(/\/consul\/kv$/, { timeout: 10_000 })
   }
 }
 

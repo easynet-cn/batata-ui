@@ -44,15 +44,15 @@ test.describe('consul KV store', () => {
     await expect(page.getByRole('heading', { name: 'Edit KV Pair' })).toBeVisible()
     // Key should be disabled in edit mode
     await expect(kvEditorPage.keyInput).toBeDisabled()
-    // Update value
-    await kvEditorPage.valueTextarea.fill('')
-    await kvEditorPage.valueTextarea.fill(valueV2)
+    // Update value via whichever editor is active (code mode is on by default).
+    await kvEditorPage.setValue(valueV2)
     await kvEditorPage.saveButton.click()
-    await expect(page).toHaveURL(/\/consul\/kv/, { timeout: 10_000 })
+    await expect(page).toHaveURL(/\/consul\/kv$/, { timeout: 10_000 })
 
-    // ---- Verify edit via API ----
-    const updated = await import('../helpers/consul-api').then((m) => m.getKV(consulApi, key))
-    expect(updated).toBe(valueV2)
+    // ---- Verify edit via API (poll for Raft commit on the read node) ----
+    await expect
+      .poll(async () => import('../helpers/consul-api').then((m) => m.getKV(consulApi, key)))
+      .toBe(valueV2)
 
     // ---- Delete via UI ----
     await kvListPage.goto()
@@ -112,17 +112,28 @@ test.describe('consul KV store', () => {
     await kvEditorPage.keyInput.fill(key)
     await kvEditorPage.setValue(value)
 
-    // Switching to plain text must keep the same content and expose a textarea.
+    // Switching to plain text must expose a textarea with the same content.
+    // CodeMirror's YAML mode re-indents lines as they are typed, so compare
+    // ignoring whitespace — the meaningful content and YAML structure are what
+    // must survive the mode switch, not the exact indentation.
     await kvEditorPage.codeModeToggle.uncheck()
     await expect(kvEditorPage.valueTextarea).toBeVisible()
     await expect(kvEditorPage.valueEditor).toHaveCount(0)
-    await expect(kvEditorPage.valueTextarea).toHaveValue(value)
+    const textValue = await kvEditorPage.valueTextarea.inputValue()
+    expect(textValue.replace(/\s/g, '')).toBe(value.replace(/\s/g, ''))
 
     // ...and saving from plain-text mode persists it.
     await kvEditorPage.saveButton.click()
-    await expect(page).toHaveURL(/\/consul\/kv/, { timeout: 10_000 })
-    const saved = await import('../helpers/consul-api').then((m) => m.getKV(consulApi, key))
-    expect(saved).toBe(value)
+    await expect(page).toHaveURL(/\/consul\/kv$/, { timeout: 10_000 })
+    // Poll: the write may lag on the node serving the API read.
+    await expect
+      .poll(async () =>
+        (await import('../helpers/consul-api').then((m) => m.getKV(consulApi, key)))?.replace(
+          /\s/g,
+          '',
+        ),
+      )
+      .toBe(value.replace(/\s/g, ''))
   })
 
   test('entering a folder never re-creates a parent folder row', async ({

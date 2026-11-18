@@ -19,9 +19,12 @@ test.describe('apollo apps', () => {
     await createDialog.getByRole('button', { name: 'Create', exact: true }).click()
     cleanup.push(() => deleteApp(apolloApi, appId).then(() => undefined))
 
-    // Verify via API
-    const apps = await listApps(apolloApi)
-    expect(apps.some((a) => a.appId === appId)).toBeTruthy()
+    // Verify via API. The UI create resolves before Raft has committed the
+    // write on every node, so a single immediate read can miss it; poll until
+    // the new app appears (bounded by the default expect timeout).
+    await expect
+      .poll(async () => (await listApps(apolloApi)).some((a) => a.appId === appId))
+      .toBeTruthy()
 
     // Verify in UI list
     await page.getByPlaceholder(/app name/i).fill(appId)

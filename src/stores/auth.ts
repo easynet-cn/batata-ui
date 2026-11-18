@@ -213,25 +213,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function loginWithApolloToken(token: string, username = 'apollo'): Promise<boolean> {
-    try {
-      loading.value = true
-      error.value = null
-      // Validate the Apollo token by calling a lightweight open-api endpoint
-      await apolloApi.listApps()
-      currentUser.value = { username, token, globalAdmin: true }
-      storage.set(config.storage.apolloTokenKey, token)
-      storage.set(APOLLO_USER_KEY, username)
-      clearSignedOut('apollo')
-      return true
-    } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Invalid Apollo Token'
-      return false
-    } finally {
-      loading.value = false
-    }
-  }
-
   async function loginWithOIDC(authMethod: string, redirectURI: string): Promise<string | null> {
     try {
       loading.value = true
@@ -369,7 +350,6 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     loginWithToken,
     loginWithApolloCredentials,
-    loginWithApolloToken,
     loginWithOIDC,
     completeOIDCLogin,
     setConsulAclEnabled,

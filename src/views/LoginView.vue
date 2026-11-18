@@ -215,98 +215,54 @@
           </template>
         </div>
 
-        <!-- Apollo Portal: username/password (default) or an existing PAT -->
-        <template v-else-if="isApollo">
-          <div class="flex rounded-xl bg-gray-100 dark:bg-gray-800 p-1">
-            <button
-              type="button"
-              @click="apolloLoginTab = 'password'"
-              :class="[
-                'flex-1 py-2.5 text-sm font-bold rounded-lg transition-all',
-                apolloLoginTab === 'password'
-                  ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
-              ]"
-            >
-              {{ t('apolloPasswordLogin') }}
-            </button>
-            <button
-              type="button"
-              @click="apolloLoginTab = 'token'"
-              :class="[
-                'flex-1 py-2.5 text-sm font-bold rounded-lg transition-all',
-                apolloLoginTab === 'token'
-                  ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
-              ]"
-            >
-              {{ t('apolloTokenLogin') }}
-            </button>
+        <!-- Apollo Portal: username/password only (upstream signin form has no token mode) -->
+        <form v-else-if="isApollo" @submit.prevent="handleSubmit" class="space-y-6">
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{
+              t('username')
+            }}</label>
+            <input
+              type="text"
+              v-model="apolloUsername"
+              :placeholder="t('loginUserPlaceholder')"
+              autocomplete="username"
+              class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-orange-500 dark:text-gray-100 outline-none transition-all text-sm"
+              required
+            />
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{
+              t('password')
+            }}</label>
+            <input
+              type="password"
+              v-model="apolloPassword"
+              :placeholder="t('loginPassPlaceholder')"
+              autocomplete="current-password"
+              class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-orange-500 dark:text-gray-100 outline-none transition-all text-sm"
+              required
+            />
           </div>
 
-          <form @submit.prevent="handleSubmit" class="space-y-6">
-            <template v-if="apolloLoginTab === 'password'">
-              <div class="space-y-1">
-                <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{
-                  t('username')
-                }}</label>
-                <input
-                  type="text"
-                  v-model="apolloUsername"
-                  :placeholder="t('loginUserPlaceholder')"
-                  autocomplete="username"
-                  class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-orange-500 dark:text-gray-100 outline-none transition-all text-sm"
-                  required
-                />
-              </div>
-              <div class="space-y-1">
-                <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{
-                  t('password')
-                }}</label>
-                <input
-                  type="password"
-                  v-model="apolloPassword"
-                  :placeholder="t('loginPassPlaceholder')"
-                  autocomplete="current-password"
-                  class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-orange-500 dark:text-gray-100 outline-none transition-all text-sm"
-                  required
-                />
-              </div>
-            </template>
-            <div v-else class="space-y-1">
-              <label class="text-xs font-bold text-gray-400 uppercase ml-1">{{
-                t('apolloAclToken')
-              }}</label>
-              <input
-                type="password"
-                v-model="apolloToken"
-                :placeholder="t('apolloTokenPlaceholder')"
-                autocomplete="off"
-                class="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-orange-500 dark:text-gray-100 outline-none transition-all text-sm"
-                required
+          <div v-if="loginError" class="text-red-500 dark:text-red-400 text-sm text-center">
+            {{ loginError }}
+          </div>
+
+          <button
+            type="submit"
+            :disabled="isLoading"
+            class="w-full text-white py-4 rounded-xl font-bold text-lg transition-all shadow-xl active:scale-95 transform disabled:opacity-70 disabled:cursor-not-allowed bg-orange-500 hover:bg-orange-600 shadow-orange-500/20"
+          >
+            <template v-if="isLoading">
+              <div
+                class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"
               />
-            </div>
-
-            <div v-if="loginError" class="text-red-500 dark:text-red-400 text-sm text-center">
-              {{ loginError }}
-            </div>
-
-            <button
-              type="submit"
-              :disabled="isLoading"
-              class="w-full text-white py-4 rounded-xl font-bold text-lg transition-all shadow-xl active:scale-95 transform disabled:opacity-70 disabled:cursor-not-allowed bg-orange-500 hover:bg-orange-600 shadow-orange-500/20"
-            >
-              <template v-if="isLoading">
-                <div
-                  class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"
-                />
-              </template>
-              <template v-else>
-                {{ t('signIn') }}
-              </template>
-            </button>
-          </form>
-        </template>
+            </template>
+            <template v-else>
+              {{ t('signIn') }}
+            </template>
+          </button>
+        </form>
 
         <!-- Consul: signed out of anonymous access -->
         <div v-else-if="isConsulSignedOut" class="text-center space-y-3 py-2">
@@ -421,15 +377,10 @@ const {
 const username = ref('')
 const password = ref('')
 const consulToken = ref('')
-const apolloToken = ref('')
 const apolloUsername = ref('')
 const apolloPassword = ref('')
 const isLoading = ref(false)
 const loginError = ref('')
-
-// Provider-specific login modes. Apollo defaults to Portal username/password
-// (matching the backend /user/login endpoint); Token keeps direct PAT entry.
-const apolloLoginTab = ref<'password' | 'token'>('password')
 
 // SSO / OIDC state
 const consulLoginTab = ref<'token' | 'sso'>('token')
@@ -533,19 +484,15 @@ const handleSubmit = async () => {
   loginError.value = ''
   try {
     if (isApollo.value) {
-      // Apollo Portal login (username/password -> PAT), or direct PAT entry.
-      const success =
-        apolloLoginTab.value === 'password'
-          ? await authStore.loginWithApolloCredentials(apolloUsername.value, apolloPassword.value)
-          : await authStore.loginWithApolloToken(apolloToken.value)
+      // Apollo Portal login: exchange username/password for a PAT via /user/login.
+      const success = await authStore.loginWithApolloCredentials(
+        apolloUsername.value,
+        apolloPassword.value,
+      )
       if (success) {
         router.push('/apollo/apps')
       } else {
-        loginError.value =
-          authStore.error ||
-          (apolloLoginTab.value === 'password'
-            ? t('apolloLoginFailed')
-            : t('apolloTokenLoginFailed'))
+        loginError.value = authStore.error || t('apolloLoginFailed')
       }
     } else if (isConsulAcl.value) {
       // Consul ACL token login
@@ -566,9 +513,7 @@ const handleSubmit = async () => {
     }
   } catch {
     loginError.value = isApollo.value
-      ? apolloLoginTab.value === 'password'
-        ? t('apolloLoginFailed')
-        : t('apolloTokenLoginFailed')
+      ? t('apolloLoginFailed')
       : isConsulAcl.value
         ? t('consulTokenLoginFailed')
         : t('loginFailed')
@@ -615,10 +560,8 @@ async function switchTo(p: ProviderType) {
   username.value = ''
   password.value = ''
   consulToken.value = ''
-  apolloToken.value = ''
   apolloUsername.value = ''
   apolloPassword.value = ''
-  apolloLoginTab.value = 'password'
   consulLoginTab.value = 'token'
   if (p === 'consul' && authStore.consulAclEnabled && oidcProviders.value.length === 0) {
     await fetchOidcProviders()
