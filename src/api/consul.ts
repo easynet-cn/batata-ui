@@ -377,7 +377,7 @@ class ConsulApi {
   }
 
   async getBindingRule(id: string) {
-    return this.instance.get<ConsulACLBindingRule>(`/acl/binding-rules/${id}`)
+    return this.instance.get<ConsulACLBindingRule>(`/acl/binding-rule/${id}`)
   }
 
   async createBindingRule(data: {
@@ -387,7 +387,7 @@ class ConsulApi {
     BindType: string
     BindName: string
   }) {
-    return this.instance.put<ConsulACLBindingRule>('/acl/binding-rules', data)
+    return this.instance.put<ConsulACLBindingRule>('/acl/binding-rule', data)
   }
 
   async updateBindingRule(
@@ -399,11 +399,11 @@ class ConsulApi {
       BindName: string
     },
   ) {
-    return this.instance.put<ConsulACLBindingRule>(`/acl/binding-rules/${id}`, data)
+    return this.instance.put<ConsulACLBindingRule>(`/acl/binding-rule/${id}`, data)
   }
 
   async deleteBindingRule(id: string) {
-    return this.instance.delete(`/acl/binding-rules/${id}`)
+    return this.instance.delete(`/acl/binding-rule/${id}`)
   }
 
   // ============================================
@@ -419,7 +419,7 @@ class ConsulApi {
   }
 
   async generatePeeringToken(name: string, meta?: Record<string, string>) {
-    return this.instance.post<ConsulPeeringTokenResponse>('/peering/token/generate', {
+    return this.instance.post<ConsulPeeringTokenResponse>('/peering/token', {
       PeerName: name,
       Meta: meta,
     })

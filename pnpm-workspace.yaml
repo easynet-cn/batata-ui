@@ -1,4 +1,4 @@
-minimumReleaseAgeExclude: [ '@lucide/vue@1.74.0' ]
+minimumReleaseAgeExclude: []
 minimumReleaseAgeExcludePrune: true
 
 overrides:
