@@ -1,16 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <!-- Shield body - outer (orange border) -->
-  <path d="M256 72c0 0-120 32-168 32v176c0 88 168 160 168 160s168-72 168-160V104C376 104 256 72 256 72z" fill="#F5A623" stroke="#E8961E" stroke-width="4"/>
-
-  <!-- Shield body - inner (dark fill) -->
-  <path d="M256 100c0 0-100 28-140 28v152c0 72 140 132 140 132s140-60 140-132V128C356 128 256 100 256 100z" fill="#5C5144"/>
-
-  <!-- Config lines (white rounded bars) -->
-  <rect x="186" y="190" width="140" height="22" rx="11" fill="#ffffff"/>
-  <rect x="186" y="232" width="140" height="22" rx="11" fill="#ffffff"/>
-  <rect x="186" y="274" width="140" height="22" rx="11" fill="#ffffff"/>
-
-  <!-- Checkmark circle (green) -->
-  <circle cx="370" cy="350" r="40" fill="#2ECC71"/>
-  <path d="M350 350l14 14 28-28" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512" fill="none">
+  <title>Batata Logo Mark</title>
+  <defs>
+    <linearGradient id="batata-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EA580C" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+  </defs>
+  <path d="M 50 4 C 86 4, 96 14, 96 50 C 96 86, 86 96, 50 96 C 14 96, 4 86, 4 50 C 4 14, 14 4, 50 4 Z" fill="#FFF7ED" stroke="#EA580C" stroke-opacity="0.22" stroke-width="1.5" />
+  <g transform="translate(50 50) rotate(0) scale(0.720) translate(-50 -50)">
+    <path d="M 64 20 C 66 12, 74 9, 80 12 C 77 18, 70 21, 64 20 Z" fill="#F59E0B" stroke="none" stroke-width="2.8" stroke-linejoin="round" />
+    <path d="M 23 63.81 C 16 42.54, 30 22, 55 19 C 73 17, 83 28, 80 44 C 77 65, 58 82, 37 81 C 27 80, 25 73, 23 63.81 Z" fill="url(#batata-grad)" stroke="none" stroke-width="2.8" stroke-linejoin="round" />
+    <path d="M 41 43 L 61 42 L 48 61 Z" fill="none" stroke="#FFFFFF" stroke-width="2.18" stroke-linecap="round" stroke-linejoin="round" opacity="0.92" />
+    <line x1="41" y1="43" x2="29" y2="54" stroke="#FFFFFF" stroke-width="1.82" stroke-linecap="round" opacity="0.7" />
+    <line x1="61" y1="42" x2="72" y2="34" stroke="#FFFFFF" stroke-width="1.82" stroke-linecap="round" opacity="0.7" />
+    <circle cx="41" cy="43" r="4.5" fill="#FFFFFF" />
+    <circle cx="61" cy="42" r="4.5" fill="#FFFFFF" />
+    <circle cx="48" cy="61" r="4.5" fill="#FFFFFF" />
+    <circle cx="41" cy="43" r="2.1" fill="#F59E0B" />
+    <circle cx="61" cy="42" r="2.1" fill="#EA580C" />
+    <circle cx="48" cy="61" r="2.1" fill="#F59E0B" />
+  </g>
 </svg>
